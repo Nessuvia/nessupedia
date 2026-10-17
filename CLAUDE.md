@@ -24,6 +24,7 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 - `npm run build`: typecheck and production build
 - `npm run typecheck`: vue-tsc only
 - `npm test`: Vitest once
+- `node .claude/skills/browse/browse.mjs`: view and drive the app in headless Firefox; see the `browse` skill
 
 ## Layout
 
