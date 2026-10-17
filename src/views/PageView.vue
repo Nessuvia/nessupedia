@@ -1,19 +1,15 @@
 <script setup lang="ts">
-import type { Root } from "mdast";
 import { storeToRefs } from "pinia";
-import { computed, nextTick, watch, watchEffect } from "vue";
+import { computed, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import TableOfContents from "@/components/TableOfContents.vue";
+import AppIcon from "@/components/AppIcon.vue";
+import PageContent from "@/components/PageContent.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
-import { headingId, parseMarkdown, renderMarkdown, type RenderOptions } from "@/markdown/pipeline";
-import { buildToc } from "@/markdown/toc";
 import { titleKey } from "@/markdown/wikilinks";
 import { pageService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
 const props = defineProps<{ wikiId: string; title: string }>();
-
-const TOC_MIN_HEADINGS = 3;
 
 const route = useRoute();
 const router = useRouter();
@@ -23,33 +19,6 @@ const page = useLiveQuery(
   async ([wikiId, title]) => (await pageService.getByTitle(wikiId, title)) ?? null,
   () => [props.wikiId, props.title] as const,
 );
-const pages = useLiveQuery((wikiId) => pageService.listForWiki(wikiId), () => props.wikiId);
-
-const existingNames = computed(
-  () => new Set(pages.value?.flatMap((existing) => [existing.titleKey, ...existing.aliasKeys])),
-);
-
-// The lead renders above the table of contents, so the body splits at its first section heading.
-const rendered = computed(() => {
-  if (!page.value || !pages.value) return undefined;
-  const tree = parseMarkdown(page.value.body).tree;
-  const split = tree.children.findIndex((node) => node.type === "heading" && node.depth >= 2);
-  const at = split === -1 ? tree.children.length : split;
-  const exists = (title: string) => existingNames.value.has(titleKey(title));
-  const options: RenderOptions = {
-    pageExists: exists,
-    pageHref: (title, heading) =>
-      router.resolve(
-        exists(title)
-          ? { name: "page", params: { wikiId: props.wikiId, title }, hash: heading && `#${headingId(heading)}` }
-          : { name: "new-page", params: { wikiId: props.wikiId }, query: { title } },
-      ).href,
-  };
-  const part = (children: Root["children"]) => renderMarkdown({ ...tree, children }, options);
-  const lead = part(tree.children.slice(0, at));
-  const body = part(tree.children.slice(at));
-  return { lead: lead.html, body: body.html, toc: buildToc(body.headings) };
-});
 
 const redirectedFrom = computed(() => {
   void route.fullPath;
@@ -68,20 +37,6 @@ watch(page, (found) => {
   });
 });
 
-watch(rendered, async (now, before) => {
-  if (!now || before || !route.hash) return;
-  await nextTick();
-  document.getElementById(decodeURIComponent(route.hash.slice(1)))?.scrollIntoView();
-});
-
-function followLink(event: MouseEvent) {
-  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-  const link = (event.target as Element).closest<HTMLAnchorElement>("a.wikilink");
-  if (!link) return;
-  event.preventDefault();
-  void router.push(link.getAttribute("href")!);
-}
-
 watchEffect(() => {
   document.title = [page.value?.title ?? props.title, currentWiki.value?.name].filter(Boolean).join(" | ");
 });
@@ -91,13 +46,15 @@ watchEffect(() => {
   <article class="content-card">
     <header class="page-header">
       <h1 class="page-title">{{ page?.title ?? title }}</h1>
+      <div v-if="page" class="page-actions">
+        <RouterLink class="page-action" :to="{ name: 'edit-page', params: { wikiId, title: page.title } }">
+          <AppIcon name="edit" />
+          Edit
+        </RouterLink>
+      </div>
     </header>
     <p v-if="redirectedFrom && page" class="redirect-note">(Redirected from {{ redirectedFrom }})</p>
-    <div v-if="rendered" class="page-body" @click="followLink">
-      <div v-html="rendered.lead" />
-      <TableOfContents v-if="rendered.toc.length >= TOC_MIN_HEADINGS" :entries="rendered.toc" />
-      <div v-html="rendered.body" />
-    </div>
+    <PageContent v-if="page" :wiki-id="wikiId" :markdown="page.body" />
     <div v-else-if="page === null" class="missing">
       <p>This page doesn't exist yet.</p>
       <RouterLink class="create-button" :to="{ name: 'new-page', params: { wikiId }, query: { title } }">
@@ -119,6 +76,27 @@ watchEffect(() => {
 .page-title {
   margin: 0.25rem 0 0.5rem;
   border: 0;
+}
+
+.page-actions {
+  display: flex;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+}
+
+.page-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.page-action .icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .redirect-note {

@@ -36,7 +36,7 @@ async function create() {
   saveError.value = "";
   try {
     const page = await pageService.create({ wikiId: props.wikiId, title: title.value });
-    await router.push({ name: "page", params: { wikiId: props.wikiId, title: page.title } });
+    await router.push({ name: "edit-page", params: { wikiId: props.wikiId, title: page.title } });
   } catch (cause) {
     saveError.value = cause instanceof Error ? cause.message : String(cause);
   } finally {

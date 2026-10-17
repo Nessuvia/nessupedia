@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
 import { watch } from "vue";
+import { useRoute } from "vue-router";
 import GlobalBar from "@/components/GlobalBar.vue";
 import LeftRail from "@/components/LeftRail.vue";
 import RightRail from "@/components/RightRail.vue";
@@ -11,6 +12,7 @@ const props = defineProps<{ wikiId: string }>();
 
 const store = useWikiStore();
 const { wikis, currentWiki } = storeToRefs(store);
+const route = useRoute();
 
 watch(
   () => props.wikiId,
@@ -25,11 +27,11 @@ watch(
     <LeftRail class="left" :wiki-id="wikiId" />
     <div class="wiki-content">
       <WikiHeader :wiki="currentWiki" />
-      <div class="columns">
+      <div class="columns" :class="{ wide: route.meta.wide }">
         <main class="main">
           <RouterView />
         </main>
-        <RightRail class="right" :wiki-id="wikiId">
+        <RightRail v-if="!route.meta.wide" class="right" :wiki-id="wikiId">
           <RouterView name="rail" />
         </RightRail>
       </div>
@@ -59,6 +61,10 @@ watch(
   grid-template-columns: minmax(0, 1fr) 18rem;
   align-items: start;
   gap: 1.5rem;
+}
+
+.columns.wide {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .wiki-missing {

@@ -10,6 +10,12 @@ import PageView from "@/views/PageView.vue";
 import RecentChangesView from "@/views/RecentChangesView.vue";
 import WikiLayout from "@/views/WikiLayout.vue";
 
+declare module "vue-router" {
+  interface RouteMeta {
+    wide?: boolean;
+  }
+}
+
 export async function homeLocation(lastWikiId: string | null): Promise<RouteLocationRaw> {
   const wikis = await wikiService.list();
   const wiki = wikis.find(({ id }) => id === lastWikiId) ?? wikis[0];
@@ -48,6 +54,13 @@ export function createAppRouter(pinia: Pinia): Router {
             name: "page",
             components: { default: PageView, rail: PageRail },
             props: { default: true, rail: true },
+          },
+          {
+            path: "edit/:title(.*)",
+            name: "edit-page",
+            component: () => import("@/views/EditView.vue"),
+            props: true,
+            meta: { wide: true },
           },
           {
             path: "new",
