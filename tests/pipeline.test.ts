@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseMarkdown, renderMarkdown } from "@/markdown/pipeline";
 import { retargetWikilinks } from "@/markdown/retarget";
+import { buildToc } from "@/markdown/toc";
 import { extractWikilinks } from "@/markdown/wikilinks";
 
 const source = `---
@@ -62,9 +63,25 @@ describe("retargetWikilinks", () => {
   });
 });
 
+describe("buildToc", () => {
+  const toc = (depths: number[]) =>
+    buildToc(depths.map((depth, index) => ({ depth, id: `h${index}`, text: `H${index}` }))).map(
+      ({ level, number }) => `${level}:${number}`,
+    );
+
+  it("numbers nested sections", () => {
+    expect(toc([2, 3, 3, 2, 3, 4, 2])).toEqual(["0:1", "1:1.1", "1:1.2", "0:2", "1:2.1", "2:2.1.1", "0:3"]);
+  });
+
+  it("nests skipped levels one step and keeps out-of-order levels in sequence", () => {
+    expect(toc([2, 4, 3])).toEqual(["0:1", "1:1.1", "1:1.2"]);
+    expect(toc([3, 2])).toEqual(["0:1", "0:2"]);
+  });
+});
+
 describe("renderMarkdown", () => {
   const render = (markdown: string) =>
-    renderMarkdown(parseMarkdown(markdown).tree, { pageExists: (title) => title === "Theo" });
+    renderMarkdown(parseMarkdown(markdown).tree, { pageExists: (title) => title === "Theo" }).html;
 
   it("renders existing and missing pages", () => {
     const html = render(source);
@@ -76,6 +93,17 @@ describe("renderMarkdown", () => {
     const html = render(source);
     expect(html).toContain('<h2 id="user-content-early-life">Early life</h2>');
     expect(html).toContain('href="/wiki/Theo#user-content-early-life"');
+  });
+
+  it("collects h2 to h4 headings with their final ids", () => {
+    const { headings } = renderMarkdown(
+      parseMarkdown("# Top\n\n## Early life\n\n### With [[Theo|him]]\n\n## Early life\n\n##### Deep").tree,
+    );
+    expect(headings).toEqual([
+      { depth: 2, id: "user-content-early-life", text: "Early life" },
+      { depth: 3, id: "user-content-with-him", text: "With him" },
+      { depth: 2, id: "user-content-early-life-1", text: "Early life" },
+    ]);
   });
 
   it("omits frontmatter from output", () => {

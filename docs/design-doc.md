@@ -163,6 +163,13 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 
 Routes under `/w/:wikiId` render inside the wiki layout. A route can add right rail modules through a named `rail` view. History mode. The service worker serves the app shell for every navigation, so deep links work offline. Views read Dexie through `useLiveQuery`, so lists and pages update after any write.
 
+## Page view
+- Links render red when no page title or alias matches, case-insensitively; existence updates live.
+- Wikilink clicks route inside the app; modified clicks open new tabs as usual.
+- A title that matches an alias redirects to the page's title and shows "(Redirected from …)"; a case-only mismatch corrects the URL silently.
+- The lead (everything before the first `##`) renders above a numbered Contents box, shown at three or more h2 to h4 headings, with a remembered hide toggle.
+- The right rail adds What links here; for a missing page it lists pages whose red links target that title.
+
 ## Search
 - `suggest` matches titles and aliases for type-ahead and the page picker.
 - `search` adds full text over each page's plain text (frontmatter excluded, wikilinks read as their labels).

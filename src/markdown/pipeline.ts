@@ -1,4 +1,4 @@
-import type { Element } from "hast";
+import type { Element, ElementContent, Root as HastRoot } from "hast";
 import type { Root } from "mdast";
 import { slug } from "github-slugger";
 import rehypeSanitize, { defaultSchema, type Options as SanitizeSchema } from "rehype-sanitize";
@@ -8,6 +8,7 @@ import remarkFrontmatter from "remark-frontmatter";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
+import { visit } from "unist-util-visit";
 import { readFrontmatter } from "./frontmatter";
 import remarkWikilinks, { type WikiLink } from "./wikilinks";
 
@@ -17,6 +18,17 @@ export interface ParsedMarkdown {
   tree: Root;
   frontmatter: Record<string, unknown>;
   frontmatterError?: string;
+}
+
+export interface RenderedHeading {
+  depth: number;
+  id: string;
+  text: string;
+}
+
+export interface RenderedMarkdown {
+  html: string;
+  headings: RenderedHeading[];
 }
 
 export interface RenderOptions {
@@ -61,8 +73,25 @@ export function parseMarkdown(markdown: string): ParsedMarkdown {
   return { tree, frontmatter, ...(error && { frontmatterError: error }) };
 }
 
-export function renderMarkdown(tree: Root, options: RenderOptions = {}): string {
+const TOC_HEADING = /^h([2-4])$/;
+
+function textOf(node: ElementContent): string {
+  if (node.type === "text") return node.value;
+  return node.type === "element" ? node.children.map(textOf).join("") : "";
+}
+
+// Runs after sanitizing so ids carry their final prefix.
+const rehypeCollectHeadings = (headings: RenderedHeading[]) => () => (tree: HastRoot) => {
+  visit(tree, "element", (node) => {
+    const depth = TOC_HEADING.exec(node.tagName)?.[1];
+    const id = node.properties.id;
+    if (depth && typeof id === "string") headings.push({ depth: Number(depth), id, text: textOf(node).trim() });
+  });
+};
+
+export function renderMarkdown(tree: Root, options: RenderOptions = {}): RenderedMarkdown {
   const { pageExists = () => true, pageHref = defaultPageHref } = options;
+  const headings: RenderedHeading[] = [];
 
   const wikiLink = (_state: unknown, node: WikiLink): Element => ({
     type: "element",
@@ -79,7 +108,9 @@ export function renderMarkdown(tree: Root, options: RenderOptions = {}): string 
     .use(remarkRehype, { handlers: { wikiLink } })
     .use(rehypeSlug)
     .use(rehypeSanitize, sanitizeSchema)
+    .use(rehypeCollectHeadings(headings))
     .use(rehypeStringify);
 
-  return processor.stringify(processor.runSync(structuredClone(tree)));
+  const html = processor.stringify(processor.runSync(structuredClone(tree)));
+  return { html, headings };
 }

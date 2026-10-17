@@ -60,6 +60,19 @@ a:hover {
   }
 }
 
+.rail-module {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.rail-module h2 {
+  margin: 0 0 0.75rem;
+  border: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 a.wikilink.new {
   color: var(--color-link-new);
 }

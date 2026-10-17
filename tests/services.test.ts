@@ -224,6 +224,16 @@ describe("LinkIndexer", () => {
     expect(await links.redLinks(wikiId)).toMatchObject([{ targetTitle: "The Archivist" }]);
   });
 
+  it("finds red links aimed at a missing title", async () => {
+    const mira = await pages.create({ wikiId, title: "Mira", body: "[[corin vale]] and [[Theo]]" });
+    await pages.create({ wikiId, title: "Ash", body: "[[Corin Vale]]" });
+    await pages.create({ wikiId, title: "Theo" });
+
+    expect((await links.redLinksTo(wikiId, "Corin Vale")).map((link) => link.fromPageId)).toContain(mira.id);
+    expect(await links.redLinksTo(wikiId, "Corin Vale")).toHaveLength(2);
+    expect(await links.redLinksTo(wikiId, "Theo")).toEqual([]);
+  });
+
   it("replaces a page's links on save", async () => {
     const theo = await pages.create({ wikiId, title: "Theo" });
     const mira = await pages.create({ wikiId, title: "Mira", body: "[[Theo]]" });

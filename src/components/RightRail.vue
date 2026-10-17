@@ -31,19 +31,6 @@ const recent = useLiveQuery((wikiId) => changeLog.list(wikiId, { limit: RECENT_L
   font-size: 0.9rem;
 }
 
-.rail-module {
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-}
-
-.rail-module h2 {
-  margin: 0 0 0.75rem;
-  border: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
 .empty {
   margin: 0;
   color: var(--color-muted);

@@ -68,6 +68,14 @@ export class LinkIndexer {
     return this.db.links.where("toPageId").equals(pageId).toArray();
   }
 
+  redLinksTo(wikiId: string, title: string): Promise<Link[]> {
+    return this.db.links
+      .where("[wikiId+targetKey]")
+      .equals([wikiId, titleKey(title)])
+      .filter((link) => link.toPageId === undefined)
+      .toArray();
+  }
+
   redLinks(wikiId: string): Promise<Link[]> {
     return this.db.links
       .where("wikiId")
