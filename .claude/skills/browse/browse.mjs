@@ -140,7 +140,7 @@ async function runStep(page, step, context) {
       await screenshot(page, arg || "shot", context.options.full);
       break;
     case "snapshot":
-      console.log(await page.locator(arg || "body").ariaSnapshot());
+      console.log(await page.locator(arg || "body").first().ariaSnapshot());
       break;
     case "text":
       console.log(await locate(page, arg).innerText());
