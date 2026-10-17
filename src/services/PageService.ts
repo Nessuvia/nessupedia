@@ -28,6 +28,20 @@ export function pathForTitle(title: string): string {
   return `pages/${fileName}.md`;
 }
 
+const TITLE_FORBIDDEN = /[[\]|#]/;
+
+export function titleError(title: string): string | undefined {
+  if (!title.trim()) return "A page needs a title";
+  if (TITLE_FORBIDDEN.test(title)) return "Page titles can't contain [ ] | or #";
+  return undefined;
+}
+
+function requireTitle(title: string): string {
+  const error = titleError(title);
+  if (error) throw new Error(error);
+  return title.trim();
+}
+
 function aliasFields(frontmatter: Record<string, unknown>): Pick<Page, "aliases" | "aliasKeys"> {
   const aliases = stringList(frontmatter.aliases);
   return { aliases, aliasKeys: [...new Set(aliases.map(titleKey))] };
@@ -56,7 +70,8 @@ export class PageService {
     return this.db.pages.where("wikiId").equals(wikiId).count();
   }
 
-  async create({ wikiId, title, body = "", path, templateId, spinoffOf, author = "human" }: CreatePageInput): Promise<Page> {
+  async create({ wikiId, title: rawTitle, body = "", path, templateId, spinoffOf, author = "human" }: CreatePageInput): Promise<Page> {
+    const title = requireTitle(rawTitle);
     const { tree, frontmatter } = parseMarkdown(body);
     const page: Page = {
       id: crypto.randomUUID(),
@@ -120,9 +135,7 @@ export class PageService {
   }
 
   async rename(pageId: string, newTitle: string, { author = "human" }: Pick<SavePageOptions, "author"> = {}): Promise<Page> {
-    const title = newTitle.trim();
-    if (!title) throw new Error("A page needs a title");
-
+    const title = requireTitle(newTitle);
     return this.db.transaction("rw", this.db.pages, this.db.links, this.db.changes, async () => {
       const page = await this.db.pages.get(pageId);
       if (!page) throw new Error(`Page ${pageId} not found`);

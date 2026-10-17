@@ -30,6 +30,7 @@ useDismiss(exploreOpen, useTemplateRef("explore"));
             </li>
             <li><RouterLink :to="{ name: 'all-pages', params: { wikiId: wiki.id } }">All pages</RouterLink></li>
             <li><RouterLink :to="{ name: 'recent-changes', params: { wikiId: wiki.id } }">Recent changes</RouterLink></li>
+            <li><RouterLink :to="{ name: 'new-page', params: { wikiId: wiki.id } }">New page</RouterLink></li>
           </ul>
         </div>
       </nav>

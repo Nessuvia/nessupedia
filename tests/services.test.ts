@@ -64,6 +64,17 @@ describe("PageService", () => {
     expect(entry.diff).toContain("+Hello");
   });
 
+  it("trims titles and rejects blank ones or ones that would break wikilinks", async () => {
+    expect(await pages.create({ wikiId, title: "  Mira  " })).toMatchObject({ title: "Mira", path: "pages/Mira.md" });
+    await expect(pages.create({ wikiId, title: " " })).rejects.toThrow("needs a title");
+    for (const title of ["Mira [draft]", "Mira|Mi", "Mira#Early"]) {
+      await expect(pages.create({ wikiId, title })).rejects.toThrow("can't contain");
+    }
+
+    const theo = await pages.create({ wikiId, title: "Theo" });
+    await expect(pages.rename(theo.id, "Theo#2")).rejects.toThrow("can't contain");
+  });
+
   it("rejects duplicate titles", async () => {
     await pages.create({ wikiId, title: "Mira" });
     await expect(pages.create({ wikiId, title: "Mira" })).rejects.toThrow("already exists");

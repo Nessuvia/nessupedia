@@ -122,6 +122,9 @@ this.version(1).stores({
 });
 ```
 
+### Page titles
+Titles are trimmed, must not be blank, and must not contain `[`, `]`, `|`, or `#`, which wikilink syntax reserves. Creation and rename enforce this; a title can't match another page's title or alias.
+
 ### Storage model
 Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; the `links` table resolves titles to IDs. Titles and aliases match case-insensitively through normalized keys (`titleKey`, `aliasKeys`, `targetKey`): trimmed, whitespace collapsed, lowercased. Renames update the title and path and rewrite inbound link text as minor edits; links by alias, and wikilink-like text in code or frontmatter, stay untouched. Export and import translate between IDs and paths.
 
@@ -158,13 +161,14 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/new-wiki` | Create a wiki; doubles as first run |
 | `/w/:wikiId` | Redirects to the wiki's Main Page |
 | `/w/:wikiId/wiki/:title` | Page view |
+| `/w/:wikiId/new?title=` | Create a page, title prefilled from red links |
 | `/w/:wikiId/special/all-pages` | All pages, grouped by first letter |
 | `/w/:wikiId/special/recent-changes` | Recent changes feed |
 
 Routes under `/w/:wikiId` render inside the wiki layout. A route can add right rail modules through a named `rail` view. History mode. The service worker serves the app shell for every navigation, so deep links work offline. Views read Dexie through `useLiveQuery`, so lists and pages update after any write.
 
 ## Page view
-- Links render red when no page title or alias matches, case-insensitively; existence updates live.
+- Links render red when no page title or alias matches, case-insensitively; existence updates live. Red links open page creation with the title filled in, and a missing page offers "Create this page".
 - Wikilink clicks route inside the app; modified clicks open new tabs as usual.
 - A title that matches an alias redirects to the page's title and shows "(Redirected from …)"; a case-only mismatch corrects the URL silently.
 - The lead (everything before the first `##`) renders above a numbered Contents box, shown at three or more h2 to h4 headings, with a remembered hide toggle.

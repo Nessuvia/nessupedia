@@ -10,6 +10,7 @@ const items = computed((): { label: string; icon: IconName; to: RouteLocationRaw
   { label: "Home", icon: "home", to: { name: "page", params: { wikiId: props.wikiId, title: MAIN_PAGE_TITLE } } },
   { label: "All pages", icon: "pages", to: { name: "all-pages", params: { wikiId: props.wikiId } } },
   { label: "Changes", icon: "history", to: { name: "recent-changes", params: { wikiId: props.wikiId } } },
+  { label: "New page", icon: "add", to: { name: "new-page", params: { wikiId: props.wikiId } } },
 ]);
 </script>
 
@@ -55,7 +56,7 @@ const items = computed((): { label: string; icon: IconName; to: RouteLocationRaw
   text-decoration: none;
 }
 
-.item.router-link-exact-active {
+.item.router-link-active {
   color: var(--color-link);
 }
 </style>

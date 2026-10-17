@@ -35,11 +35,15 @@ const rendered = computed(() => {
   const tree = parseMarkdown(page.value.body).tree;
   const split = tree.children.findIndex((node) => node.type === "heading" && node.depth >= 2);
   const at = split === -1 ? tree.children.length : split;
+  const exists = (title: string) => existingNames.value.has(titleKey(title));
   const options: RenderOptions = {
-    pageExists: (title) => existingNames.value.has(titleKey(title)),
+    pageExists: exists,
     pageHref: (title, heading) =>
-      router.resolve({ name: "page", params: { wikiId: props.wikiId, title }, hash: heading && `#${headingId(heading)}` })
-        .href,
+      router.resolve(
+        exists(title)
+          ? { name: "page", params: { wikiId: props.wikiId, title }, hash: heading && `#${headingId(heading)}` }
+          : { name: "new-page", params: { wikiId: props.wikiId }, query: { title } },
+      ).href,
   };
   const part = (children: Root["children"]) => renderMarkdown({ ...tree, children }, options);
   const lead = part(tree.children.slice(0, at));
@@ -94,7 +98,12 @@ watchEffect(() => {
       <TableOfContents v-if="rendered.toc.length >= TOC_MIN_HEADINGS" :entries="rendered.toc" />
       <div v-html="rendered.body" />
     </div>
-    <p v-else-if="page === null" class="missing">This page doesn't exist yet.</p>
+    <div v-else-if="page === null" class="missing">
+      <p>This page doesn't exist yet.</p>
+      <RouterLink class="create-button" :to="{ name: 'new-page', params: { wikiId }, query: { title } }">
+        Create this page
+      </RouterLink>
+    </div>
   </article>
 </template>
 
@@ -118,7 +127,19 @@ watchEffect(() => {
   font-size: 0.85rem;
 }
 
-.missing {
+.missing p {
   color: var(--color-muted);
+}
+
+.create-button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  background: var(--color-header);
+  color: var(--color-header-text);
+}
+
+.create-button:hover {
+  text-decoration: none;
 }
 </style>
