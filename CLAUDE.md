@@ -29,8 +29,9 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 ## Layout
 
 - `src/db/`: data model types and the Dexie schema
-- `src/markdown/`: parse and render pipeline, wikilinks, frontmatter
-- `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, WikiService; `index.ts` wires singletons to the app database
+- `src/markdown/`: parse and render pipeline, wikilinks, frontmatter, directives (canon, infobox, pressure), callouts, image embeds, field line grammar
+- `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, WikiService, AssetService (with a worker that encodes images); `index.ts` wires singletons to the app database
+- `src/editor/`: CodeMirror extensions shared by every editor
 - `src/router/`: routes and the home redirect
 - `src/stores/`: Pinia stores (current wiki, wiki creation)
 - `src/composables/`: `useLiveQuery` (Dexie live queries as refs), `useStoredRef`, `useDismiss` (close popups)

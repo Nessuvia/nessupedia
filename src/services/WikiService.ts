@@ -35,6 +35,10 @@ export class WikiService {
     });
   }
 
+  async setKeepOriginalImages(id: string, keep: boolean): Promise<void> {
+    await this.db.wikis.update(id, { keepOriginalImages: keep });
+  }
+
   async delete(id: string): Promise<void> {
     await this.db.transaction("rw", this.db.tables, async () => {
       await this.db.wikis.delete(id);

@@ -81,6 +81,22 @@ watchEffect(() => {
       </form>
     </section>
 
+    <section aria-labelledby="settings-images">
+      <h2 id="settings-images">Images</h2>
+      <label class="check">
+        <input
+          type="checkbox"
+          :checked="currentWiki?.keepOriginalImages ?? false"
+          @change="wikiService.setKeepOriginalImages(wikiId, ($event.target as HTMLInputElement).checked)"
+        />
+        Keep original images
+      </label>
+      <p class="hint">
+        Added images are scaled to at most 2048 pixels on their long edge and stored as WebP. Keeping originals stores the
+        untouched file as well, which uses more space.
+      </p>
+    </section>
+
     <section class="danger-zone" aria-labelledby="settings-delete">
       <h2 id="settings-delete">Delete this wiki</h2>
       <p>
@@ -133,6 +149,20 @@ h2 {
 .saved {
   margin: 0.5rem 0 0;
   color: var(--color-muted);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.hint {
+  max-width: 40rem;
+  margin: 0.35rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
 }
 
 .danger-zone {

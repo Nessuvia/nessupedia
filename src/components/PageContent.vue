@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { Root } from "mdast";
-import { computed, nextTick, watch } from "vue";
+import { computed, nextTick, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { headingId, parseMarkdown, renderMarkdown, type RenderOptions } from "@/markdown/pipeline";
 import { buildToc } from "@/markdown/toc";
 import { titleKey } from "@/markdown/wikilinks";
-import { pageService } from "@/services";
+import { assetService, pageService } from "@/services";
 import TableOfContents from "./TableOfContents.vue";
 
 // In preview mode links stay put, so a click can't leave the editor.
@@ -44,6 +44,26 @@ const rendered = computed(() => {
   return { lead: lead.html, body: body.html, toc: buildToc(body.headings) };
 });
 
+const root = useTemplateRef("root");
+
+// Rendered images name their asset; each re-render gets fresh elements, so sources are filled in after every one.
+watch(
+  rendered,
+  () => {
+    for (const image of root.value?.querySelectorAll<HTMLImageElement>("img[data-asset]:not([src])") ?? []) {
+      const path = image.dataset.asset!;
+      void assetService.objectUrl(props.wikiId, path).then((url) => {
+        if (url) return void (image.src = url);
+        const missing = document.createElement("span");
+        missing.className = "asset-missing";
+        missing.textContent = `Missing image: ${path}`;
+        image.replaceWith(missing);
+      });
+    }
+  },
+  { flush: "post" },
+);
+
 function switchTab(tab: HTMLElement) {
   const tabset = tab.closest(".tabset");
   if (!tabset) return;
@@ -78,7 +98,7 @@ function followLink(event: MouseEvent) {
 </script>
 
 <template>
-  <div v-if="rendered" class="page-body" @click="followLink">
+  <div v-if="rendered" ref="root" class="page-body" @click="followLink">
     <div v-html="rendered.lead" />
     <TableOfContents v-if="rendered.toc.length >= TOC_MIN_HEADINGS" :entries="rendered.toc" />
     <div v-html="rendered.body" />

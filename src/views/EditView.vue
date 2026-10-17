@@ -83,7 +83,7 @@ watchEffect(() => {
       <div class="panes">
         <section class="pane" aria-labelledby="source-heading">
           <h2 id="source-heading" class="pane-label">Markdown</h2>
-          <MarkdownEditor v-model="draft" class="source" label="Page source" />
+          <MarkdownEditor v-model="draft" class="source" label="Page source" :wiki-id="wikiId" />
         </section>
         <section class="pane" aria-labelledby="preview-heading">
           <h2 id="preview-heading" class="pane-label">Preview</h2>

@@ -4,12 +4,14 @@ import { yamlFrontmatter } from "@codemirror/lang-yaml";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "codemirror";
-import { onBeforeUnmount, onMounted, useTemplateRef, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
+import { imagePasteAndDrop } from "@/editor/images";
 
-const props = defineProps<{ label: string }>();
+const props = defineProps<{ label: string; wikiId: string }>();
 const source = defineModel<string>({ required: true });
 
 const host = useTemplateRef("host");
+const status = ref("");
 let view: EditorView | undefined;
 
 onMounted(() => {
@@ -22,6 +24,7 @@ onMounted(() => {
         yamlFrontmatter({ content: markdown() }),
         EditorView.lineWrapping,
         EditorView.contentAttributes.of({ "aria-label": props.label }),
+        imagePasteAndDrop({ wikiId: () => props.wikiId, onStatus: (message) => (status.value = message) }),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) source.value = update.state.doc.toString();
         }),
@@ -41,27 +44,45 @@ onBeforeUnmount(() => view?.destroy());
 </script>
 
 <template>
-  <div ref="host" class="markdown-editor" />
+  <div class="markdown-editor">
+    <div ref="host" class="host" />
+    <p v-if="status" class="status" role="status">{{ status }}</p>
+  </div>
 </template>
 
 <style scoped>
 .markdown-editor {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
-.markdown-editor :deep(.cm-editor) {
+.host {
+  flex: 1;
+  min-height: 0;
+}
+
+.host :deep(.cm-editor) {
   height: 100%;
   font-size: 0.9rem;
 }
 
-.markdown-editor :deep(.cm-editor.cm-focused) {
+.host :deep(.cm-editor.cm-focused) {
   outline: 2px solid var(--color-link);
   outline-offset: -1px;
 }
 
-.markdown-editor :deep(.cm-scroller) {
+.host :deep(.cm-scroller) {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+.status {
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.8rem;
 }
 </style>

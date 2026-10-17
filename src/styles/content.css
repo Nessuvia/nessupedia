@@ -20,11 +20,9 @@
   vertical-align: middle;
 }
 
-.page-body .asset-image.missing {
+.page-body .asset-missing {
   display: inline-block;
-  min-width: 8rem;
-  min-height: 3rem;
-  padding: 0.5rem;
+  padding: 0.5rem 0.75rem;
   border: 1px dashed var(--color-border);
   color: var(--color-muted);
   font-size: 0.8rem;

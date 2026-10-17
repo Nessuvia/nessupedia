@@ -21,6 +21,9 @@ export class WikiDatabase extends Dexie {
       templates: "id, wikiId, name",
       runs: "id, wikiId, pageId, startedAt",
     });
+    this.version(2).stores({
+      assets: "id, wikiId, [wikiId+path], [wikiId+hash]",
+    });
   }
 }
 

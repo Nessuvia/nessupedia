@@ -5,6 +5,7 @@ export interface Wiki {
   name: string;
   themeId: string;
   voice: "fandom" | "in-universe";
+  keepOriginalImages?: boolean;
   createdAt: number;
 }
 
@@ -61,6 +62,11 @@ export interface Asset {
   path: string;
   mime: string;
   blob: Blob;
+  hash: string;
+  width?: number;
+  height?: number;
+  original?: Blob;
+  createdAt: number;
 }
 
 export interface Template {
