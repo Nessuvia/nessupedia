@@ -59,6 +59,11 @@ export class LinkIndexer {
     }
   }
 
+  async removePage(pageId: string): Promise<void> {
+    await this.db.links.where("fromPageId").equals(pageId).delete();
+    await this.detachInbound(pageId);
+  }
+
   backlinks(pageId: string): Promise<Link[]> {
     return this.db.links.where("toPageId").equals(pageId).toArray();
   }

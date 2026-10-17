@@ -72,6 +72,8 @@ interface ChangeEntry {
   id?: number;
   wikiId: string;
   pageId: string;
+  pageTitle: string;
+  kind: "create" | "edit" | "rename" | "delete";
   author: "human" | "llm";
   minor: boolean;
   summary: string;
@@ -155,6 +157,8 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 
 ## Change log
 - Every save computes a unified diff against the prior body.
+- Entries carry the page title at the time of the change, so the feed can show pages that no longer exist.
+- Deleting a page drops its history except the creation entry, then records a deletion entry whose diff holds the final body. A page recreated from a red link starts a fresh history under a new ID.
 - Squash merges selected entries into one diff.
 - Prune deletes entries older than a cutoff.
 

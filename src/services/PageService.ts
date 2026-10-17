@@ -72,7 +72,17 @@ export class PageService {
       await this.db.pages.add(page);
       await this.links.indexPage(page, tree);
       await this.links.resolveInbound(page);
-      await this.changes.record({ wikiId, pageId: page.id, author, minor: false, summary: "Created page", before: "", after: body });
+      await this.changes.record({
+        wikiId,
+        pageId: page.id,
+        pageTitle: title,
+        kind: "create",
+        author,
+        minor: false,
+        summary: "Created page",
+        before: "",
+        after: body,
+      });
     });
     return page;
   }
@@ -89,8 +99,41 @@ export class PageService {
       await this.links.indexPage(page, tree);
       await this.links.detachInbound(page.id, [page.titleKey, ...page.aliasKeys]);
       await this.links.resolveInbound(page);
-      await this.changes.record({ wikiId: page.wikiId, pageId, author, minor, summary, before: existing.body, after: body });
+      await this.changes.record({
+        wikiId: page.wikiId,
+        pageId,
+        pageTitle: page.title,
+        kind: "edit",
+        author,
+        minor,
+        summary,
+        before: existing.body,
+        after: body,
+      });
       return page;
+    });
+  }
+
+  async delete(pageId: string, { author = "human" }: Pick<SavePageOptions, "author"> = {}): Promise<void> {
+    await this.db.transaction("rw", [this.db.pages, this.db.links, this.db.changes, this.db.runs], async () => {
+      const page = await this.db.pages.get(pageId);
+      if (!page) throw new Error(`Page ${pageId} not found`);
+
+      await this.db.pages.delete(pageId);
+      await this.db.runs.where("pageId").equals(pageId).delete();
+      await this.links.removePage(pageId);
+      await this.changes.dropPageHistory(pageId);
+      await this.changes.record({
+        wikiId: page.wikiId,
+        pageId,
+        pageTitle: page.title,
+        kind: "delete",
+        author,
+        minor: false,
+        summary: "Deleted page",
+        before: page.body,
+        after: "",
+      });
     });
   }
 }

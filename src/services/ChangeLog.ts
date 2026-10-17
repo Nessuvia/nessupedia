@@ -5,6 +5,8 @@ import type { ChangeEntry } from "@/db/types";
 export interface RecordChangeInput {
   wikiId: string;
   pageId: string;
+  pageTitle: string;
+  kind: ChangeEntry["kind"];
   author: ChangeEntry["author"];
   minor: boolean;
   summary: string;
@@ -28,5 +30,13 @@ export class ChangeLog {
 
   listForPage(pageId: string): Promise<ChangeEntry[]> {
     return this.db.changes.where("pageId").equals(pageId).reverse().toArray();
+  }
+
+  async dropPageHistory(pageId: string): Promise<void> {
+    await this.db.changes
+      .where("pageId")
+      .equals(pageId)
+      .filter((entry) => entry.kind !== "create")
+      .delete();
   }
 }

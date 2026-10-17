@@ -76,6 +76,64 @@ describe("PageService", () => {
   });
 });
 
+describe("PageService.delete", () => {
+  it("removes the page and turns links to it into red links", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo", body: "Knows [[Mira]] and [[Theo]]." });
+    const mira = await pages.create({ wikiId, title: "Mira", body: "Friends with [[Theo]]." });
+
+    await pages.delete(theo.id);
+
+    expect(await pages.get(theo.id)).toBeUndefined();
+    expect(await pages.getByTitle(wikiId, "Theo")).toBeUndefined();
+    expect(await links.backlinks(mira.id)).toEqual([]);
+    expect(await links.redLinks(wikiId)).toMatchObject([{ fromPageId: mira.id, targetTitle: "Theo" }]);
+  });
+
+  it("keeps the creation and deletion entries and drops the edits in between", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo", body: "One" });
+    await pages.save(theo.id, "Two", { summary: "Expand" });
+    await pages.save(theo.id, "Three", { minor: true });
+
+    await pages.delete(theo.id);
+
+    const history = await changes.list(wikiId, { includeMinor: true });
+    expect(history).toMatchObject([
+      { kind: "delete", pageId: theo.id, pageTitle: "Theo", summary: "Deleted page" },
+      { kind: "create", pageId: theo.id, pageTitle: "Theo", summary: "Created page" },
+    ]);
+    expect(history[0].diff).toContain("-Three");
+  });
+
+  it("lets a red link recreate the page with a fresh history", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo", body: "Old" });
+    const mira = await pages.create({ wikiId, title: "Mira", body: "Friends with [[Theo]]." });
+    await pages.save(theo.id, "Edited");
+    await pages.delete(theo.id);
+
+    const reborn = await pages.create({ wikiId, title: "Theo", body: "New" });
+
+    expect(reborn.id).not.toBe(theo.id);
+    expect(await links.redLinks(wikiId)).toEqual([]);
+    expect(await links.backlinks(reborn.id)).toMatchObject([{ fromPageId: mira.id }]);
+    expect(await changes.listForPage(reborn.id)).toMatchObject([{ kind: "create" }]);
+    expect((await changes.list(wikiId)).map(({ kind, pageTitle }) => `${kind} ${pageTitle}`)).toEqual([
+      "create Theo",
+      "delete Theo",
+      "create Mira",
+      "create Theo",
+    ]);
+  });
+
+  it("deletes the page's assistant runs", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo" });
+    await db.runs.add({ id: "run", wikiId, pageId: theo.id, kind: "draft", status: "done", transcript: [], startedAt: 0 });
+
+    await pages.delete(theo.id);
+
+    expect(await db.runs.count()).toBe(0);
+  });
+});
+
 describe("LinkIndexer", () => {
   it("indexes red links and resolves them when the target is created", async () => {
     const mira = await pages.create({ wikiId, title: "Mira", body: "Friends with [[Theo]] and [[Theo|him]]." });
