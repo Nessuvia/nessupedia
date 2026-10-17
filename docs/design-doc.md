@@ -127,7 +127,7 @@ Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; th
 
 ## Markdown format
 - The page title renders as the page's only `h1`; bodies start at `##`.
-- YAML frontmatter: `title`, `aliases`, `template`, `spinoffOf`, `changes`, custom fields.
+- YAML frontmatter: `title`, `aliases`, `categories` (M3), `template`, `spinoffOf`, `changes`, custom fields.
 - `[[Title]]`, `[[Title|label]]`, `[[Title#Heading]]`.
 - Obsidian callouts: `> [!note]`.
 - Directives:

@@ -23,6 +23,7 @@
 - Relationship pages
 - Open questions board
 - Interviews section
+- Categories: `categories` frontmatter field, "in:" line above the page title, category listing pages
 
 ## M4: History and data
 - Change log with minor edits, diff view, squash, prune

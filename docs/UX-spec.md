@@ -15,7 +15,7 @@ Follows the Fandom page structure; colors, fonts, and background art arrive with
 - **Global bar** (thin, full width): wiki switcher, search, run panel toggle, settings.
 - **Left rail** (icons with small labels): Home, All pages, Recent changes, New page, Settings. Hidden on narrow screens, where the wiki header's Explore menu covers navigation.
 - **Wiki header**: wiki name, page count, Explore menu (Main Page, All pages, Recent changes).
-- **Main**: page header (categories, title, page actions), then the rendered page.
+- **Main**: page header (categories from the `categories` frontmatter field in M3, title, page actions), then the rendered page.
 - **Right rail**: modules such as What links here and Recent changes, plus open questions later. Moves below the page on medium and narrow screens.
 - **Right drawer**: agent run panel.
 
