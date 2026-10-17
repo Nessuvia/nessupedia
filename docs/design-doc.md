@@ -47,7 +47,9 @@ interface Page {
   id: string;
   wikiId: string;
   title: string;
+  titleKey: string;
   aliases: string[];
+  aliasKeys: string[];
   path: string;
   templateId?: string;
   spinoffOf?: string;
@@ -62,6 +64,7 @@ interface Link {
   wikiId: string;
   fromPageId: string;
   targetTitle: string;
+  targetKey: string;
   toPageId?: string;
 }
 
@@ -107,8 +110,8 @@ interface AgentRun {
 ```ts
 this.version(1).stores({
   wikis: "id, name",
-  pages: "id, wikiId, [wikiId+title], *aliases, [wikiId+path], spinoffOf, updatedAt",
-  links: "++id, wikiId, fromPageId, toPageId, [wikiId+targetTitle]",
+  pages: "id, wikiId, [wikiId+titleKey], *aliasKeys, [wikiId+path], spinoffOf, updatedAt",
+  links: "++id, wikiId, fromPageId, toPageId, [wikiId+targetKey]",
   changes: "++id, wikiId, pageId, at, minor",
   assets: "id, wikiId, [wikiId+path]",
   templates: "id, wikiId, name",
@@ -117,7 +120,7 @@ this.version(1).stores({
 ```
 
 ### Storage model
-Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; the `links` table resolves titles to IDs. Renames update the title and rewrite inbound link text. Export and import translate between IDs and paths.
+Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; the `links` table resolves titles to IDs. Titles and aliases match case-insensitively through normalized keys (`titleKey`, `aliasKeys`, `targetKey`): trimmed, whitespace collapsed, lowercased. Renames update the title and rewrite inbound link text. Export and import translate between IDs and paths.
 
 ## Markdown format
 - YAML frontmatter: `title`, `aliases`, `template`, `spinoffOf`, `changes`, custom fields.

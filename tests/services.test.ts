@@ -86,6 +86,20 @@ describe("LinkIndexer", () => {
     expect(await links.backlinks(theo.id)).toMatchObject([{ fromPageId: mira.id }]);
   });
 
+  it("matches titles and aliases regardless of case", async () => {
+    const mira = await pages.create({ wikiId, title: "Mira", body: "Writes to [[theo]], [[THEO]], and [[the  archivist]]." });
+    const theo = await pages.create({ wikiId, title: "Theo", body: "---\naliases: [The Archivist]\n---\n\nSee [[mira]]." });
+
+    expect(await links.redLinks(wikiId)).toEqual([]);
+    expect(await links.backlinks(theo.id)).toMatchObject([
+      { fromPageId: mira.id, targetTitle: "theo" },
+      { fromPageId: mira.id, targetTitle: "the  archivist" },
+    ]);
+    expect(await links.backlinks(mira.id)).toMatchObject([{ fromPageId: theo.id }]);
+    expect(await pages.getByTitle(wikiId, "THE ARCHIVIST")).toMatchObject({ id: theo.id });
+    await expect(pages.create({ wikiId, title: "MIRA" })).rejects.toThrow("already exists");
+  });
+
   it("replaces a page's links on save", async () => {
     const theo = await pages.create({ wikiId, title: "Theo" });
     const mira = await pages.create({ wikiId, title: "Mira", body: "[[Theo]]" });

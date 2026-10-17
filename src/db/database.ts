@@ -14,8 +14,8 @@ export class WikiDatabase extends Dexie {
     super(name);
     this.version(1).stores({
       wikis: "id, name",
-      pages: "id, wikiId, [wikiId+title], *aliases, [wikiId+path], spinoffOf, updatedAt",
-      links: "++id, wikiId, fromPageId, toPageId, [wikiId+targetTitle]",
+      pages: "id, wikiId, [wikiId+titleKey], *aliasKeys, [wikiId+path], spinoffOf, updatedAt",
+      links: "++id, wikiId, fromPageId, toPageId, [wikiId+targetKey]",
       changes: "++id, wikiId, pageId, at, minor",
       assets: "id, wikiId, [wikiId+path]",
       templates: "id, wikiId, name",

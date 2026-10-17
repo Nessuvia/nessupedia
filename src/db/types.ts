@@ -21,7 +21,9 @@ export interface Page {
   id: string;
   wikiId: string;
   title: string;
+  titleKey: string;
   aliases: string[];
+  aliasKeys: string[];
   path: string;
   templateId?: string;
   spinoffOf?: string;
@@ -36,6 +38,7 @@ export interface Link {
   wikiId: string;
   fromPageId: string;
   targetTitle: string;
+  targetKey: string;
   toPageId?: string;
 }
 

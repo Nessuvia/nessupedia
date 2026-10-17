@@ -56,6 +56,10 @@ const remarkWikilinks: Plugin<[], Root> = () => {
 
 export default remarkWikilinks;
 
+export function titleKey(title: string): string {
+  return title.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 export function extractWikilinks(tree: Root): WikiLink[] {
   const links: WikiLink[] = [];
   visit(tree, "wikiLink", (node) => {

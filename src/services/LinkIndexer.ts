@@ -1,24 +1,31 @@
 import type { Root } from "mdast";
 import type { WikiDatabase } from "@/db/database";
 import type { Link, Page } from "@/db/types";
-import { extractWikilinks } from "@/markdown/wikilinks";
+import { extractWikilinks, titleKey } from "@/markdown/wikilinks";
 
 export class LinkIndexer {
   constructor(private readonly db: WikiDatabase) {}
 
   async findPage(wikiId: string, title: string): Promise<Page | undefined> {
-    const byTitle = await this.db.pages.where("[wikiId+title]").equals([wikiId, title]).first();
+    const key = titleKey(title);
+    const byTitle = await this.db.pages.where("[wikiId+titleKey]").equals([wikiId, key]).first();
     if (byTitle) return byTitle;
-    return this.db.pages.where("aliases").equals(title).filter((page) => page.wikiId === wikiId).first();
+    return this.db.pages.where("aliasKeys").equals(key).filter((page) => page.wikiId === wikiId).first();
   }
 
   async indexPage(page: Page, tree: Root): Promise<Link[]> {
-    const titles = [...new Set(extractWikilinks(tree).map((link) => link.title))];
+    const titlesByKey = new Map<string, string>();
+    for (const { title } of extractWikilinks(tree)) {
+      const key = titleKey(title);
+      if (!titlesByKey.has(key)) titlesByKey.set(key, title);
+    }
+
     const links: Link[] = await Promise.all(
-      titles.map(async (targetTitle) => ({
+      [...titlesByKey].map(async ([targetKey, targetTitle]) => ({
         wikiId: page.wikiId,
         fromPageId: page.id,
         targetTitle,
+        targetKey,
         toPageId: (await this.findPage(page.wikiId, targetTitle))?.id,
       })),
     );
@@ -31,10 +38,10 @@ export class LinkIndexer {
   }
 
   async resolveInbound(page: Page): Promise<number> {
-    const names = [page.title, ...page.aliases].map((name): [string, string] => [page.wikiId, name]);
+    const keys = [page.titleKey, ...page.aliasKeys].map((key): [string, string] => [page.wikiId, key]);
     return this.db.links
-      .where("[wikiId+targetTitle]")
-      .anyOf(names)
+      .where("[wikiId+targetKey]")
+      .anyOf(keys)
       .filter((link) => link.toPageId === undefined)
       .modify({ toPageId: page.id });
   }

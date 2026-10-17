@@ -2,6 +2,7 @@ import type { WikiDatabase } from "@/db/database";
 import type { ChangeEntry, Page } from "@/db/types";
 import { stringList } from "@/markdown/frontmatter";
 import { parseMarkdown } from "@/markdown/pipeline";
+import { titleKey } from "@/markdown/wikilinks";
 import type { ChangeLog } from "./ChangeLog";
 import type { LinkIndexer } from "./LinkIndexer";
 
@@ -24,6 +25,11 @@ export interface SavePageOptions {
 export function pathForTitle(title: string): string {
   const fileName = title.replace(/[\\/:*?"<>|]/g, "-").trim();
   return `pages/${fileName}.md`;
+}
+
+function aliasFields(frontmatter: Record<string, unknown>): Pick<Page, "aliases" | "aliasKeys"> {
+  const aliases = stringList(frontmatter.aliases);
+  return { aliases, aliasKeys: [...new Set(aliases.map(titleKey))] };
 }
 
 export class PageService {
@@ -51,7 +57,8 @@ export class PageService {
       id: crypto.randomUUID(),
       wikiId,
       title,
-      aliases: stringList(frontmatter.aliases),
+      titleKey: titleKey(title),
+      ...aliasFields(frontmatter),
       path: path ?? pathForTitle(title),
       ...(templateId && { templateId }),
       ...(spinoffOf && { spinoffOf }),
@@ -76,7 +83,7 @@ export class PageService {
       if (!existing) throw new Error(`Page ${pageId} not found`);
 
       const { tree, frontmatter } = parseMarkdown(body);
-      const page: Page = { ...existing, body, frontmatter, aliases: stringList(frontmatter.aliases), updatedAt: Date.now() };
+      const page: Page = { ...existing, body, frontmatter, ...aliasFields(frontmatter), updatedAt: Date.now() };
 
       await this.db.pages.put(page);
       await this.links.indexPage(page, tree);
