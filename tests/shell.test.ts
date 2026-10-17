@@ -6,6 +6,7 @@ import { db, WikiDatabase } from "@/db/database";
 import { homeLocation } from "@/router";
 import { changeLog, linkIndexer, pageService, wikiService } from "@/services";
 import { MAIN_PAGE_TITLE, useWikiStore } from "@/stores/wiki";
+import { highlightParts } from "@/utils/highlight";
 import { relativeTime } from "@/utils/relativeTime";
 
 beforeEach(async () => {
@@ -82,6 +83,22 @@ describe("ChangeLog.list", () => {
     await pageService.save(page.id, "Three", { minor: true });
 
     expect((await changeLog.list(wiki.id, { limit: 1 })).map((entry) => entry.summary)).toEqual(["Major"]);
+  });
+});
+
+describe("highlightParts", () => {
+  const marked = (text: string, query: string) =>
+    highlightParts(text, query)
+      .map((part) => (part.match ? `[${part.text}]` : part.text))
+      .join("");
+
+  it("marks every term case-insensitively, longest first", () => {
+    expect(marked("The Archivist keeps the archive", "ARCH archive the")).toBe("[The] [Arch]ivist keeps [the] [archive]");
+  });
+
+  it("treats regex characters literally and leaves text alone for blank queries", () => {
+    expect(marked("Costs $5 (maybe)", "$5 (maybe)")).toBe("Costs [$5] [(maybe)]");
+    expect(marked("Mira", "  ")).toBe("Mira");
   });
 });
 

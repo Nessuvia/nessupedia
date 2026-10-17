@@ -163,6 +163,7 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/w/:wikiId/wiki/:title` | Page view |
 | `/w/:wikiId/edit/:title` | Split view editor, loaded on demand; hides the right rail |
 | `/w/:wikiId/new?title=` | Create a page, title prefilled from red links |
+| `/w/:wikiId/special/search?q=` | Full-text results with snippets, plus "Create page" when no title or alias matches |
 | `/w/:wikiId/special/all-pages` | All pages, grouped by first letter |
 | `/w/:wikiId/special/recent-changes` | Recent changes feed |
 
@@ -180,6 +181,7 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - `search` adds full text over each page's plain text (frontmatter excluded, wikilinks read as their labels).
 - Ranking: exact, prefix, word prefix, then substring; titles beat aliases at the same tier; any name match beats body matches, which need every term and rank by occurrence count.
 - In-memory scan with plain text cached per page until its body changes.
+- The global bar's search box is a combobox over `suggest`: arrows pick a suggestion, Enter opens it, Enter with none picked opens the results page. Matches are highlighted with text spans, never HTML.
 
 ## Split view
 - CodeMirror 6 with markdown and YAML frontmatter highlighting on the left; the same `PageContent` renderer as the page view on the right, with links inert.

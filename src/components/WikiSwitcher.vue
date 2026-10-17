@@ -34,10 +34,21 @@ useDismiss(open, useTemplateRef("root"));
 <style scoped>
 .wiki-switcher {
   position: relative;
+  min-width: 0;
+}
+
+@media (max-width: 48rem) {
+  .current {
+    max-width: 8rem;
+  }
 }
 
 .current {
+  max-width: 14rem;
+  overflow: hidden;
   padding: 0.2rem 0.5rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   border: 0;
   border-radius: 4px;
   background: transparent;

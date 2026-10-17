@@ -8,6 +8,7 @@ import NewWikiView from "@/views/NewWikiView.vue";
 import PageRail from "@/views/PageRail.vue";
 import PageView from "@/views/PageView.vue";
 import RecentChangesView from "@/views/RecentChangesView.vue";
+import SearchView from "@/views/SearchView.vue";
 import WikiLayout from "@/views/WikiLayout.vue";
 
 declare module "vue-router" {
@@ -69,6 +70,15 @@ export function createAppRouter(pinia: Pinia): Router {
             props: (route) => ({
               wikiId: route.params.wikiId,
               initialTitle: typeof route.query.title === "string" ? route.query.title : undefined,
+            }),
+          },
+          {
+            path: "special/search",
+            name: "search",
+            component: SearchView,
+            props: (route) => ({
+              wikiId: route.params.wikiId,
+              query: typeof route.query.q === "string" ? route.query.q : "",
             }),
           },
           { path: "special/all-pages", name: "all-pages", component: AllPagesView, props: true },
