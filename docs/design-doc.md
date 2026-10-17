@@ -126,6 +126,7 @@ this.version(1).stores({
 Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; the `links` table resolves titles to IDs. Titles and aliases match case-insensitively through normalized keys (`titleKey`, `aliasKeys`, `targetKey`): trimmed, whitespace collapsed, lowercased. Renames update the title and path and rewrite inbound link text as minor edits; links by alias, and wikilink-like text in code or frontmatter, stay untouched. Export and import translate between IDs and paths.
 
 ## Markdown format
+- The page title renders as the page's only `h1`; bodies start at `##`.
 - YAML frontmatter: `title`, `aliases`, `template`, `spinoffOf`, `changes`, custom fields.
 - `[[Title]]`, `[[Title|label]]`, `[[Title#Heading]]`.
 - Obsidian callouts: `> [!note]`.
@@ -149,6 +150,16 @@ markdown
  → rehype-stringify / Vue renderer
 ```
 The mdast is reused for link indexing, auto-context scanning, section slicing, and click-to-edit source positions.
+
+## Routes
+| Path | View |
+|---|---|
+| `/` | Redirects to the last opened wiki, or to `/new-wiki` when none exist |
+| `/new-wiki` | Create a wiki; doubles as first run |
+| `/w/:wikiId` | Redirects to the wiki's Main Page |
+| `/w/:wikiId/wiki/:title` | Page view |
+
+History mode. The service worker serves the app shell for every navigation, so deep links work offline. Views read Dexie through `useLiveQuery`, so lists and pages update after any write.
 
 ## Search
 - `suggest` matches titles and aliases for type-ahead and the page picker.

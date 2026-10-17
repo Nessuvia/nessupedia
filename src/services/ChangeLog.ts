@@ -23,9 +23,14 @@ export class ChangeLog {
     return change;
   }
 
-  async list(wikiId: string, { includeMinor = false } = {}): Promise<ChangeEntry[]> {
-    const entries = await this.db.changes.where("wikiId").equals(wikiId).reverse().toArray();
-    return includeMinor ? entries : entries.filter((entry) => !entry.minor);
+  list(wikiId: string, { includeMinor = false, limit = Infinity } = {}): Promise<ChangeEntry[]> {
+    return this.db.changes
+      .where("wikiId")
+      .equals(wikiId)
+      .reverse()
+      .filter((entry) => includeMinor || !entry.minor)
+      .limit(limit)
+      .toArray();
   }
 
   listForPage(pageId: string): Promise<ChangeEntry[]> {

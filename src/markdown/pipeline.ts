@@ -46,8 +46,12 @@ const sanitizeSchema: SanitizeSchema = {
   },
 };
 
+export function headingId(heading: string): string {
+  return `${HEADING_ID_PREFIX}${slug(heading)}`;
+}
+
 export function defaultPageHref(title: string, heading?: string): string {
-  const fragment = heading ? `#${HEADING_ID_PREFIX}${slug(heading)}` : "";
+  const fragment = heading ? `#${headingId(heading)}` : "";
   return `/wiki/${encodeURIComponent(title)}${fragment}`;
 }
 

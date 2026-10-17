@@ -2,8 +2,10 @@
   --color-page: #f5efe0;
   --color-surface: #ffffff;
   --color-text: #202122;
+  --color-muted: #54595d;
   --color-header: #2b4a6f;
   --color-header-text: #ffffff;
+  --color-header-hover: rgb(255 255 255 / 15%);
   --color-link: #3366cc;
   --color-link-new: #d73333;
   --color-border: #c8ccd1;

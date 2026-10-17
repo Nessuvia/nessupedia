@@ -5,25 +5,30 @@
       "pages": [
         {
           "title": "Main Page",
-          "body": "# Welcome to Ashfall\n\nA city rebuilt on cinders. Start with [[Mira]], [[Theo]], or [[The Lantern Guild]]."
+          "body": "Welcome to **Ashfall**, a city rebuilt on cinders. Start with [[Mira]], [[Theo]], or [[The Lantern Guild]]."
         },
         {
           "title": "Mira",
-          "body": "---\naliases: [Mi]\n---\n\n# Mira\n\nMira is an archivist who grew up with [[Theo]] in [[Ashfall|the old city]].\n\n## Early life\n\nShe learned to read from [[The Archivist]]'s ledgers.\n\n## Relationships\n\n- [[Theo]]: childhood friend\n- [[Corin Vale]]: rival"
+          "body": "---\naliases: [Mi]\n---\n\nMira is an archivist who grew up with [[Theo]] in [[Ashfall|the old city]].\n\n## Early life\n\nShe learned to read from [[The Archivist]]'s ledgers.\n\n## Relationships\n\n- [[Theo]]: childhood friend\n- [[Corin Vale]]: rival"
         },
         {
           "title": "Theo",
-          "body": "---\naliases: [The Archivist, Teddy]\n---\n\n# Theo\n\nTheo keeps the ledgers. He trusts [[Mira]] and distrusts [[The Lantern Guild]].\n\n## Early life\n\nRaised in the [[Ember Quarter]]."
+          "body": "---\naliases: [The Archivist, Teddy]\n---\n\nTheo keeps the ledgers. He trusts [[Mira]] and distrusts [[The Lantern Guild]].\n\n## Early life\n\nRaised in the [[Ember Quarter]]."
         },
         {
           "title": "Ashfall",
-          "body": "# Ashfall\n\nThe old city. Home to [[Mira]] and [[Theo]].\n\n```\n[[Not a link]]\n```"
+          "body": "The old city. Home to [[Mira]] and [[Theo]].\n\n```\n[[Not a link]]\n```"
         }
       ]
     },
     {
       "name": "Second Wiki",
-      "pages": [{ "title": "Main Page", "body": "# Second Wiki\n\nAn empty spinoff universe." }]
+      "pages": [
+        {
+          "title": "Main Page",
+          "body": "An empty spinoff universe."
+        }
+      ]
     }
   ]
 }
