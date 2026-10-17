@@ -1,0 +1,49 @@
+:root {
+  --color-page: #f5efe0;
+  --color-surface: #ffffff;
+  --color-text: #202122;
+  --color-header: #2b4a6f;
+  --color-header-text: #ffffff;
+  --color-link: #3366cc;
+  --color-link-new: #d73333;
+  --color-border: #c8ccd1;
+  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: Georgia, "Times New Roman", serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-page);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  font-weight: normal;
+}
+
+h1,
+h2 {
+  border-bottom: 1px solid var(--color-border);
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+a.wikilink.new {
+  color: var(--color-link-new);
+}
