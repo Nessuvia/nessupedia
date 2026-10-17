@@ -2,8 +2,10 @@ import type { Pinia } from "pinia";
 import { createRouter, createWebHistory, type RouteLocationRaw, type Router } from "vue-router";
 import { wikiService } from "@/services";
 import { MAIN_PAGE_TITLE, useWikiStore } from "@/stores/wiki";
+import AllPagesView from "@/views/AllPagesView.vue";
 import NewWikiView from "@/views/NewWikiView.vue";
 import PageView from "@/views/PageView.vue";
+import RecentChangesView from "@/views/RecentChangesView.vue";
 import WikiLayout from "@/views/WikiLayout.vue";
 
 export async function homeLocation(lastWikiId: string | null): Promise<RouteLocationRaw> {
@@ -26,7 +28,7 @@ export function createAppRouter(pinia: Pinia): Router {
       {
         path: "/w/:wikiId",
         component: WikiLayout,
-        props: true,
+        props: (route) => ({ wikiId: route.params.wikiId }),
         children: [
           {
             path: "",
@@ -34,6 +36,8 @@ export function createAppRouter(pinia: Pinia): Router {
             redirect: (to) => ({ name: "page", params: { wikiId: to.params.wikiId, title: MAIN_PAGE_TITLE } }),
           },
           { path: "wiki/:title(.*)", name: "page", component: PageView, props: true },
+          { path: "special/all-pages", name: "all-pages", component: AllPagesView, props: true },
+          { path: "special/recent-changes", name: "recent-changes", component: RecentChangesView, props: true },
         ],
       },
       { path: "/:unknown(.*)*", redirect: "/" },

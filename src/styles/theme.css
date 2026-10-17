@@ -11,6 +11,8 @@
   --color-border: #c8ccd1;
   --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-heading: Georgia, "Times New Roman", serif;
+  --global-bar-height: 2.75rem;
+  --rail-width: 4.5rem;
 }
 
 * {
@@ -44,6 +46,18 @@ a {
 
 a:hover {
   text-decoration: underline;
+}
+
+.content-card {
+  padding: 1rem 2rem 2rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+@media (max-width: 48rem) {
+  .content-card {
+    padding: 0.5rem 1rem 1.5rem;
+  }
 }
 
 a.wikilink.new {

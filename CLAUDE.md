@@ -33,7 +33,7 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 - `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, WikiService; `index.ts` wires singletons to the app database
 - `src/router/`: routes and the home redirect
 - `src/stores/`: Pinia stores (current wiki, wiki creation)
-- `src/composables/`: `useLiveQuery` (Dexie live queries as refs), `useStoredRef`, `useMediaQuery`
+- `src/composables/`: `useLiveQuery` (Dexie live queries as refs), `useStoredRef`, `useDismiss` (close popups)
 - `src/views/`: route components; `src/components/`: shared UI
 - `src/utils/`: small pure helpers
 - `src/styles/`: theme CSS variables

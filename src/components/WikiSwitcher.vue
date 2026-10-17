@@ -1,31 +1,16 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { onBeforeUnmount, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { ref, useTemplateRef } from "vue";
+import { useDismiss } from "@/composables/useDismiss";
 import { useWikiStore } from "@/stores/wiki";
 
 const { wikis, currentWiki } = storeToRefs(useWikiStore());
 const open = ref(false);
-const root = ref<HTMLElement>();
-const route = useRoute();
-
-function closeOnOutsideClick(event: PointerEvent) {
-  if (!root.value?.contains(event.target as Node)) open.value = false;
-}
-
-watch(open, (isOpen) => {
-  if (isOpen) document.addEventListener("pointerdown", closeOnOutsideClick);
-  else document.removeEventListener("pointerdown", closeOnOutsideClick);
-});
-watch(
-  () => route.fullPath,
-  () => (open.value = false),
-);
-onBeforeUnmount(() => document.removeEventListener("pointerdown", closeOnOutsideClick));
+useDismiss(open, useTemplateRef("root"));
 </script>
 
 <template>
-  <div ref="root" class="wiki-switcher" @keydown.esc="open = false">
+  <div ref="root" class="wiki-switcher">
     <button class="current" type="button" :aria-expanded="open" aria-controls="wiki-list" @click="open = !open">
       {{ currentWiki?.name ?? "OC Wiki" }}
       <span class="caret" aria-hidden="true">▾</span>
@@ -52,13 +37,13 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", closeOnOutside
 }
 
 .current {
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.5rem;
   border: 0;
   border-radius: 4px;
   background: transparent;
   color: inherit;
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font: inherit;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -67,7 +52,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", closeOnOutside
 }
 
 .caret {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   opacity: 0.8;
 }
 

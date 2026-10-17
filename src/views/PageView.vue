@@ -31,31 +31,30 @@ watchEffect(() => {
 </script>
 
 <template>
-  <article class="page">
-    <h1 class="page-title">{{ page?.title ?? title }}</h1>
+  <article class="content-card">
+    <header class="page-header">
+      <h1 class="page-title">{{ page?.title ?? title }}</h1>
+    </header>
     <div v-if="page" class="page-body" v-html="html" />
     <p v-else-if="page === null" class="missing">This page doesn't exist yet.</p>
   </article>
 </template>
 
 <style scoped>
-.page {
-  padding: 1rem 2rem 2rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .page-title {
-  margin-top: 0.5rem;
+  margin: 0.25rem 0 0.5rem;
+  border: 0;
 }
 
 .missing {
   color: var(--color-muted);
-}
-
-@media (max-width: 48rem) {
-  .page {
-    padding: 0.5rem 1rem 1.5rem;
-  }
 }
 </style>

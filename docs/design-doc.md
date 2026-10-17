@@ -158,8 +158,10 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/new-wiki` | Create a wiki; doubles as first run |
 | `/w/:wikiId` | Redirects to the wiki's Main Page |
 | `/w/:wikiId/wiki/:title` | Page view |
+| `/w/:wikiId/special/all-pages` | All pages, grouped by first letter |
+| `/w/:wikiId/special/recent-changes` | Recent changes feed |
 
-History mode. The service worker serves the app shell for every navigation, so deep links work offline. Views read Dexie through `useLiveQuery`, so lists and pages update after any write.
+Routes under `/w/:wikiId` render inside the wiki layout. A route can add right rail modules through a named `rail` view. History mode. The service worker serves the app shell for every navigation, so deep links work offline. Views read Dexie through `useLiveQuery`, so lists and pages update after any write.
 
 ## Search
 - `suggest` matches titles and aliases for type-ahead and the page picker.

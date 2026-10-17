@@ -30,7 +30,7 @@ document.title = "Create a wiki | OC Wiki";
 </script>
 
 <template>
-  <main class="new-wiki">
+  <main class="new-wiki content-card">
     <h1>{{ firstWiki ? "Create your first wiki" : "Create a wiki" }}</h1>
     <p v-if="firstWiki" class="intro">
       A wiki holds one universe: its characters, places, histories, and spinoffs. Everything stays on this device.
@@ -51,9 +51,6 @@ document.title = "Create a wiki | OC Wiki";
 .new-wiki {
   max-width: 32rem;
   margin: 4rem auto;
-  padding: 1.5rem 2rem 2rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
 }
 
 .intro {

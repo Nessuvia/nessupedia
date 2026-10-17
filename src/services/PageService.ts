@@ -52,6 +52,10 @@ export class PageService {
     return this.db.pages.where("wikiId").equals(wikiId).sortBy("title");
   }
 
+  countForWiki(wikiId: string): Promise<number> {
+    return this.db.pages.where("wikiId").equals(wikiId).count();
+  }
+
   async create({ wikiId, title, body = "", path, templateId, spinoffOf, author = "human" }: CreatePageInput): Promise<Page> {
     const { tree, frontmatter } = parseMarkdown(body);
     const page: Page = {
