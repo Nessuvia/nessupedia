@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseMarkdown, renderMarkdown } from "@/markdown/pipeline";
+import { retargetWikilinks } from "@/markdown/retarget";
 import { extractWikilinks } from "@/markdown/wikilinks";
 
 const source = `---
@@ -42,6 +43,22 @@ describe("parseMarkdown", () => {
     const { tree } = parseMarkdown(source);
     const paragraph = tree.children.find((node) => node.type === "paragraph");
     expect(paragraph?.position?.start.offset).toBe(source.indexOf("Mira grew up"));
+  });
+});
+
+describe("retargetWikilinks", () => {
+  it("rewrites matching titles and keeps headings and labels", () => {
+    const markdown = "[[Theo]], [[theo#Early life]], [[Theo|him]], [[Theodore]], ![[Theo]]";
+    expect(retargetWikilinks(markdown, "Theo", "Teo")).toBe(
+      "[[Teo]], [[Teo#Early life]], [[Teo|him]], [[Theodore]], ![[Theo]]",
+    );
+  });
+
+  it("leaves code and frontmatter alone", () => {
+    const markdown = "---\nrelated: '[[Theo]]'\n---\n\n`[[Theo]]`\n\n```\n[[Theo]]\n```\n\n[[Theo]]";
+    expect(retargetWikilinks(markdown, "Theo", "Teo")).toBe(
+      "---\nrelated: '[[Theo]]'\n---\n\n`[[Theo]]`\n\n```\n[[Theo]]\n```\n\n[[Teo]]",
+    );
   });
 });
 

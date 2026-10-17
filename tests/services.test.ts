@@ -76,6 +76,56 @@ describe("PageService", () => {
   });
 });
 
+describe("PageService.rename", () => {
+  it("renames the page, moves its path, and records the rename", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo" });
+
+    const renamed = await pages.rename(theo.id, " Teo ");
+
+    expect(renamed).toMatchObject({ title: "Teo", titleKey: "teo", path: "pages/Teo.md" });
+    expect(await pages.getByTitle(wikiId, "Teo")).toMatchObject({ id: theo.id });
+    expect(await pages.getByTitle(wikiId, "Theo")).toBeUndefined();
+    expect(await changes.listForPage(theo.id)).toMatchObject([
+      { kind: "rename", pageTitle: "Teo", summary: 'Renamed from "Theo"' },
+      { kind: "create", pageTitle: "Theo" },
+    ]);
+  });
+
+  it("rewrites inbound links by title and leaves alias links alone", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo", body: "---\naliases: [Teddy]\n---\n\nI am [[Theo]]." });
+    const mira = await pages.create({ wikiId, title: "Mira", body: "[[theo#Early life]], [[Theo|him]], and [[Teddy]]." });
+
+    await pages.rename(theo.id, "Teo");
+
+    expect((await pages.get(mira.id))?.body).toBe("[[Teo#Early life]], [[Teo|him]], and [[Teddy]].");
+    expect((await pages.get(theo.id))?.body).toContain("I am [[Teo]].");
+    expect(await links.redLinks(wikiId)).toEqual([]);
+    expect((await links.backlinks(theo.id)).map((link) => link.targetTitle).sort()).toEqual(["Teddy", "Teo", "Teo"]);
+
+    const [update] = await changes.list(wikiId, { includeMinor: true });
+    expect(update).toMatchObject({ pageId: mira.id, kind: "edit", minor: true, summary: 'Updated links to "Teo"' });
+  });
+
+  it("claims red links that already used the new title", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo" });
+    const mira = await pages.create({ wikiId, title: "Mira", body: "[[Teo]]" });
+
+    await pages.rename(theo.id, "Teo");
+
+    expect(await links.backlinks(theo.id)).toMatchObject([{ fromPageId: mira.id }]);
+  });
+
+  it("allows a case-only rename and rejects titles taken by another page", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo" });
+    await pages.create({ wikiId, title: "Mira", body: "---\naliases: [Mi]\n---" });
+
+    expect(await pages.rename(theo.id, "THEO")).toMatchObject({ title: "THEO" });
+    await expect(pages.rename(theo.id, "mira")).rejects.toThrow("already exists");
+    await expect(pages.rename(theo.id, "Mi")).rejects.toThrow("already exists");
+    await expect(pages.rename(theo.id, "  ")).rejects.toThrow("needs a title");
+  });
+});
+
 describe("PageService.delete", () => {
   it("removes the page and turns links to it into red links", async () => {
     const theo = await pages.create({ wikiId, title: "Theo", body: "Knows [[Mira]] and [[Theo]]." });

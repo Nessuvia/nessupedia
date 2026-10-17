@@ -1,13 +1,12 @@
-import type { Data, Parent, PhrasingContent, Root, Text } from "mdast";
+import type { Node, Parent, PhrasingContent, Root, Text } from "mdast";
 import type { Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";
 
-export interface WikiLink {
+export interface WikiLink extends Node {
   type: "wikiLink";
   title: string;
   heading?: string;
   label?: string;
-  data?: Data;
 }
 
 declare module "mdast" {
@@ -19,7 +18,7 @@ declare module "mdast" {
   }
 }
 
-const WIKILINK = /(?<!!)\[\[([^[\]|#]+)(?:#([^[\]|]+))?(?:\|([^[\]]+))?\]\]/g;
+export const WIKILINK = /(?<!!)\[\[([^[\]|#]+)(?:#([^[\]|]+))?(?:\|([^[\]]+))?\]\]/g;
 
 function splitText(node: Text): PhrasingContent[] | undefined {
   const parts: PhrasingContent[] = [];

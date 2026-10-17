@@ -122,7 +122,7 @@ this.version(1).stores({
 ```
 
 ### Storage model
-Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; the `links` table resolves titles to IDs. Titles and aliases match case-insensitively through normalized keys (`titleKey`, `aliasKeys`, `targetKey`): trimmed, whitespace collapsed, lowercased. Renames update the title and rewrite inbound link text. Export and import translate between IDs and paths.
+Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; the `links` table resolves titles to IDs. Titles and aliases match case-insensitively through normalized keys (`titleKey`, `aliasKeys`, `targetKey`): trimmed, whitespace collapsed, lowercased. Renames update the title and path and rewrite inbound link text as minor edits; links by alias, and wikilink-like text in code or frontmatter, stay untouched. Export and import translate between IDs and paths.
 
 ## Markdown format
 - YAML frontmatter: `title`, `aliases`, `template`, `spinoffOf`, `changes`, custom fields.

@@ -2,6 +2,7 @@ import type { WikiDatabase } from "@/db/database";
 import type { ChangeEntry, Page } from "@/db/types";
 import { stringList } from "@/markdown/frontmatter";
 import { parseMarkdown } from "@/markdown/pipeline";
+import { retargetWikilinks } from "@/markdown/retarget";
 import { titleKey } from "@/markdown/wikilinks";
 import type { ChangeLog } from "./ChangeLog";
 import type { LinkIndexer } from "./LinkIndexer";
@@ -111,6 +112,50 @@ export class PageService {
         after: body,
       });
       return page;
+    });
+  }
+
+  async rename(pageId: string, newTitle: string, { author = "human" }: Pick<SavePageOptions, "author"> = {}): Promise<Page> {
+    const title = newTitle.trim();
+    if (!title) throw new Error("A page needs a title");
+
+    return this.db.transaction("rw", this.db.pages, this.db.links, this.db.changes, async () => {
+      const page = await this.db.pages.get(pageId);
+      if (!page) throw new Error(`Page ${pageId} not found`);
+      if (page.title === title) return page;
+
+      const clash = await this.links.findPage(page.wikiId, title);
+      if (clash && clash.id !== pageId) throw new Error(`A page titled "${title}" already exists`);
+
+      const renamed: Page = { ...page, title, titleKey: titleKey(title), path: pathForTitle(title), updatedAt: Date.now() };
+      await this.db.pages.put(renamed);
+      await this.changes.record({
+        wikiId: page.wikiId,
+        pageId,
+        pageTitle: title,
+        kind: "rename",
+        author,
+        minor: false,
+        summary: `Renamed from "${page.title}"`,
+        before: page.body,
+        after: page.body,
+      });
+
+      // Links by alias keep pointing here untouched; links by the old title are rewritten to the new one.
+      const inbound = await this.db.links
+        .where("toPageId")
+        .equals(pageId)
+        .filter((link) => link.targetKey === page.titleKey)
+        .toArray();
+      for (const fromPageId of new Set(inbound.map((link) => link.fromPageId))) {
+        const source = (await this.db.pages.get(fromPageId))!;
+        const body = retargetWikilinks(source.body, page.title, title);
+        if (body !== source.body) await this.save(fromPageId, body, { author, minor: true, summary: `Updated links to "${title}"` });
+      }
+
+      await this.links.detachInbound(pageId, [renamed.titleKey, ...renamed.aliasKeys]);
+      await this.links.resolveInbound(renamed);
+      return (await this.db.pages.get(pageId))!;
     });
   }
 
