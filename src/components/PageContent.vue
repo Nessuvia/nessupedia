@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUpdated, ref, useTemplateRef, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, onUpdated, ref, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import type { CanonTier } from "@/db/types";
 import { useLiveQuery } from "@/composables/useLiveQuery";
@@ -9,8 +9,10 @@ import { headingId, parseMarkdown, renderMarkdown, type RenderedBlock, type Rend
 import { buildToc } from "@/markdown/toc";
 import { titleKey } from "@/markdown/wikilinks";
 import { assetService, pageService } from "@/services";
-import BlockEditor from "./BlockEditor.vue";
 import TableOfContents from "./TableOfContents.vue";
+
+// CodeMirror and the forms load on the first edit, so reading pages stays light.
+const BlockEditor = defineAsyncComponent(() => import("./BlockEditor.vue"));
 
 export type SaveBody = (body: string, summary: string, minor: boolean) => Promise<void>;
 
