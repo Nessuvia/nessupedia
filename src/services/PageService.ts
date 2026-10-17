@@ -87,6 +87,7 @@ export class PageService {
 
       await this.db.pages.put(page);
       await this.links.indexPage(page, tree);
+      await this.links.detachInbound(page.id, [page.titleKey, ...page.aliasKeys]);
       await this.links.resolveInbound(page);
       await this.changes.record({ wikiId: page.wikiId, pageId, author, minor, summary, before: existing.body, after: body });
       return page;

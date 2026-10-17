@@ -100,6 +100,19 @@ describe("LinkIndexer", () => {
     await expect(pages.create({ wikiId, title: "MIRA" })).rejects.toThrow("already exists");
   });
 
+  it("releases links to an alias when the alias is removed", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo", body: "---\naliases: [The Archivist, Teddy]\n---" });
+    const mira = await pages.create({ wikiId, title: "Mira", body: "[[Theo]], [[Teddy]], and [[The Archivist]]." });
+    const ash = await pages.create({ wikiId, title: "Ash" });
+
+    await pages.save(ash.id, "---\naliases: [Teddy]\n---");
+    await pages.save(theo.id, "No aliases now.");
+
+    expect(await links.backlinks(theo.id)).toMatchObject([{ targetTitle: "Theo" }]);
+    expect(await links.backlinks(ash.id)).toMatchObject([{ fromPageId: mira.id, targetTitle: "Teddy" }]);
+    expect(await links.redLinks(wikiId)).toMatchObject([{ targetTitle: "The Archivist" }]);
+  });
+
   it("replaces a page's links on save", async () => {
     const theo = await pages.create({ wikiId, title: "Theo" });
     const mira = await pages.create({ wikiId, title: "Mira", body: "[[Theo]]" });

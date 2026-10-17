@@ -46,6 +46,19 @@ export class LinkIndexer {
       .modify({ toPageId: page.id });
   }
 
+  async detachInbound(pageId: string, keepKeys: string[] = []): Promise<void> {
+    const stale = await this.db.links
+      .where("toPageId")
+      .equals(pageId)
+      .filter((link) => !keepKeys.includes(link.targetKey))
+      .toArray();
+
+    for (const link of stale) {
+      const target = await this.findPage(link.wikiId, link.targetTitle);
+      await this.db.links.update(link.id!, { toPageId: target?.id });
+    }
+  }
+
   backlinks(pageId: string): Promise<Link[]> {
     return this.db.links.where("toPageId").equals(pageId).toArray();
   }
