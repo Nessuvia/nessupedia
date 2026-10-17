@@ -10,6 +10,7 @@ import PageView from "@/views/PageView.vue";
 import RecentChangesView from "@/views/RecentChangesView.vue";
 import SearchView from "@/views/SearchView.vue";
 import WikiLayout from "@/views/WikiLayout.vue";
+import WikiSettingsView from "@/views/WikiSettingsView.vue";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -81,6 +82,7 @@ export function createAppRouter(pinia: Pinia): Router {
               query: typeof route.query.q === "string" ? route.query.q : "",
             }),
           },
+          { path: "special/settings", name: "wiki-settings", component: WikiSettingsView, props: true },
           { path: "special/all-pages", name: "all-pages", component: AllPagesView, props: true },
           { path: "special/recent-changes", name: "recent-changes", component: RecentChangesView, props: true },
         ],

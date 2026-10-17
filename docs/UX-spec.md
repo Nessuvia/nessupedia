@@ -103,7 +103,7 @@ Available from the page toolbar and the slash menu:
 
 ## Settings
 - **Model**: endpoint URL, API key, model name, token budget.
-- **Wiki**: name, voice (fandom only in MVP), default template folder.
+- **Wiki**: name, voice (fandom only in MVP), default template folder. Deleting a wiki requires typing its name.
 - **Auto-context** (advanced): per-page triggers, match mode, follow connections depth, priority, injected content.
 - **Data**: export ZIP, import ZIP, import Obsidian vault.
 

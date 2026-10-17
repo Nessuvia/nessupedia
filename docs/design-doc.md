@@ -164,6 +164,7 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/w/:wikiId/edit/:title` | Split view editor, loaded on demand; hides the right rail |
 | `/w/:wikiId/new?title=` | Create a page, title prefilled from red links |
 | `/w/:wikiId/special/search?q=` | Full-text results with snippets, plus "Create page" when no title or alias matches |
+| `/w/:wikiId/special/settings` | Wiki settings: rename, delete with typed confirmation |
 | `/w/:wikiId/special/all-pages` | All pages, grouped by first letter |
 | `/w/:wikiId/special/recent-changes` | Recent changes feed |
 
@@ -175,6 +176,7 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - A title that matches an alias redirects to the page's title and shows "(Redirected from …)"; a case-only mismatch corrects the URL silently.
 - The lead (everything before the first `##`) renders above a numbered Contents box, shown at three or more h2 to h4 headings, with a remembered hide toggle.
 - The right rail adds What links here; for a missing page it lists pages whose red links target that title.
+- Page actions beside the title: Edit, Rename, Delete. Rename and Delete open dialogs that state their effects (how many pages' links get rewritten or turn red) before acting. Dialogs use the native `<dialog>` element.
 
 ## Search
 - `suggest` matches titles and aliases for type-ahead and the page picker.

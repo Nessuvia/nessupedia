@@ -8,6 +8,7 @@
   --color-header-hover: rgb(255 255 255 / 15%);
   --color-link: #3366cc;
   --color-link-new: #d73333;
+  --color-danger: #b32424;
   --color-border: #c8ccd1;
   --color-highlight: #fce9a9;
   --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -72,6 +73,52 @@ a:hover {
   border: 0;
   font-size: 1rem;
   font-weight: 600;
+}
+
+.button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: var(--color-header);
+  color: var(--color-header-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.button.secondary {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.button.danger {
+  background: var(--color-danger);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.text-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.form-error {
+  margin: 0.5rem 0 0;
+  color: var(--color-danger);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
 }
 
 a.wikilink.new {

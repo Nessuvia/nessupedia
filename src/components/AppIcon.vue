@@ -5,6 +5,7 @@ const PATHS = {
   history: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zM12 7v5l3 3",
   add: "M12 5v14M5 12h14",
   edit: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
+  settings: "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4",
 } as const;
 
 export type IconName = keyof typeof PATHS;

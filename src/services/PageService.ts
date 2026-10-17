@@ -159,11 +159,7 @@ export class PageService {
       });
 
       // Links by alias keep pointing here untouched; links by the old title are rewritten to the new one.
-      const inbound = await this.db.links
-        .where("toPageId")
-        .equals(pageId)
-        .filter((link) => link.targetKey === page.titleKey)
-        .toArray();
+      const inbound = await this.links.linksByTitle(page);
       for (const fromPageId of new Set(inbound.map((link) => link.fromPageId))) {
         const source = (await this.db.pages.get(fromPageId))!;
         const body = retargetWikilinks(source.body, page.title, title);

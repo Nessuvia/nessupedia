@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { computed, watch, watchEffect } from "vue";
+import { computed, ref, shallowRef, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
+import DeletePageDialog from "@/components/DeletePageDialog.vue";
 import PageContent from "@/components/PageContent.vue";
+import RenamePageDialog from "@/components/RenamePageDialog.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
+import type { Page } from "@/db/types";
 import { titleKey } from "@/markdown/wikilinks";
 import { pageService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
@@ -37,6 +40,20 @@ watch(page, (found) => {
   });
 });
 
+// Dialogs work on a snapshot, so they stay mounted while the live page they changed reloads.
+const dialogPage = shallowRef<Page>();
+const renameOpen = ref(false);
+const deleteOpen = ref(false);
+
+function openDialog(kind: "rename" | "delete") {
+  dialogPage.value = page.value ?? undefined;
+  (kind === "rename" ? renameOpen : deleteOpen).value = true;
+}
+
+function showRenamed(title: string) {
+  void router.replace({ name: "page", params: { wikiId: props.wikiId, title } });
+}
+
 watchEffect(() => {
   document.title = [page.value?.title ?? props.title, currentWiki.value?.name].filter(Boolean).join(" | ");
 });
@@ -51,8 +68,14 @@ watchEffect(() => {
           <AppIcon name="edit" />
           Edit
         </RouterLink>
+        <button class="page-action" type="button" @click="openDialog('rename')">Rename</button>
+        <button class="page-action" type="button" @click="openDialog('delete')">Delete</button>
       </div>
     </header>
+    <template v-if="dialogPage">
+      <RenamePageDialog v-model:open="renameOpen" :page="dialogPage" @renamed="showRenamed" />
+      <DeletePageDialog v-model:open="deleteOpen" :page="dialogPage" />
+    </template>
     <p v-if="redirectedFrom && page" class="redirect-note">(Redirected from {{ redirectedFrom }})</p>
     <PageContent v-if="page" :wiki-id="wikiId" :markdown="page.body" />
     <div v-else-if="page === null" class="missing">
@@ -80,7 +103,9 @@ watchEffect(() => {
 
 .page-actions {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem 1rem;
   padding-bottom: 0.75rem;
 }
 
@@ -88,7 +113,13 @@ watchEffect(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-link);
+  font: inherit;
   font-size: 0.8rem;
+  cursor: pointer;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;

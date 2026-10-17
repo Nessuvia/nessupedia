@@ -6,17 +6,18 @@ import AppIcon, { type IconName } from "./AppIcon.vue";
 
 const props = defineProps<{ wikiId: string }>();
 
-const items = computed((): { label: string; icon: IconName; to: RouteLocationRaw }[] => [
+const items = computed((): { label: string; icon: IconName; to: RouteLocationRaw; bottom?: boolean }[] => [
   { label: "Home", icon: "home", to: { name: "page", params: { wikiId: props.wikiId, title: MAIN_PAGE_TITLE } } },
   { label: "All pages", icon: "pages", to: { name: "all-pages", params: { wikiId: props.wikiId } } },
   { label: "Changes", icon: "history", to: { name: "recent-changes", params: { wikiId: props.wikiId } } },
   { label: "New page", icon: "add", to: { name: "new-page", params: { wikiId: props.wikiId } } },
+  { label: "Settings", icon: "settings", to: { name: "wiki-settings", params: { wikiId: props.wikiId } }, bottom: true },
 ]);
 </script>
 
 <template>
   <nav class="left-rail" aria-label="Wiki tools">
-    <RouterLink v-for="item in items" :key="item.label" class="item" :to="item.to">
+    <RouterLink v-for="item in items" :key="item.label" class="item" :class="{ bottom: item.bottom }" :to="item.to">
       <AppIcon :name="item.icon" />
       <span>{{ item.label }}</span>
     </RouterLink>
@@ -48,6 +49,10 @@ const items = computed((): { label: string; icon: IconName; to: RouteLocationRaw
   color: var(--color-muted);
   font-size: 0.65rem;
   text-align: center;
+}
+
+.item.bottom {
+  margin-top: auto;
 }
 
 .item:hover {

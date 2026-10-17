@@ -64,6 +64,14 @@ export class LinkIndexer {
     await this.detachInbound(pageId);
   }
 
+  linksByTitle(page: Page): Promise<Link[]> {
+    return this.db.links
+      .where("toPageId")
+      .equals(page.id)
+      .filter((link) => link.targetKey === page.titleKey)
+      .toArray();
+  }
+
   backlinks(pageId: string): Promise<Link[]> {
     return this.db.links.where("toPageId").equals(pageId).toArray();
   }
