@@ -5,9 +5,9 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
-import { imagePasteAndDrop } from "@/editor/images";
+import { wikiEditing } from "@/editor";
 
-const props = defineProps<{ label: string; wikiId: string }>();
+const props = defineProps<{ label: string; wikiId: string; surroundingText?: string }>();
 const source = defineModel<string>({ required: true });
 
 const host = useTemplateRef("host");
@@ -24,7 +24,11 @@ onMounted(() => {
         yamlFrontmatter({ content: markdown() }),
         EditorView.lineWrapping,
         EditorView.contentAttributes.of({ "aria-label": props.label }),
-        imagePasteAndDrop({ wikiId: () => props.wikiId, onStatus: (message) => (status.value = message) }),
+        wikiEditing({
+          wikiId: () => props.wikiId,
+          onStatus: (message) => (status.value = message),
+          surroundingText: () => props.surroundingText ?? "",
+        }),
         EditorView.updateListener.of((update) => {
           if (update.docChanged) source.value = update.state.doc.toString();
         }),
