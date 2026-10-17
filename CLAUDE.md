@@ -29,7 +29,7 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 
 - `src/db/`: data model types and the Dexie schema
 - `src/markdown/`: parse and render pipeline, wikilinks, frontmatter
-- `src/services/`: PageService, LinkIndexer, ChangeLog, WikiService; `index.ts` wires singletons to the app database
+- `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, WikiService; `index.ts` wires singletons to the app database
 - `src/styles/`: theme CSS variables
 - `tests/`: Vitest suites
 

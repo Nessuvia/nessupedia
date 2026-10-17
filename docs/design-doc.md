@@ -22,6 +22,7 @@ Client-only PWA. All data lives in IndexedDB. Markdown is the content format. An
 │                             ├─ PageService               │
 │                             ├─ LinkIndexer               │
 │                             ├─ ChangeLog                 │
+│                             ├─ SearchService             │
 │                             ├─ MarkdownPipeline          │
 │                             ├─ ArchiveService (ZIP)      │
 │                             ├─ VaultImporter             │
@@ -148,6 +149,12 @@ markdown
  → rehype-stringify / Vue renderer
 ```
 The mdast is reused for link indexing, auto-context scanning, section slicing, and click-to-edit source positions.
+
+## Search
+- `suggest` matches titles and aliases for type-ahead and the page picker.
+- `search` adds full text over each page's plain text (frontmatter excluded, wikilinks read as their labels).
+- Ranking: exact, prefix, word prefix, then substring; titles beat aliases at the same tier; any name match beats body matches, which need every term and rank by occurrence count.
+- In-memory scan with plain text cached per page until its body changes.
 
 ## Click-to-edit
 - Renderer attaches `data-start` / `data-end` offsets from mdast positions to each top-level block.

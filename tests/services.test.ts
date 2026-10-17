@@ -3,12 +3,14 @@ import { WikiDatabase } from "@/db/database";
 import { ChangeLog } from "@/services/ChangeLog";
 import { LinkIndexer } from "@/services/LinkIndexer";
 import { PageService } from "@/services/PageService";
+import { SearchService } from "@/services/SearchService";
 import { WikiService } from "@/services/WikiService";
 
 let db: WikiDatabase;
 let links: LinkIndexer;
 let changes: ChangeLog;
 let pages: PageService;
+let search: SearchService;
 let wikis: WikiService;
 let wikiId: string;
 
@@ -17,6 +19,7 @@ beforeEach(async () => {
   links = new LinkIndexer(db);
   changes = new ChangeLog(db);
   pages = new PageService(db, links, changes);
+  search = new SearchService(db);
   wikis = new WikiService(db);
   wikiId = (await wikis.create("Ashfall")).id;
 });
@@ -226,5 +229,64 @@ describe("LinkIndexer", () => {
     const mira = await pages.create({ wikiId, title: "Mira", body: "[[Theo]]" });
     await pages.save(mira.id, "No links now");
     expect(await links.backlinks(theo.id)).toEqual([]);
+  });
+});
+
+describe("SearchService", () => {
+  const titles = (hits: { title: string }[]) => hits.map((hit) => hit.title);
+
+  it("suggests titles by exact, prefix, word prefix, then substring match", async () => {
+    for (const title of ["Ash", "Ashfall", "Old Ashwood", "Cash", "Mira"]) await pages.create({ wikiId, title });
+    expect(titles(await search.suggest(wikiId, "ASH"))).toEqual(["Ash", "Ashfall", "Old Ashwood", "Cash"]);
+    expect(await search.suggest(wikiId, "   ")).toEqual([]);
+    expect(await search.suggest(wikiId, "ash", { limit: 2 })).toHaveLength(2);
+  });
+
+  it("matches aliases, reports them, and ranks titles first at the same tier", async () => {
+    await pages.create({ wikiId, title: "Theo", body: "---\naliases: [The Archivist]\n---" });
+    await pages.create({ wikiId, title: "Archive" });
+    await pages.create({ wikiId, title: "Archivist" });
+
+    expect(await search.suggest(wikiId, "archivist")).toEqual([
+      { pageId: expect.any(String), title: "Archivist" },
+      { pageId: expect.any(String), title: "Theo", alias: "The Archivist" },
+    ]);
+  });
+
+  it("only searches the given wiki", async () => {
+    const other = await wikis.create("Other");
+    await pages.create({ wikiId: other.id, title: "Mira" });
+    expect(await search.suggest(wikiId, "mira")).toEqual([]);
+  });
+
+  it("searches body text, needing every term, with name matches first", async () => {
+    await pages.create({ wikiId, title: "Mira", body: "---\nnote: lantern\n---\n\nShe carries a **lantern** through [[Ashfall|the old city]]." });
+    await pages.create({ wikiId, title: "Theo", body: "A lantern, a lantern, and a city." });
+    await pages.create({ wikiId, title: "Lantern Festival" });
+
+    expect(titles(await search.search(wikiId, "lantern"))).toEqual(["Lantern Festival", "Theo", "Mira"]);
+    expect(titles(await search.search(wikiId, "old lantern"))).toEqual(["Mira"]);
+    expect(await search.search(wikiId, "carries")).toMatchObject([
+      { title: "Mira", snippet: "She carries a lantern through the old city." },
+    ]);
+    expect(await search.search(wikiId, "note")).toEqual([]);
+  });
+
+  it("trims snippets around the first match", async () => {
+    const filler = "word ".repeat(40);
+    await pages.create({ wikiId, title: "Mira", body: `${filler}needle ${filler}` });
+
+    const [hit] = await search.search(wikiId, "needle");
+    expect(hit.snippet).toMatch(/^….*needle.*…$/);
+    expect(hit.snippet!.length).toBeLessThanOrEqual(162);
+  });
+
+  it("sees edits after a page is saved", async () => {
+    const mira = await pages.create({ wikiId, title: "Mira", body: "Before" });
+    expect(await search.search(wikiId, "before")).toHaveLength(1);
+
+    await pages.save(mira.id, "After");
+    expect(await search.search(wikiId, "before")).toEqual([]);
+    expect(await search.search(wikiId, "after")).toHaveLength(1);
   });
 });
