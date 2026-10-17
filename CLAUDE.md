@@ -41,8 +41,14 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 - UI copy uses plain labels (Auto-context, Canon / Likely / Idea, Assistant). Code uses internal terms (lorebook, hard / soft / maybe, agent). See the terminology map in the UX spec.
 - Write readable code with no line-by-line comments. A short comment above a block that does something non-obvious is fine.
 
-## Commits
+## Branches and commits
 
+### Branches
+- Never commit directly to `master`.
+- Each milestone gets one branch cut from `master`, named `m<N>-<slug>` (for example `m1-wiki-core`). Post-MVP work uses a short descriptive slug.
+- Merge into `master` when the milestone is done, meaning the next step belongs to a new milestone. Then cut the next milestone's branch from the updated `master`.
+
+### Commits
 - One sentence per message.
 - One feature per commit; a feature that touches many files stays in one commit, and separate features go in separate commits.
 - No attribution to Claude or Anthropic.
