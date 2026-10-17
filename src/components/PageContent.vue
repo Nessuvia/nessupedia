@@ -44,6 +44,17 @@ const rendered = computed(() => {
   return { lead: lead.html, body: body.html, toc: buildToc(body.headings) };
 });
 
+function switchTab(tab: HTMLElement) {
+  const tabset = tab.closest(".tabset");
+  if (!tabset) return;
+  for (const other of tabset.querySelectorAll(":scope > .tablist > [role=tab]")) {
+    other.setAttribute("aria-selected", String(other === tab));
+  }
+  for (const panel of tabset.querySelectorAll<HTMLElement>(":scope > [data-panel]")) {
+    panel.hidden = panel.dataset.panel !== tab.dataset.tab;
+  }
+}
+
 watch(rendered, async (now, before) => {
   if (props.preview || !now || before || !route.hash) return;
   await nextTick();
@@ -51,6 +62,8 @@ watch(rendered, async (now, before) => {
 });
 
 function followLink(event: MouseEvent) {
+  const tab = (event.target as Element).closest<HTMLElement>("[role=tab][data-tab]");
+  if (tab) return switchTab(tab);
   const link = (event.target as Element).closest<HTMLAnchorElement>("a[href]");
   if (!link) return;
   if (props.preview) {

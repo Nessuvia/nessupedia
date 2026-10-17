@@ -1,0 +1,21 @@
+{
+  "wikis": [
+    {
+      "name": "Ashfall",
+      "pages": [
+        {
+          "title": "Main Page",
+          "body": "Start with [[Mira]]."
+        },
+        {
+          "title": "Theo",
+          "body": "Theo keeps the ledgers."
+        },
+        {
+          "title": "Mira",
+          "body": ":::infobox\ntitle: Mira Vale\nSpecies: Human\n=== Adult\nimage: assets/mira.webp | Age 30\n## Biographical\nBorn: 1203, [[Harrow]]\nOccupation: Archivist\n## Physical\nHair: Black\n=== Young\nimage: assets/young.webp | Age 12\nimage: assets/young-2.webp | Age 14\n## Biographical\nGuardian: [[Theo]]\n:::\n\nMira is an archivist who grew up with [[Theo]]. She was born in winter :canon[during the long frost]{tier=maybe}.\n\n## Early life\n\n:::canon{tier=soft}\nShe learned to read from the guild's ledgers.\n:::\n\n> [!tip] Writing note\n> Keep her **quiet** in group scenes.\n\n> [!warning]- Spoilers\n> She leaves the guild in book two.\n\n## Personality\n\n:::pressure\nTriggers: Being talked over.\nCoping: Counts exits, then jokes.\n  Never in front of [[Theo]].\nContradictions: Craves order, keeps a messy desk.\nBreaking point: Losing the archive.\nHow others read it: Calm.\nAftermath: Sleeps for a day.\n:::\n\n- Patient\n- Stubborn"
+        }
+      ]
+    }
+  ]
+}

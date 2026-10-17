@@ -91,7 +91,7 @@ describe("renderMarkdown", () => {
 
   it("links headings to slugged ids", () => {
     const html = render(source);
-    expect(html).toContain('<h2 id="user-content-early-life">Early life</h2>');
+    expect(html).toMatch(/<h2 [^>]*id="user-content-early-life">Early life<\/h2>/);
     expect(html).toContain('href="/wiki/Theo#user-content-early-life"');
   });
 
