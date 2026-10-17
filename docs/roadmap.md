@@ -14,11 +14,12 @@
 ## M2: Editing experience
 - Click-to-edit blocks
 - Slash menu
+- `[[` page picker in every editor
 - Infobox, canon, pressure directives with form editors
 - Callouts, images as assets
 
 ## M3: Structure
-- Templates: bundled and user-made
+- Templates: bundled and user-made, and the slash menu's "Section from template"
 - Spinoffs
 - Relationship pages
 - Open questions board

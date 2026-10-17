@@ -23,8 +23,8 @@ Follows the Fandom page structure; colors, fonts, and background art arrive with
 
 ### Click-to-edit (default)
 - Hover shows a subtle outline on each block.
-- Clicking a paragraph, list, or heading section swaps it for an inline editor holding that block's markdown.
-- Enter + Ctrl/Cmd or clicking outside saves; Esc cancels.
+- Clicking a paragraph, list, callout, or code block swaps it for an inline editor holding that block's markdown. Clicking a heading edits just the heading line.
+- Enter + Ctrl/Cmd or clicking outside saves; Esc cancels. A "Minor edit" checkbox sits beside Save.
 - Infobox, canon notes, and pressure profiles open form editors.
 
 ### Split view (fallback)
@@ -35,16 +35,34 @@ Follows the Fandom page structure; colors, fonts, and background art arrive with
 ### Slash menu
 Typing `/` in any editor offers:
 - Infobox
-- Canon note (Canon / Likely / Idea)
-- Pressure profile
+- Canon note (Canon / Likely / Idea), as a block or inline
+- Pressure profile (hidden once the page has one)
 - Callout
 - Image
 - Link to page
-- Section from template
+- Section from template (M3)
 
 ### Links
 - Typing `[[` opens a page picker with search, aliases, and "Create page".
 - Missing pages render as red links; clicking one opens page creation with the title prefilled.
+
+### Infobox
+- Fandom style: a title, images with captions, and labeled groups ("Biographical", "Physical") of label / value rows.
+- Tabs ("Young / Adult") each hold their own images and groups; rows outside any tab show under every tab.
+- Several images in one tab switch with small tabs named by their captions.
+
+### Pressure profile
+- One per page.
+- Starts with six fields: Triggers, Coping, Contradictions, Breaking point, How others read it, Aftermath. Fields can be renamed, removed, or added.
+
+### Callouts
+- Every Obsidian callout type and alias, with its own color and icon. `[!note]-` starts folded, `[!note]+` starts open.
+
+### Images
+- Paste or drop images into any editor, or pick one from the slash menu or the infobox form.
+- Images are scaled to at most 2048 px on the long edge and stored as WebP. GIFs and SVGs are kept as they are.
+- "Keep original images" in wiki settings stores the untouched file alongside.
+- The same image added twice is stored once.
 
 ### Saving
 - Each save creates a change log entry.
@@ -56,8 +74,8 @@ Typing `/` in any editor offers:
 
 ## Canon tiers
 - Labels: **Canon**, **Likely**, **Idea**.
-- Rendered as tagged blocks with distinct accents.
-- One-click promote/demote on hover.
+- Rendered as tagged blocks with distinct accents, or inline around a sentence or phrase inside other text.
+- One-click promote/demote on hover, for blocks and inline marks alike.
 - LLM inventions land as **Idea** by default.
 
 ## Relationship pages
@@ -103,7 +121,7 @@ Available from the page toolbar and the slash menu:
 
 ## Settings
 - **Model**: endpoint URL, API key, model name, token budget.
-- **Wiki**: name, voice (fandom only in MVP), default template folder. Deleting a wiki requires typing its name.
+- **Wiki**: name, voice (fandom only in MVP), default template folder, keep original images. Deleting a wiki requires typing its name.
 - **Auto-context** (advanced): per-page triggers, match mode, follow connections depth, priority, injected content.
 - **Data**: export ZIP, import ZIP, import Obsidian vault.
 

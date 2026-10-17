@@ -41,6 +41,7 @@ interface Wiki {
   name: string;
   themeId: string;
   voice: "fandom" | "in-universe";
+  keepOriginalImages?: boolean;
   createdAt: number;
 }
 
@@ -88,6 +89,11 @@ interface Asset {
   path: string;
   mime: string;
   blob: Blob;
+  hash: string;
+  width?: number;
+  height?: number;
+  original?: Blob;
+  createdAt: number;
 }
 
 interface Template {
@@ -120,6 +126,9 @@ this.version(1).stores({
   templates: "id, wikiId, name",
   runs: "id, wikiId, pageId, startedAt",
 });
+this.version(2).stores({
+  assets: "id, wikiId, [wikiId+path], [wikiId+hash]",
+});
 ```
 
 ### Page titles
@@ -132,21 +141,43 @@ Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; th
 - The page title renders as the page's only `h1`; bodies start at `##`.
 - YAML frontmatter: `title`, `aliases`, `categories` (M3), `template`, `spinoffOf`, `changes`, custom fields.
 - `[[Title]]`, `[[Title|label]]`, `[[Title#Heading]]`.
-- Obsidian callouts: `> [!note]`.
-- Directives:
-  - `:::infobox` with key/value lines and an `image` field.
-  - `:::canon{tier=hard|soft|maybe}`
-  - `:::pressure` with fields: triggers, coping, contradictions, breaking point, how others read it, aftermath.
-- Images: `![[assets/path.png]]`.
+- Obsidian callouts: `> [!type] Optional title`, with every Obsidian type and alias; unknown types style as `note`. `[!type]-` renders folded and `[!type]+` open, both as `<details>`.
+- Images: `![[assets/path.webp]]`, `![[assets/path.webp|alt text]]`, or `![[assets/path.webp|300]]` for a width. A bare file name also looks in `assets/`, so Obsidian embeds resolve. Embeds of anything but an image stay as text.
+- Directives (remark-directive). Text that only looks like a directive, such as `re:Zero`, renders as written.
+  - `:::canon{tier=hard|soft|maybe}` wraps blocks; `:canon[a phrase]{tier=maybe}` marks text inline. `canon`, `likely`, and `idea` are accepted as tier names; a missing tier means `hard`.
+  - `:::infobox` and `:::pressure` hold field lines, `Label: value`. A line indented two spaces continues the previous value, and a line that is neither starts an unlabeled row. Values are markdown.
+  - Infobox lines: `title:` once at the top; `=== Tab name` starts a tab; `image: path | caption` adds an image to the current tab; `## Group` starts a group. Lowercase `title`, `image`, and `===` are reserved; any other label is a row. Lines before the first tab show under every tab.
+  - Pressure fields are free-form; the form editor starts with Triggers, Coping, Contradictions, Breaking point, How others read it, and Aftermath.
+
+```markdown
+:::infobox
+title: Mira Vale
+Species: Human
+=== Adult
+image: assets/mira-adult.webp | Age 30
+## Biographical
+Born: 1203, [[Harrow]]
+=== Young
+image: assets/mira-young.webp | Age 12
+:::
+
+:::pressure
+Triggers: Being talked over.
+Coping: Counts exits, then jokes.
+  Never in front of [[Theo]].
+:::
+
+She was born in winter :canon[during the long frost]{tier=maybe}.
+```
 
 ### Pipeline
 ```
 markdown
  → remark-parse
  → remark-frontmatter
- → remark-directive + custom handlers
- → remark-wikilinks (custom)
- → remark-callouts
+ → remark-directive + custom handlers (canon, infobox, pressure)
+ → remark-callouts (custom)
+ → remark-wikilinks + image embeds (custom)
  → remark-rehype
  → rehype-slug
  → rehype-sanitize
@@ -193,10 +224,22 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - New pages open straight into the editor.
 
 ## Click-to-edit
-- Renderer attaches `data-start` / `data-end` offsets from mdast positions to each top-level block.
-- Clicking a block opens a CodeMirror instance bound to that slice.
-- Saving splices the slice into `body`, re-parses, re-renders, writes a change entry.
+- Renderer attaches `data-start` / `data-end` offsets from mdast positions to each top-level block, and returns the blocks as separate HTML strings so one can be swapped for an editor.
+- Clicking a block opens a CodeMirror instance bound to that slice; a heading's slice is its own line. Clicks on links, buttons, or a text selection don't open it.
+- Saving splices the slice into `body`, re-parses, re-renders, writes a change entry summarized as the section it sits in. If the slice changed underneath since opening, the save is refused.
 - Directive blocks map to form components that serialize back to directive syntax.
+- Canon blocks and inline marks carry their own offsets; promote and demote rewrite only the `tier` attribute.
+- In split view, clicking a preview block moves the source cursor to its start.
+
+## Editors
+- One CodeMirror setup serves split view, inline blocks, and form text fields.
+- `/` at the start of a line or after a space opens the slash menu; `[[` opens the page picker over `suggest`, with "Create page" inserting a red link.
+- Pasting or dropping image files stores them as assets and inserts `![[path]]` embeds.
+
+## Assets
+- `AssetService` stores images: GIFs and SVGs as they are, everything else scaled to 2048 px on the long edge and encoded as WebP, unless the result is no smaller and needs no scaling.
+- Paths are `assets/<name>-<hash>.<ext>`, so they never change once written; adding identical bytes returns the existing asset.
+- Rendered images carry `data-asset`; the page view resolves them to object URLs through a cache keyed by wiki and path.
 
 ## Change log
 - Every save computes a unified diff against the prior body.
