@@ -1,0 +1,81 @@
+export type CanonTier = "hard" | "soft" | "maybe";
+
+export interface Wiki {
+  id: string;
+  name: string;
+  themeId: string;
+  voice: "fandom" | "in-universe";
+  createdAt: number;
+}
+
+export interface AutoContextSettings {
+  enabled: boolean;
+  extraTriggers: string[];
+  match: "any" | "all" | "not";
+  followDepth: number;
+  priority: number;
+  inject: "full" | "summary" | "infobox" | { section: string };
+}
+
+export interface Page {
+  id: string;
+  wikiId: string;
+  title: string;
+  aliases: string[];
+  path: string;
+  templateId?: string;
+  spinoffOf?: string;
+  frontmatter: Record<string, unknown>;
+  body: string;
+  autoContext?: AutoContextSettings;
+  updatedAt: number;
+}
+
+export interface Link {
+  id?: number;
+  wikiId: string;
+  fromPageId: string;
+  targetTitle: string;
+  toPageId?: string;
+}
+
+export interface ChangeEntry {
+  id?: number;
+  wikiId: string;
+  pageId: string;
+  author: "human" | "llm";
+  minor: boolean;
+  summary: string;
+  diff: string;
+  at: number;
+}
+
+export interface Asset {
+  id: string;
+  wikiId: string;
+  path: string;
+  mime: string;
+  blob: Blob;
+}
+
+export interface Template {
+  id: string;
+  wikiId?: string;
+  name: string;
+  body: string;
+  frontmatter: Record<string, unknown>;
+}
+
+export type TranscriptEntry =
+  | { kind: "message"; role: "system" | "user" | "assistant"; content: string; at: number }
+  | { kind: "tool-call"; name: string; args: unknown; result?: unknown; at: number };
+
+export interface AgentRun {
+  id: string;
+  wikiId: string;
+  pageId: string;
+  kind: "draft" | "suggest-links" | "fill-template";
+  status: "running" | "done" | "interrupted" | "error";
+  transcript: TranscriptEntry[];
+  startedAt: number;
+}
