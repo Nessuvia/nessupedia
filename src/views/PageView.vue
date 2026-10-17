@@ -50,6 +50,10 @@ function openDialog(kind: "rename" | "delete") {
   (kind === "rename" ? renameOpen : deleteOpen).value = true;
 }
 
+async function saveBody(body: string, summary: string, minor: boolean) {
+  await pageService.save(page.value!.id, body, { summary, minor });
+}
+
 function showRenamed(title: string) {
   void router.replace({ name: "page", params: { wikiId: props.wikiId, title } });
 }
@@ -77,7 +81,7 @@ watchEffect(() => {
       <DeletePageDialog v-model:open="deleteOpen" :page="dialogPage" />
     </template>
     <p v-if="redirectedFrom && page" class="redirect-note">(Redirected from {{ redirectedFrom }})</p>
-    <PageContent v-if="page" :wiki-id="wikiId" :markdown="page.body" />
+    <PageContent v-if="page" :key="page.id" :wiki-id="wikiId" :markdown="page.body" :save="saveBody" />
     <div v-else-if="page === null" class="missing">
       <p>This page doesn't exist yet.</p>
       <RouterLink class="create-button" :to="{ name: 'new-page', params: { wikiId }, query: { title } }">

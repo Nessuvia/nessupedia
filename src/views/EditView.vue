@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { computed, onBeforeUnmount, ref, watch, watchEffect } from "vue";
+import { computed, onBeforeUnmount, ref, useTemplateRef, watch, watchEffect } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRouter } from "vue-router";
 import MarkdownEditor from "@/components/MarkdownEditor.vue";
 import PageContent from "@/components/PageContent.vue";
@@ -12,6 +12,7 @@ const props = defineProps<{ wikiId: string; title: string }>();
 
 const router = useRouter();
 const { currentWiki } = storeToRefs(useWikiStore());
+const editor = useTemplateRef("editor");
 
 const page = useLiveQuery(
   async ([wikiId, title]) => (await pageService.getByTitle(wikiId, title)) ?? null,
@@ -83,12 +84,12 @@ watchEffect(() => {
       <div class="panes">
         <section class="pane" aria-labelledby="source-heading">
           <h2 id="source-heading" class="pane-label">Markdown</h2>
-          <MarkdownEditor v-model="draft" class="source" label="Page source" :wiki-id="wikiId" />
+          <MarkdownEditor ref="editor" v-model="draft" class="source" label="Page source" :wiki-id="wikiId" @submit="save" />
         </section>
         <section class="pane" aria-labelledby="preview-heading">
           <h2 id="preview-heading" class="pane-label">Preview</h2>
           <div class="preview">
-            <PageContent :wiki-id="wikiId" :markdown="draft" preview />
+            <PageContent :wiki-id="wikiId" :markdown="draft" preview @locate="editor?.focusAt($event)" />
           </div>
         </section>
       </div>

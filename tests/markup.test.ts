@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { editSummary, spliceBlock, StaleBlockError } from "@/markdown/blocks";
 import { setCanonTier, shiftTier } from "@/markdown/canon";
+import { joinDirective, splitDirective } from "@/markdown/directiveSource";
 import { parseFields, parseInfobox, serializeFields, serializeInfobox } from "@/markdown/fields";
 import { parseMarkdown, renderMarkdown } from "@/markdown/pipeline";
 import { plainText } from "@/markdown/plainText";
@@ -140,6 +142,38 @@ describe("image embeds", () => {
   it("keeps embeds out of the link index and rename rewrites", () => {
     expect(extractWikilinks(parseMarkdown("![[Theo.png]] [[Theo]]").tree)).toHaveLength(1);
     expect(retargetWikilinks("![[Theo.png]] [[Theo]]", "Theo", "Teo")).toBe("![[Theo.png]] [[Teo]]");
+  });
+});
+
+describe("block editing", () => {
+  const body = "Intro.\n\n## Early life\n\nFirst.\n\nSecond.\n";
+
+  it("splices a block and refuses when it changed underneath", () => {
+    const start = body.indexOf("First.");
+    expect(spliceBlock(body, start, start + 6, "First.", "Changed.\n\nAdded.\n\n")).toBe(
+      "Intro.\n\n## Early life\n\nChanged.\n\nAdded.\n\nSecond.\n",
+    );
+    expect(() => spliceBlock(body, start, start + 6, "Fist.", "x")).toThrow(StaleBlockError);
+  });
+
+  it("removes an emptied block with its blank lines", () => {
+    const start = body.indexOf("First.");
+    expect(spliceBlock(body, start, start + 6, "First.", "  \n")).toBe("Intro.\n\n## Early life\n\nSecond.\n");
+    const last = body.indexOf("Second.");
+    expect(spliceBlock(body, last, last + 7, "Second.", "")).toBe("Intro.\n\n## Early life\n\nFirst.\n");
+  });
+
+  it("summarizes edits by section", () => {
+    const { tree } = parseMarkdown(body);
+    expect(editSummary(tree, body.indexOf("Second."))).toBe("Edited “Early life”");
+    expect(editSummary(tree, 0)).toBe("Edited the introduction");
+  });
+
+  it("splits and rejoins directive fences", () => {
+    const parts = splitDirective(":::canon{tier=soft}\nText\n:::", "canon");
+    expect(parts).toEqual({ open: ":::canon{tier=soft}", inner: "Text", close: ":::" });
+    expect(joinDirective({ ...parts, inner: "New\n\n" })).toBe(":::canon{tier=soft}\nNew\n:::");
+    expect(splitDirective(":::pressure\nA: b", "pressure")).toEqual({ open: ":::pressure", inner: "A: b", close: ":::" });
   });
 });
 

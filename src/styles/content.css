@@ -195,6 +195,10 @@
   background: color-mix(in srgb, var(--tier) 8%, transparent);
 }
 
+.canon-hard {
+  --tier: var(--canon-hard);
+}
+
 .canon-soft {
   --tier: var(--canon-soft);
 }

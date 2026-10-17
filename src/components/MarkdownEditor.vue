@@ -1,18 +1,31 @@
 <script setup lang="ts">
 import { markdown } from "@codemirror/lang-markdown";
 import { yamlFrontmatter } from "@codemirror/lang-yaml";
-import { EditorState } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorState, Prec } from "@codemirror/state";
+import { EditorView, keymap } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
 import { wikiEditing } from "@/editor";
 
-const props = defineProps<{ label: string; wikiId: string; surroundingText?: string }>();
+// Compact editors grow with their text and drop the gutter, for inline blocks and form fields.
+const props = withDefaults(
+  defineProps<{ label: string; wikiId: string; surroundingText?: string; compact?: boolean; autofocus?: boolean }>(),
+  { autofocus: true },
+);
+const emit = defineEmits<{ submit: []; cancel: [] }>();
 const source = defineModel<string>({ required: true });
 
 const host = useTemplateRef("host");
 const status = ref("");
 let view: EditorView | undefined;
+
+// Escape reaches this only after the autocomplete popup, which sits at a higher precedence, has closed.
+const submitAndCancel = Prec.high(
+  keymap.of([
+    { key: "Mod-Enter", run: () => (emit("submit"), true) },
+    { key: "Escape", run: () => (emit("cancel"), true) },
+  ]),
+);
 
 onMounted(() => {
   view = new EditorView({
@@ -20,6 +33,7 @@ onMounted(() => {
     state: EditorState.create({
       doc: source.value,
       extensions: [
+        submitAndCancel,
         basicSetup,
         yamlFrontmatter({ content: markdown() }),
         EditorView.lineWrapping,
@@ -35,7 +49,10 @@ onMounted(() => {
       ],
     }),
   });
-  view.focus();
+  if (props.autofocus) {
+    if (props.compact) view.dispatch({ selection: { anchor: view.state.doc.length } });
+    view.focus();
+  }
 });
 
 watch(source, (next) => {
@@ -45,10 +62,19 @@ watch(source, (next) => {
 });
 
 onBeforeUnmount(() => view?.destroy());
+
+function focusAt(offset: number) {
+  if (!view) return;
+  const anchor = Math.min(offset, view.state.doc.length);
+  view.dispatch({ selection: { anchor }, effects: EditorView.scrollIntoView(anchor, { y: "start", yMargin: 24 }) });
+  view.focus();
+}
+
+defineExpose({ focusAt });
 </script>
 
 <template>
-  <div class="markdown-editor">
+  <div class="markdown-editor" :class="{ compact }">
     <div ref="host" class="host" />
     <p v-if="status" class="status" role="status">{{ status }}</p>
   </div>
@@ -80,6 +106,23 @@ onBeforeUnmount(() => view?.destroy());
 
 .host :deep(.cm-scroller) {
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+.compact {
+  height: auto;
+}
+
+.compact .host :deep(.cm-editor) {
+  height: auto;
+  max-height: 60vh;
+}
+
+.compact .host :deep(.cm-gutters) {
+  display: none;
+}
+
+.compact .host :deep(.cm-activeLine) {
+  background: transparent;
 }
 
 .status {
