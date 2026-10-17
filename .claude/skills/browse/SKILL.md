@@ -65,7 +65,9 @@ Each step is one key:
 |---|---|
 | `goto` | App path |
 | `click` | Target |
-| `fill` | `[target, value]` |
+| `fill` | `[target, value]`; replaces the value of an input, or the text of a contenteditable |
+| `type` | `[target, text]` typed key by key, or `text` for the focused element. Use for CodeMirror, where it exercises real input handling |
+| `dialogs` | `"accept"` or `"dismiss"`: how later `alert` / `confirm` / `beforeunload` prompts are answered. Default `dismiss`; each prompt prints as `dialog …` |
 | `press` | Key (`"Enter"`), or `[target, key]` |
 | `wait` | Milliseconds, or a target to wait for |
 | `screenshot` | File name |
@@ -77,6 +79,11 @@ Each step is one key:
 A target is a Playwright selector string (`"text=Mira"`, `"a.wikilink.new"`, `"#search"`) or an object: `{ "role": "link", "name": "Theo", "exact": true }` or `{ "text": "Early life" }`. The first match is used.
 
 After every step the script prints the current URL. On a failed step it saves `failure.png` and stops with exit code 1. Screenshots land in `out/`, which is cleared at the start of each run; Read the printed path to view one.
+
+## App landmarks
+
+- Page view: `.page-actions` (the Edit link) exists only there; `.page-body` also appears in the editor's preview, so don't wait on it to detect a finished save.
+- Editor (`/w/:id/edit/:title`): type into `.cm-content` with `type`; the summary is `.summary input`, the Minor edit box `.minor input`. Leaving with unsaved changes raises a `confirm`, answered by the `dialogs` setting.
 
 ## Seeding and ids
 

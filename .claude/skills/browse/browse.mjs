@@ -127,6 +127,14 @@ async function runStep(page, step, context) {
     case "fill":
       await locate(page, arg[0]).fill(arg[1]);
       break;
+    case "type":
+      if (Array.isArray(arg)) await locate(page, arg[0]).pressSequentially(arg[1]);
+      else await page.keyboard.type(arg);
+      break;
+    case "dialogs":
+      if (arg !== "accept" && arg !== "dismiss") throw new Error(`dialogs takes "accept" or "dismiss"`);
+      context.dialogs = arg;
+      break;
     case "press":
       if (Array.isArray(arg)) await locate(page, arg[0]).press(arg[1]);
       else await page.keyboard.press(arg);
@@ -181,7 +189,11 @@ async function main() {
     page.setDefaultTimeout(Number(options.timeout));
     page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
 
-    const context = { baseUrl: server.url, ids: { wiki: {}, page: {} }, options };
+    const context = { baseUrl: server.url, ids: { wiki: {}, page: {} }, options, dialogs: "dismiss" };
+    page.on("dialog", async (dialog) => {
+      console.log(`  dialog ${dialog.type()} "${dialog.message()}": ${context.dialogs}`);
+      await (context.dialogs === "accept" ? dialog.accept() : dialog.dismiss());
+    });
     console.log(`server: ${server.url}`);
     for (const step of steps) {
       try {
