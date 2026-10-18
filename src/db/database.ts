@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 import { categoryKeys } from "@/markdown/categories";
-import type { AgentRun, Asset, ChangeEntry, Link, Page, Template, Wiki } from "./types";
+import type { AgentRun, Asset, ChangeEntry, Link, ModelSettings, Page, Template, Tokenizer, Wiki } from "./types";
 
 export class WikiDatabase extends Dexie {
   wikis!: EntityTable<Wiki, "id">;
@@ -10,6 +10,8 @@ export class WikiDatabase extends Dexie {
   assets!: EntityTable<Asset, "id">;
   templates!: EntityTable<Template, "id">;
   runs!: EntityTable<AgentRun, "id">;
+  settings!: EntityTable<ModelSettings, "id">;
+  tokenizers!: EntityTable<Tokenizer, "id">;
 
   constructor(name = "oc-wiki") {
     super(name);
@@ -38,6 +40,10 @@ export class WikiDatabase extends Dexie {
             delete page.spinoffOf;
           }),
       );
+    this.version(4).stores({
+      settings: "id",
+      tokenizers: "id",
+    });
   }
 }
 

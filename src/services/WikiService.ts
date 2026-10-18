@@ -47,12 +47,11 @@ export class WikiService {
   }
 
   async delete(id: string): Promise<void> {
-    await this.db.transaction("rw", this.db.tables, async () => {
+    // Tables indexed by wikiId hold this wiki's data; app-wide tables such as settings aren't, and bundled templates have no wikiId.
+    const wikiTables = this.db.tables.filter((table) => table.name !== "wikis" && table.schema.idxByName.wikiId);
+    await this.db.transaction("rw", [this.db.wikis, ...wikiTables], async () => {
       await this.db.wikis.delete(id);
-      // Every other table is indexed by wikiId; bundled templates have none and survive.
-      for (const table of this.db.tables) {
-        if (table.name !== "wikis") await table.where("wikiId").equals(id).delete();
-      }
+      for (const table of wikiTables) await table.where("wikiId").equals(id).delete();
     });
   }
 }

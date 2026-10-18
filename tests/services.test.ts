@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WikiDatabase } from "@/db/database";
+import { defaultModelSettings } from "@/llm/providers";
 import { ChangeLog, MERGE_WINDOW, rebuildVersions, sourceBefore } from "@/services/ChangeLog";
 import { LinkIndexer } from "@/services/LinkIndexer";
 import { PageService } from "@/services/PageService";
@@ -48,8 +49,10 @@ describe("WikiService", () => {
       { id: "own", wikiId, name: "Own", body: "", frontmatter: {} },
       { id: "bundled", name: "Character", body: "", frontmatter: {} },
     ]);
+    await db.settings.put({ ...defaultModelSettings(), model: "gemma" });
 
     await wikis.delete(wikiId);
+    expect(await db.settings.get("model")).toMatchObject({ model: "gemma" });
 
     expect(await wikis.list()).toEqual([other]);
     expect(await db.pages.toArray()).toEqual([kept]);

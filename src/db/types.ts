@@ -79,6 +79,31 @@ export interface Template {
   frontmatter: Record<string, unknown>;
 }
 
+export type ProviderId = "llama.cpp" | "koboldcpp" | "openrouter" | "nanogpt" | "openai";
+
+// The one app-wide record in `settings`; Test connection fills in contextLength and tools, which stay overridable.
+export interface ModelSettings {
+  id: "model";
+  provider: ProviderId;
+  baseUrl: string;
+  apiKey?: string;
+  model: string;
+  contextLength: number;
+  replyTokens: number;
+  tools: boolean;
+  tokenizerId?: string;
+}
+
+// A downloaded tokenizer.json with its tokenizer_config.json, kept on the device rather than in the app.
+export interface Tokenizer {
+  id: string;
+  family: string;
+  source: string;
+  data: Blob;
+  config: Blob;
+  downloadedAt: number;
+}
+
 export type TranscriptEntry =
   | { kind: "message"; role: "system" | "user" | "assistant"; content: string; at: number }
   | { kind: "tool-call"; name: string; args: unknown; result?: unknown; at: number };

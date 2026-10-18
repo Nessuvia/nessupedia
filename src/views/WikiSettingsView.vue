@@ -6,6 +6,7 @@ import AppDialog from "@/components/AppDialog.vue";
 import ContinuityDialog from "@/components/ContinuityDialog.vue";
 import ImportVault from "@/components/ImportVault.vue";
 import ImportZip from "@/components/ImportZip.vue";
+import ModelSettingsForm from "@/components/ModelSettingsForm.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Continuity } from "@/db/types";
 import { archiveService, changeLog, continuityService, pageService, storageService, wikiService } from "@/services";
@@ -246,6 +247,12 @@ watchEffect(() => {
         keep all history in their Details keep everything.
       </p>
       <p v-if="pruneNote" class="saved" role="status">{{ pruneNote }}</p>
+    </section>
+
+    <section aria-labelledby="settings-model">
+      <h2 id="settings-model">Model</h2>
+      <p class="hint">The model the Assistant writes with. These settings are shared by all wikis.</p>
+      <ModelSettingsForm />
     </section>
 
     <section aria-labelledby="settings-data">
