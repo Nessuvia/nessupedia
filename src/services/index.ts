@@ -1,4 +1,5 @@
 import { db } from "@/db/database";
+import { ArchiveService } from "./ArchiveService";
 import { AssetService } from "./AssetService";
 import { CategoryService } from "./CategoryService";
 import { ChangeLog } from "./ChangeLog";
@@ -12,6 +13,7 @@ import { StorageService } from "./StorageService";
 import { TemplateService } from "./TemplateService";
 import { WikiService } from "./WikiService";
 
+export const archiveService = new ArchiveService(db);
 export const assetService = new AssetService(db, encodeImage);
 export const categoryService = new CategoryService(db);
 export const changeLog = new ChangeLog(db);

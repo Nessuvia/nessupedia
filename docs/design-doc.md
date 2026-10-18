@@ -329,7 +329,7 @@ wiki-name/
   assets/**/*
   changes.json
 ```
-- `wiki.json` holds the wiki's settings and continuities.
+- `wiki.json` holds the wiki's settings and continuities, plus what files can't: each page's title, template, and auto-context; each template's name; each asset's type, hash, size, and original. Page and template file names come from titles, made safe for file systems and numbered when two collide case-insensitively.
 - Exporting all wikis puts one such folder per wiki in the ZIP.
 - `changes.json` is optional and can be cut to entries newer than a chosen age. Entries name their page by an archive-local key, so deleted pages' histories survive.
 - Original images go under `assets/originals/` when the wiki keeps them.

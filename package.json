@@ -20,6 +20,7 @@
     "codemirror": "^6.0.2",
     "dexie": "^4.4.6",
     "diff": "^9.0.0",
+    "fflate": "^0.8.3",
     "github-slugger": "^2.0.0",
     "hast-util-to-html": "^9.0.5",
     "mdast-util-to-hast": "^13.2.1",

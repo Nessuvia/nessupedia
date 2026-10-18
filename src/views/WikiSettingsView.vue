@@ -6,8 +6,10 @@ import AppDialog from "@/components/AppDialog.vue";
 import ContinuityDialog from "@/components/ContinuityDialog.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Continuity } from "@/db/types";
-import { continuityService, pageService, storageService, wikiService } from "@/services";
+import { archiveService, continuityService, pageService, storageService, wikiService } from "@/services";
+import { fileSafeName } from "@/services/ArchiveService";
 import { useWikiStore } from "@/stores/wiki";
+import { downloadFile } from "@/utils/download";
 
 const props = defineProps<{ wikiId: string }>();
 
@@ -77,6 +79,41 @@ onMounted(async () => (persisted.value = await storageService.persisted()));
 async function askToKeep() {
   persisted.value = await storageService.request();
   askedToKeep.value = true;
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+const HISTORY_SPANS = [
+  { label: "Last 7 days", days: 7 },
+  { label: "Last 30 days", days: 30 },
+  { label: "Last 90 days", days: 90 },
+  { label: "Last year", days: 365 },
+  { label: "All of it", days: undefined },
+];
+
+const wikis = useLiveQuery(() => wikiService.list());
+const exportScope = ref<"wiki" | "all">("wiki");
+const includeHistory = ref(true);
+const historySpan = ref(HISTORY_SPANS.length - 1);
+const exporting = ref(false);
+const exportError = ref("");
+
+async function exportZip() {
+  exporting.value = true;
+  exportError.value = "";
+  try {
+    const all = exportScope.value === "all" && (wikis.value?.length ?? 0) > 1;
+    const { days } = HISTORY_SPANS[historySpan.value]!;
+    const data = await archiveService.exportZip(all ? wikis.value!.map(({ id }) => id) : [props.wikiId], {
+      includeHistory: includeHistory.value,
+      historySince: days === undefined ? undefined : Date.now() - days * DAY,
+    });
+    const date = new Date().toISOString().slice(0, 10);
+    downloadFile(data, `${all ? "All wikis" : fileSafeName(currentWiki.value?.name ?? "Wiki")} ${date}.zip`, "application/zip");
+  } catch (cause) {
+    exportError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    exporting.value = false;
+  }
 }
 
 const deleteOpen = ref(false);
@@ -184,6 +221,35 @@ watchEffect(() => {
           The browser said no. Some browsers decide by how often you use a site, and installing the app usually helps.
         </p>
       </template>
+
+      <h3 class="label subsection">Export</h3>
+      <p class="hint">Download a ZIP of markdown pages, images, and settings, to keep as a backup or import on another device.</p>
+      <form class="export" @submit.prevent="exportZip">
+        <fieldset v-if="(wikis?.length ?? 0) > 1" class="choices">
+          <legend>What to export</legend>
+          <label class="choice"><input v-model="exportScope" type="radio" value="wiki" /> This wiki</label>
+          <label class="choice"><input v-model="exportScope" type="radio" value="all" /> All {{ wikis!.length }} wikis</label>
+        </fieldset>
+        <label class="check"><input v-model="includeHistory" type="checkbox" /> Include history</label>
+        <div v-if="includeHistory" class="span">
+          <label for="history-span">How far back</label>
+          <input
+            id="history-span"
+            v-model.number="historySpan"
+            type="range"
+            min="0"
+            :max="HISTORY_SPANS.length - 1"
+            step="1"
+            :aria-valuetext="HISTORY_SPANS[historySpan]!.label"
+          />
+          <output for="history-span">{{ HISTORY_SPANS[historySpan]!.label }}</output>
+        </div>
+        <p v-if="exportScope === 'wiki' && currentWiki?.keepOriginalImages" class="hint">Original images are included.</p>
+        <div>
+          <button class="button" type="submit" :disabled="exporting">{{ exporting ? "Exporting…" : "Export ZIP" }}</button>
+        </div>
+        <p v-if="exportError" class="form-error" role="alert">{{ exportError }}</p>
+      </form>
     </section>
 
     <section class="danger-zone" aria-labelledby="settings-delete">
@@ -257,6 +323,51 @@ h2 {
 .status {
   max-width: 40rem;
   margin: 0 0 0.5rem;
+}
+
+.subsection {
+  margin-top: 1.5rem;
+}
+
+.export {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choices legend {
+  margin-bottom: 0.25rem;
+  padding: 0;
+  font-weight: 600;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+}
+
+.span output {
+  min-width: 7rem;
+  color: var(--color-muted);
 }
 
 .kept::before {

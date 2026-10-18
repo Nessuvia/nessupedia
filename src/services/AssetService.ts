@@ -28,6 +28,8 @@ const KEEP_AS_IS = new Set(["image/gif", "image/svg+xml"]);
 
 export const isSupportedImage = (file: Blob) => file.type in EXTENSIONS;
 
+export const extensionFor = (mime: string) => EXTENSIONS[mime] ?? "bin";
+
 function baseName(name: string): string {
   const stem = name.replace(/\.[^.]*$/, "");
   const slug = stem
@@ -74,7 +76,7 @@ export class AssetService {
     const asset: Asset = {
       id: crypto.randomUUID(),
       wikiId,
-      path: `assets/${baseName(name)}-${hash.slice(0, 10)}.${EXTENSIONS[blob.type] ?? "bin"}`,
+      path: `assets/${baseName(name)}-${hash.slice(0, 10)}.${extensionFor(blob.type)}`,
       mime: blob.type,
       blob,
       hash,
