@@ -46,6 +46,7 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 - Services take the database in their constructor; tests build a fresh `WikiDatabase` per case.
 - `parseMarkdown` returns the mdast tree for reuse in link indexing, auto-context, and click-to-edit offsets. `renderMarkdown` takes that tree and returns the HTML plus its h2 to h4 headings for the table of contents.
 - Pages are keyed by ID with a `path` for export. Markdown stores link titles; the `links` table resolves them to IDs.
+- The `page` and `edit-page` routes take titles as path segments: pass `titleParam(title)` from `src/router/params.ts`, never the bare title.
 - UI copy uses plain labels (Auto-context, Canon / Likely / Idea, Assistant). Code uses internal terms (lorebook, hard / soft / maybe, agent). See the terminology map in the UX spec.
 - Write readable code with no line-by-line comments. A short comment above a block that does something non-obvious is fine.
 
