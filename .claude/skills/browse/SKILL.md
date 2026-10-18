@@ -89,7 +89,7 @@ After every step the script prints the current URL. On a failed step it saves `f
 
 ## Seeding and ids
 
-`seed` imports `/src/services/index.ts` in the page, the same module instance the app uses, and creates each wiki and page through `wikiService` and `pageService`. Links, change entries, and search behave exactly as in the app.
+`seed` imports `/src/services/index.ts` in the page, the same module instance the app uses, and creates each wiki, its `continuities` (`{ "name", "description" }`, made before any page), and its pages through the services, in order; a version page must come after its main page. Links, change entries, and search behave exactly as in the app.
 
 Seeding prints the created ids. Any step argument can reference them as `{wiki:Name}` or `{page:Title}`.
 

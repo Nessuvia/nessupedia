@@ -10,11 +10,15 @@ import PageDetailsDialog from "@/components/PageDetailsDialog.vue";
 import RelationshipsTab from "@/components/RelationshipsTab.vue";
 import RenamePageDialog from "@/components/RenamePageDialog.vue";
 import TabBar from "@/components/TabBar.vue";
+import VersionBanner from "@/components/VersionBanner.vue";
+import VersionSwitcher from "@/components/VersionSwitcher.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { useTemplateNameCheck } from "@/composables/useTemplateNameCheck";
 import type { Page } from "@/db/types";
 import { pageCategories } from "@/markdown/categories";
+import { stringList } from "@/markdown/frontmatter";
 import { titleSegments, topTitle } from "@/markdown/subpages";
+import { versionOf } from "@/markdown/versions";
 import { RELATIONSHIPS_TAB, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
 import { pageService, templateService } from "@/services";
@@ -65,8 +69,14 @@ const relationshipsOf = computed(() =>
   segments.value.length === 2 && titleKey(segments.value[1]!) === titleKey(RELATIONSHIPS_TAB) ? topPage.value : undefined,
 );
 
+// A version renders over its main page, the top page, unless that's gone.
+const continuities = computed(() => currentWiki.value?.continuities ?? []);
+const version = computed(() => versionOf(shownTitle.value, continuities.value));
+const inheritFrom = computed(() => (version.value && topPage.value ? topPage.value.body : undefined));
+const changes = computed(() => (page.value ? stringList(page.value.frontmatter.changes) : []));
+
 const subtitle = computed(() => {
-  if (relationshipsOf.value) return undefined;
+  if (relationshipsOf.value || version.value) return undefined;
   const deep = segments.value.length > 2 || (segments.value.length > 1 && page.value === null);
   return deep ? segments.value.slice(1).join(" › ") : undefined;
 });
@@ -112,7 +122,10 @@ watchEffect(() => {
             <template v-if="index < categories.length - 1">, </template>
           </template>
         </p>
-        <h1 class="page-title">{{ heading }}</h1>
+        <div class="title-row">
+          <h1 class="page-title">{{ heading }}</h1>
+          <VersionSwitcher :wiki-id="wikiId" :title="shownTitle" :continuities="continuities" />
+        </div>
       </div>
       <div v-if="page" class="page-actions">
         <RouterLink class="page-action" :to="{ name: 'edit-page', params: { wikiId, title: titleParam(page.title) } }">
@@ -144,7 +157,23 @@ watchEffect(() => {
       <DeletePageDialog v-model:open="deleteOpen" :page="dialogPage" />
     </template>
     <p v-if="redirectedFrom && page" class="redirect-note">(Redirected from {{ redirectedFrom }})</p>
-    <PageContent v-if="page" :key="page.id" :wiki-id="wikiId" :markdown="page.body" :save="saveBody" />
+    <VersionBanner
+      v-if="version && page && topPage !== undefined"
+      :wiki-id="wikiId"
+      :continuity="version.continuity"
+      :main-title="topPage?.title ?? version.main"
+      :main-exists="!!topPage"
+      :changes="changes"
+    />
+    <PageContent
+      v-if="page"
+      :key="page.id"
+      :wiki-id="wikiId"
+      :markdown="page.body"
+      :save="saveBody"
+      :inherit-from="inheritFrom"
+      :continuity="version?.continuity.name"
+    />
     <RelationshipsTab v-else-if="relationshipsOf" :wiki-id="wikiId" :character="relationshipsOf" />
     <div v-else-if="page === null && topPage !== undefined" class="missing">
       <p>This page doesn't exist yet.</p>
@@ -172,6 +201,13 @@ watchEffect(() => {
   margin: 0;
   color: var(--color-muted);
   font-size: 0.8rem;
+}
+
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
 }
 
 .page-title {

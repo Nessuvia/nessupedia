@@ -110,7 +110,9 @@ Typing `/` in any editor offers:
 - A page's version in a continuity is titled "Mira/Noir AU". Versions need their main page.
 - A version switcher beside the title ("Main canon ▾") lists the page's versions and swaps the whole page and its tabs. A version has only Overview and Relationships tabs.
 - A banner on a version names the continuity, its description, and the version's own changed variables.
-- A version shows its own lead and sections; any lead or `##` section it lacks shows from the main page, live, labelled "From main canon", with a "Change for this version" button that copies it in for editing. An emptied section hides that section in the version.
+- A version shows its own lead and sections; any lead or `##` section it lacks shows from the main page, live, labelled "From main canon", with a "Change for this version" button that copies it in for editing and a "Hide in this version" button. Hidden sections are listed at the bottom in click-to-edit, each with "Show".
+- Versions list only the categories they set themselves; the continuity page groups them.
+- Deleting a main page leaves its versions, which then show only their own text with a notice; recreating the page reconnects them.
 - Links stay in the continuity: from Noir Mira, a link to Theo opens Noir Theo when it exists, otherwise Theo.
 - The version's Relationships tab uses each pair page's version in the same continuity when there is one.
 - Each continuity has a page listing its versions.

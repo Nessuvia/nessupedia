@@ -2,6 +2,7 @@
   "wikis": [
     {
       "name": "Ashfall",
+      "continuities": [{ "name": "Noir AU", "description": "Set in 1940s Harrow City, where magic is outlawed." }],
       "pages": [
         {
           "title": "Main Page",
@@ -30,6 +31,14 @@
         {
           "title": "Mira & Theo",
           "body": "---\nbetween: [Mira, Teddy]\ncategories: [Relationships]\n---\n\nChildhood friends who still argue over the ledgers. Theo trusts [[Mira]] with everything but the fire.\n\n## History\n\nThey met in the archive."
+        },
+        {
+          "title": "Mira/Noir AU",
+          "body": "---\nchanges: [Runs a speakeasy instead of the archive]\n---\n\n## Early life\n\nShe grew up running numbers for the docks.\n\n## Vices\n\nGin, cards, and other people's letters.\n\n## Relationships\n"
+        },
+        {
+          "title": "Theo/Noir AU",
+          "body": "A crooked cop who owes Mira a favor."
         },
         {
           "title": "Mira/Quotes",

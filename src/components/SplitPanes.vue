@@ -4,7 +4,8 @@ import MarkdownEditor from "./MarkdownEditor.vue";
 import PageContent from "./PageContent.vue";
 
 // Markdown source beside its live preview; clicking a preview block moves the cursor to its source.
-defineProps<{ wikiId: string; label: string }>();
+// A version's preview shows it merged over its main page.
+defineProps<{ wikiId: string; label: string; inheritFrom?: string; continuity?: string }>();
 const emit = defineEmits<{ submit: [] }>();
 const draft = defineModel<string>({ required: true });
 
@@ -20,7 +21,14 @@ const editor = useTemplateRef("editor");
     <section class="pane" aria-labelledby="preview-heading">
       <h2 id="preview-heading" class="pane-label">Preview</h2>
       <div class="preview">
-        <PageContent :wiki-id="wikiId" :markdown="draft" preview @locate="editor?.focusAt($event)" />
+        <PageContent
+          :wiki-id="wikiId"
+          :markdown="draft"
+          preview
+          :inherit-from="inheritFrom"
+          :continuity="continuity"
+          @locate="editor?.focusAt($event)"
+        />
       </div>
     </section>
   </div>

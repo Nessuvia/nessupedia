@@ -64,11 +64,14 @@ function readJson(path) {
 // Creates wikis and pages through the app's own service singletons, served as modules by Vite.
 async function seed(page, fixture) {
   return page.evaluate(async (data) => {
-    const { pageService, wikiService } = await import("/src/services/index.ts");
+    const { continuityService, pageService, wikiService } = await import("/src/services/index.ts");
     const ids = { wiki: {}, page: {} };
     for (const wiki of data.wikis) {
       const created = await wikiService.create(wiki.name);
       ids.wiki[wiki.name] = created.id;
+      for (const { name, description = "" } of wiki.continuities ?? []) {
+        await continuityService.create(created.id, name, description);
+      }
       for (const { title, body = "" } of wiki.pages ?? []) {
         ids.page[title] = (await pageService.create({ wikiId: created.id, title, body })).id;
       }

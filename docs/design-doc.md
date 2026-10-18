@@ -310,7 +310,8 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - Continuities live on the wiki record. Names follow page title rules without `/`, are unique case-insensitively, and can't be `Relationships`.
 - Renaming a continuity renames its versions; one with versions can't be deleted until they're deleted or renamed.
 - A version's own body holds its lead and the sections it overrides. Rendering merges it with the main page: a non-blank lead replaces the main lead (infobox included), and `##` sections match by heading key. Main sections keep their order, with version-only sections after the section they follow in the version. A matched section with no content hides it.
-- Inherited blocks render with the main page's offsets and stay read-only; "Change for this version" appends the section's source to the version body, in place by the merge rule.
+- The merge happens on source: lead and section texts are joined into one markdown document with a segment map, so the usual renderer, contents box, and heading ids apply. Blocks from the version map back to its own offsets for click-to-edit, canon promote and demote, and click-to-source; inherited blocks map to nothing and stay read-only. A lead holding only hints counts as empty.
+- "Change for this version" appends the section's source to the version body, or puts the main lead after its frontmatter; "Hide in this version" appends an empty heading. The split view preview shows the merge too.
 - Links rendered on a version prefer `<title>/<continuity>` when that page exists. Red links still test the plain title.
 - The banner shows the continuity's description and the version's `changes`.
 - Agent tools read a version as the merged page, with inherited sections marked as main canon.

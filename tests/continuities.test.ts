@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { WikiDatabase } from "@/db/database";
-import { versionOf, versionTitleError } from "@/markdown/versions";
+import {
+  forkLead,
+  forkSection,
+  hideSection,
+  mergeVersion,
+  splitSections,
+  toOwnRange,
+  unhideSection,
+  versionOf,
+  versionTitleError,
+} from "@/markdown/versions";
 import { ChangeLog } from "@/services/ChangeLog";
 import { ContinuityService } from "@/services/ContinuityService";
 import { LinkIndexer } from "@/services/LinkIndexer";
@@ -34,6 +44,91 @@ describe("version titles", () => {
     expect(versionTitleError("Mira/Noir AU/Notes", [noir])).toMatch("can't have subpages");
     expect(versionTitleError("Mira/History/Noir AU", [noir])).toMatch("Only top-level pages");
     expect(versionTitleError("Noir AU", [noir])).toBeUndefined();
+  });
+});
+
+const MAIN = [
+  "---",
+  "categories: [Characters]",
+  "---",
+  "",
+  ":::infobox",
+  "title: Mira",
+  ":::",
+  "",
+  "An archivist.",
+  "",
+  "## Appearance",
+  "",
+  "Tall.",
+  "",
+  "## Personality",
+  "",
+  "Patient.",
+  "",
+  "### Habits",
+  "",
+  "Hums.",
+  "",
+  "## Abilities",
+  "",
+  "Reads fast.",
+  "",
+].join("\n");
+
+describe("splitSections", () => {
+  it("cuts the lead and h2 sections, skipping frontmatter and treating a hint-only lead as none", () => {
+    const { lead, sections } = splitSections(MAIN);
+    expect(MAIN.slice(lead!.start, lead!.end)).toBe(":::infobox\ntitle: Mira\n:::\n\nAn archivist.");
+    expect(sections.map(({ label, empty }) => ({ label, empty }))).toEqual([
+      { label: "Appearance", empty: false },
+      { label: "Personality", empty: false },
+      { label: "Abilities", empty: false },
+    ]);
+    expect(MAIN.slice(sections[1]!.start, sections[1]!.end)).toBe("## Personality\n\nPatient.\n\n### Habits\n\nHums.");
+    expect(splitSections("<!-- hint -->\n\n## Notes").lead).toBeUndefined();
+  });
+});
+
+describe("mergeVersion", () => {
+  const origins = (markdown: string, merged: ReturnType<typeof mergeVersion>) =>
+    merged.segments.map((segment) => `${segment.origin}:${segment.label ?? "lead"}`);
+
+  it("inherits everything from the main page when the version is empty", () => {
+    const merged = mergeVersion(MAIN, "---\nchanges: [Never left Harrow]\n---\n");
+    expect(origins(MAIN, merged)).toEqual(["main:lead", "main:Appearance", "main:Personality", "main:Abilities"]);
+    expect(merged.markdown).toContain("An archivist.\n\n## Appearance\n\nTall.\n\n## Personality");
+  });
+
+  it("replaces the lead and matched sections, keeps main order, hides emptied ones, and places new ones", () => {
+    const own = "A smuggler.\n\n## Contacts\n\nThe docks.\n\n## abilities\n\nPicks locks.\n\n## Personality\n\n## Vices\n\nGin.\n";
+    const merged = mergeVersion(MAIN, own);
+
+    // Vices follows Personality in the version, so it takes Personality's place even though that's hidden.
+    expect(origins(MAIN, merged)).toEqual(["own:lead", "own:Contacts", "main:Appearance", "own:Vices", "own:abilities"]);
+    expect(merged.hidden).toEqual([{ key: "personality", label: "Personality" }]);
+    expect(merged.markdown).toBe("A smuggler.\n\n## Contacts\n\nThe docks.\n\n## Appearance\n\nTall.\n\n## Vices\n\nGin.\n\n## abilities\n\nPicks locks.\n");
+  });
+
+  it("maps merged offsets back to the version's own text, and nothing for inherited text", () => {
+    const own = "## Abilities\n\nPicks locks.\n";
+    const merged = mergeVersion(MAIN, own);
+    const at = merged.markdown.indexOf("Picks locks.");
+
+    expect(toOwnRange(merged, at, at + 12)).toEqual({ start: own.indexOf("Picks"), end: own.indexOf("Picks") + 12 });
+    expect(toOwnRange(merged, merged.markdown.indexOf("Tall."), merged.markdown.indexOf("Tall.") + 5)).toBeUndefined();
+  });
+
+  it("forks the lead, a section, and hides and unhides sections in the version's own text", () => {
+    const own = "---\nchanges: [Smuggler]\n---\n\n## Vices\n\nGin.\n";
+
+    expect(forkLead(MAIN, own)).toBe("---\nchanges: [Smuggler]\n---\n\n:::infobox\ntitle: Mira\n:::\n\nAn archivist.\n\n## Vices\n\nGin.\n");
+    expect(forkLead(MAIN, "")).toBe(":::infobox\ntitle: Mira\n:::\n\nAn archivist.\n");
+    expect(forkSection(MAIN, own, "personality")).toBe(`${own.trimEnd()}\n\n## Personality\n\nPatient.\n\n### Habits\n\nHums.\n`);
+
+    const hidden = hideSection(own, "Abilities");
+    expect(mergeVersion(MAIN, hidden).hidden.map((section) => section.label)).toEqual(["Abilities"]);
+    expect(unhideSection(hidden, "abilities")).toBe(own);
   });
 });
 

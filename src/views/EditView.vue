@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 import SplitPanes from "@/components/SplitPanes.vue";
 import { useLeaveGuard } from "@/composables/useLeaveGuard";
 import { useLiveQuery } from "@/composables/useLiveQuery";
+import { versionOf } from "@/markdown/versions";
 import { titleParam } from "@/router/params";
 import { pageService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
@@ -36,6 +37,12 @@ watch(page, (found) => {
   summary.value = "";
   minor.value = false;
 });
+
+const continuity = computed(() => (page.value ? versionOf(page.value.title, currentWiki.value?.continuities ?? []) : undefined));
+const mainPage = useLiveQuery(
+  async ([wikiId, main]) => (main ? await pageService.getByTitle(wikiId, main) : undefined),
+  () => [props.wikiId, continuity.value?.main] as const,
+);
 
 const dirty = computed(() => loadedId.value !== undefined && draft.value !== base.value);
 useLeaveGuard(dirty);
@@ -72,7 +79,14 @@ watchEffect(() => {
     </div>
 
     <template v-else-if="loadedId">
-      <SplitPanes v-model="draft" :wiki-id="wikiId" label="Page source" @submit="save" />
+      <SplitPanes
+        v-model="draft"
+        :wiki-id="wikiId"
+        label="Page source"
+        :inherit-from="mainPage?.body"
+        :continuity="continuity?.continuity.name"
+        @submit="save"
+      />
 
       <form class="save-bar" @submit.prevent="save">
         <label class="summary">

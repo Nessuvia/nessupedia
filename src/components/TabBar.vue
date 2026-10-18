@@ -12,11 +12,12 @@ import { pageService, relationshipService, wikiService } from "@/services";
 const props = defineProps<{ wikiId: string; title: string }>();
 
 const tabs = useLiveQuery(
-  async ([wikiId, top]) => {
+  async ([wikiId, top, title]) => {
     const page = await pageService.getByTitle(wikiId, top);
     const topName = page?.title ?? top;
-    // Versions show in the version switcher rather than as tabs.
+    // Versions show in the version switcher rather than as tabs, and don't share the main page's tabs.
     const continuities = (await wikiService.get(wikiId))?.continuities ?? [];
+    if (versionOf(title, continuities)) return [];
     const subpages = orderTabs(
       (await pageService.directSubpages(wikiId, topName)).filter((subpage) => !versionOf(subpage.title, continuities)),
       page?.frontmatter,
@@ -29,7 +30,7 @@ const tabs = useLiveQuery(
       ...subpages.map((subpage) => ({ label: subpageName(subpage.title), title: subpage.title, exists: true })),
     ];
   },
-  () => [props.wikiId, topTitle(props.title)] as const,
+  () => [props.wikiId, topTitle(props.title), props.title] as const,
 );
 
 const current = computed(() => titleKey(tabTitle(props.title)));
