@@ -32,11 +32,13 @@
 - Obsidian vault import from a ZIP, with folders and chosen tags as categories
 
 ## M5: LLM
-- Endpoint settings and client
-- Auto-context engine
-- Agent tools and run loop
-- Draft from notes, suggest links, fill template
-- Run panel: simple and details views
+- Model settings, client, Test connection, and token counting (server, downloaded tokenizer, estimate)
+- Auto-context: frontmatter settings, mention finder, follow connections
+- Agent tools, run orchestrator, and reply repair
+- Review view and Draft from notes, from a page or the New page screen
+- Fill template
+- Suggest links: local matches, then "Ask the Assistant for more"
+- Run panel: simple and details views, growing alongside the steps above
 
 ## M6: MVP polish
 - Fandom wiki theme
@@ -51,3 +53,4 @@
 5. Character messaging app, with in-character interviews
 6. OC social media spinoff
 7. Open questions board
+8. Ollama and LM Studio support

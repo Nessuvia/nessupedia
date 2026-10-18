@@ -1,7 +1,7 @@
 # ADR 0005: Agent with auto-context and section proposals
 
 ## Status
-Accepted
+Accepted. Amended by ADR 0007: `propose_section` is dropped in favor of plain-text replies, and Liberal mode tags whole sections as Idea.
 
 ## Context
 The LLM should find canon on its own, similar to an agentic coding tool. Local models vary in tool-calling quality. The human owns events and outcomes.

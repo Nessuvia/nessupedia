@@ -26,9 +26,13 @@ Client-only PWA. All data lives in IndexedDB. Markdown is the content format. An
 │                             ├─ MarkdownPipeline          │
 │                             ├─ ArchiveService (ZIP)      │
 │                             ├─ VaultImporter             │
+│                             ├─ MentionFinder             │
 │                             └─ Agent                     │
+│                                 ├─ RunOrchestrator       │
 │                                 ├─ AutoContext           │
 │                                 ├─ Tools                 │
+│                                 ├─ ReplyRepair           │
+│                                 ├─ TokenCounter          │
 │                                 └─ LlmClient             │
 │                         Dexie (IndexedDB)                │
 └──────────────────────────────────────────────────────────┘
@@ -44,6 +48,8 @@ interface Wiki {
   keepOriginalImages?: boolean;
   historyDays?: number;
   continuities?: Continuity[];
+  assistantRules?: string;
+  autoContextDepth?: number;
   createdAt: number;
 }
 
@@ -65,7 +71,6 @@ interface Page {
   templateId?: string;
   frontmatter: Record<string, unknown>;
   body: string;
-  autoContext?: AutoContextSettings;
   updatedAt: number;
 }
 
@@ -116,13 +121,60 @@ interface Template {
 interface AgentRun {
   id: string;
   wikiId: string;
-  pageId: string;
+  pageId?: string;
+  pageTitle: string;
   kind: "draft" | "suggest-links" | "fill-template";
-  status: "running" | "done" | "interrupted" | "error";
+  mode: "strict" | "guided" | "liberal";
+  input: { notes?: string; rules?: string; templateId?: string };
+  status: "running" | "reviewing" | "done" | "interrupted" | "error";
+  sections: RunSection[];
+  linkSuggestions?: LinkSuggestion[];
   transcript: TranscriptEntry[];
   startedAt: number;
 }
+
+interface RunSection {
+  heading: string;
+  status: "pending" | "writing" | "proposed" | "accepted" | "discarded" | "failed";
+  markdown?: string;
+  raw?: string;
+  sources: string[];
+  note?: string;
+}
+
+interface LinkSuggestion {
+  start: number;
+  end: number;
+  text: string;
+  title: string;
+}
+
+type TranscriptEntry =
+  | { kind: "message"; section?: number; role: "system" | "user" | "assistant"; content: string; at: number }
+  | { kind: "tool-call"; section?: number; name: string; args: unknown; result?: unknown; repeat?: number; at: number }
+  | { kind: "repair"; section?: number; text: string; at: number };
+
+interface ModelSettings {
+  id: "model";
+  provider: "llama.cpp" | "koboldcpp" | "openrouter" | "nanogpt" | "openai";
+  baseUrl: string;
+  apiKey?: string;
+  model: string;
+  contextLength: number;
+  replyTokens: number;
+  tools: boolean;
+  tokenizerId?: string;
+}
+
+interface Tokenizer {
+  id: string;
+  family: string;
+  source: string;
+  data: Blob;
+}
 ```
+- `pageId` is unset on a draft of a new page until its first section is accepted.
+- `ModelSettings` is one app-wide record in `settings`. `contextLength` and `tools` are filled in by Test connection and can be overridden.
 
 ### Dexie schema
 ```ts
@@ -141,6 +193,10 @@ this.version(2).stores({
 this.version(3).stores({
   pages: "id, wikiId, [wikiId+titleKey], *aliasKeys, *categoryKeys, [wikiId+path], updatedAt",
 });
+this.version(4).stores({
+  settings: "id",
+  tokenizers: "id",
+});
 ```
 Version 3 fills `categoryKeys` from each page's frontmatter.
 
@@ -158,7 +214,7 @@ Frontmatter fields that name pages (`between`) are indexed in `links` with a `fi
 
 ## Markdown format
 - The page title renders as the page's only `h1`; bodies start at `##`.
-- YAML frontmatter: `title`, `aliases`, `categories`, `template`, `between` (relationship pages), `changes` (versions), `tabs` (tab order), `history: keep` (exempt from pruning), custom fields. `categories`, `aliases`, and `changes` accept a single string or a list.
+- YAML frontmatter: `title`, `aliases`, `categories`, `template`, `between` (relationship pages), `changes` (versions), `tabs` (tab order), `history: keep` (exempt from pruning), `auto-context` (see Auto-context), custom fields. `categories`, `aliases`, and `changes` accept a single string or a list.
 - Raw HTML never renders. An HTML comment standing as its own block (`<!-- hint -->`) renders as a hint block with its source range, hidden by CSS outside click-to-edit.
 - `[[Title]]`, `[[Title|label]]`, `[[Title#Heading]]`.
 - GitHub-style tables, with column alignment. Inside a cell a bar is written `\|`, as in `[[Title\|label]]`. Other GFM extensions (autolinks, footnotes, strikethrough, task lists) aren't parsed. A table is one click-to-edit block.
@@ -225,6 +281,7 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/w/:wikiId/special/templates` | Bundled and user templates |
 | `/w/:wikiId/special/templates/:templateId/edit` | Split view editor for a user template |
 | `/w/:wikiId/special/continuity/:name` | A continuity's description and versions |
+| `/w/:wikiId/special/review/:runId` | Review an Assistant run's proposals section by section |
 
 `/w/:wikiId/wiki/Mira/Relationships` and `/w/:wikiId/wiki/Mira/Noir AU/Relationships` render the generated Relationships tab; no page holds them.
 
@@ -330,7 +387,7 @@ wiki-name/
   assets/**/*
   changes.json
 ```
-- `wiki.json` holds the wiki's settings and continuities, plus what files can't: each page's title, template, and auto-context; each template's name; each asset's type, hash, size, and original. Page and template file names come from titles, made safe for file systems and numbered when two collide case-insensitively.
+- `wiki.json` holds the wiki's settings and continuities, plus what files can't: each page's title and template; each template's name; each asset's type, hash, size, and original. Page and template file names come from titles, made safe for file systems and numbered when two collide case-insensitively.
 - Exporting all wikis puts one such folder per wiki in the ZIP.
 - `changes.json` is optional and can be cut to entries newer than a chosen age. Entries name their page by an archive-local key, so deleted pages' histories survive.
 - Original images go under `assets/originals/` when the wiki keeps them.
@@ -352,25 +409,45 @@ wiki-name/
 ## LLM integration
 
 ### Client
-- OpenAI-compatible `/chat/completions` with tool calling.
-- Settings: base URL, key, model, token budget.
-- Key stored in IndexedDB; requests go directly from the browser.
+- OpenAI-compatible `/chat/completions` with tool calling and streamed replies; requests go directly from the browser.
+- One app-wide `ModelSettings` record, key included, stored unencrypted in IndexedDB.
+- Providers (ADR 0006), each with a preset base URL and its own detection:
+
+| Provider | Default base URL | Token counts | Context length | Tokenizer family |
+|---|---|---|---|---|
+| llama.cpp | `http://localhost:8080/v1` | `POST /tokenize` | `/props` | n/a |
+| koboldcpp | `http://localhost:5001/v1` | `POST /api/extra/tokencount` | `/api/extra/true_max_context_length` | n/a |
+| OpenRouter | `https://openrouter.ai/api/v1` | tokenizer or estimate | `/models` | `/models` architecture |
+| NanoGPT | `https://nano-gpt.com/api/v1` | tokenizer or estimate | model list when offered | from model name |
+| OpenAI-compatible | typed | tokenizer or estimate | typed | from model name |
+
+- llama.cpp and koboldcpp extras live at the server root, found by dropping `/v1` from the base URL.
+- Test connection lists models, reads the context length, and sends one tiny request offering a single tool. A tool call, native or written as text, marks `tools` true. Failures explain the likely cause: an unreachable server, a rejected key, or browser access (CORS) being blocked.
+
+### Token counting
+`TokenCounter` uses the first method available:
+1. The server's tokenize endpoint, which is exact for the loaded model.
+2. A downloaded tokenizer. A bundled catalog maps tokenizer families and model-name patterns to `tokenizer.json` URLs on ungated mirrors. Settings suggest the match for the current model, with a Download button. Files go in the `tokenizers` table, never the codebase, and run through a small JS tokenizer library loaded on demand.
+3. An estimate of 4 characters per token, corrected by the `usage` counts replies report. When estimating, the budget shrinks by 10%.
+
+The prompt budget is `contextLength` minus `replyTokens`. Auto-context fills what the fixed parts of a request leave.
 
 ### Auto-context
-```ts
-interface AutoContextSettings {
-  enabled: boolean;
-  extraTriggers: string[];
-  match: "any" | "all" | "not";
-  followDepth: number;
-  priority: number;
-  inject: "full" | "summary" | "infobox" | { section: string };
-}
+Per-page settings live in frontmatter, written only when they differ from the defaults:
+```yaml
+auto-context:
+  enabled: false
+  triggers: [the Hollow Crown, Mira's blade]
+  include: infobox
 ```
-1. Scan the input text and current page for triggers (titles, aliases, extra triggers).
-2. Collect matched pages; follow connections up to `followDepth`.
-3. Sort by priority, fill up to the token budget.
-4. Inject as a system context block.
+- `enabled` defaults to true. `triggers` adds words to the page's title and aliases. `include` is `lead` (the default, infobox included), `infobox`, or `full`.
+- How far to follow links is one wiki-wide setting, `autoContextDepth` (default 1, 0 turns it off). There is no priority.
+
+For each request:
+1. `MentionFinder` scans the input (notes, rules, the current page) for titles, aliases, and triggers of enabled pages: case-insensitive whole words, longest match first.
+2. Follow wikilinks from matched pages up to `autoContextDepth`.
+3. Order direct matches before followed ones, then by mention count, and fill up to the budget.
+4. Each page's chosen part goes in with Idea-tier text removed and Canon and Likely text labeled with its tier. Versions go in merged, with inherited sections marked as main canon.
 
 ### Tools
 ```ts
@@ -380,23 +457,62 @@ type WikiTool =
   | { name: "read_section"; args: { title: string; heading: string } }
   | { name: "list_backlinks"; args: { title: string } }
   | { name: "get_relationships"; args: { title: string } }
-  | { name: "get_canon"; args: { title: string; tier?: "hard" | "soft" | "maybe" } }
-  | { name: "propose_section"; args: { heading: string; markdown: string; sources: string[] } };
+  | { name: "get_canon"; args: { title: string; tier?: "hard" | "soft" | "maybe" } };
 ```
-- `propose_section` is the single write path; output goes to the diff view.
-- Models lacking tool support run in auto-context-only mode.
+- All tools only read; `get_canon` is how Idea-tier text is reached.
+- A section ends when a reply has no tool call: that reply is the proposal (ADR 0007). Sources are the pages auto-context and tools served.
+- Models without tool support follow the same flow on auto-context alone.
 
 ### Run flow
-1. **Plan**: agent reads template and inputs, returns a section list.
-2. **Sections**: each runs a short tool loop and ends with `propose_section`.
-3. **Review**: diff view fills per section.
-4. **Commit**: accepted sections write to the page with `author: "llm"`.
+`RunOrchestrator` drives every run; the model only answers narrow requests.
+1. **Plan**: the template's `##` headings, with no model call. Draft from notes without a template asks for headings one per line, falling back to the Character template's after two failures.
+2. **Sections**: each section is a fresh conversation:
+   - Instructions, mode, the wiki's Assistant rules, and the run's one-off rules.
+   - Auto-context, the notes, and the page title.
+   - The headings of sections already written, and the current section's hints.
+   - "Write the *Background* section."
+
+   A short tool loop follows, then the plain-text reply.
+3. **Review**: proposals fill the review view as they arrive.
+4. **Commit**: accepted sections replace sections with the same heading key, or are added in plan order. A draft of a new page creates the page on its first accept. Each accepted batch is one change entry with `author: "llm"`, merged by the usual 10-minute rule.
+
+Modes:
+- **Strict**: gaps become `QUESTION:` lines, which the app turns into `> [!question]` callouts.
+- **Guided**: a gap may be filled when a rule covers it.
+- **Liberal**: invents freely, and each section is wrapped in `:::canon{tier=maybe}` as a whole.
+
+Rules apply in every mode.
+
+### Reply repair
+`ReplyRepair` cleans every reply before review:
+- It strips thinking tags, openers like "Here's the section:", an outer code fence, and a repeated heading.
+- It splits off extra `##` sections, closes open `:::` blocks, and converts `QUESTION:` lines.
+- Wikilinks are checked against titles and aliases with fuzzy matching. Unknown ones are flagged in review, not removed.
+
+| Failure | Response |
+|---|---|
+| Tool call written as text (JSON, a code fence, `<tool_call>` tags) | Parsed as a tool call |
+| Malformed tool arguments | Repaired (trailing commas, quotes, raw newlines) |
+| Unknown tool or page | An error result naming the closest matches |
+| Repeated call | The earlier result, plus a nudge to write the section |
+| Tool-call limit (8 per section) | One last request with tools turned off |
+| Reply stuck repeating itself | Aborted, then retried once at a lower temperature |
+| No text for a while | Aborted after a timeout and retried |
+| Empty or unusable reply | Retried once with a note on what was wrong |
+| Context overflow from the server | Auto-context trimmed and retried |
+
+A section that still fails is marked `failed` with its raw reply kept, and the run moves on. Every repair is logged as a `repair` transcript entry.
 
 ### Guardrails
-- Max tool calls per section.
-- Duplicate-call detection surfaces in the run panel.
-- Interrupt aborts the in-flight request and pauses the run.
-- Liberal mode wraps inventions in `:::canon{tier=maybe}`.
+- A call repeating an earlier one (same tool, same arguments) counts as a repeat from its second occurrence and shows a ×N badge in the run panel.
+- Interrupt aborts the in-flight request and pauses the run between steps; a typed message joins the next request.
+- The run is saved after every step. After a reload, a running run becomes `interrupted`, and its unreviewed proposals stay reviewable.
+- The last 20 runs per wiki are kept.
+
+### Suggest links
+- `MentionFinder` finds unlinked mentions of titles and aliases in the page body. It skips code, existing links, headings, and the page's own names, and underlines the first mention of each page.
+- Accepting wraps the text in `[[…]]` as a human edit.
+- "Ask the Assistant for more" sends the page and the wiki's title list and asks for `phrase -> Title` lines. Lines whose phrase isn't in the text, or whose title doesn't exist, are dropped. The rest join the underlines, and accepting them is an Assistant edit.
 
 ## PWA
 - App shell precached; offline by default.
@@ -408,7 +524,8 @@ type WikiTool =
 |---|---|
 | Browser evicts IndexedDB | Persistent storage request, export reminders |
 | Click-to-edit offsets drift | Re-parse after every save, split view fallback |
-| Local models handle tools poorly | Auto-context-only mode, tool call caps |
+| Local models handle tools poorly | App-driven runs, reply repair, tool call caps, auto-context-only mode |
+| Context overflow on small models | Exact server counts, 10% margin when estimating, retry with less context |
 | Large assets bloat storage | Size warnings, image compression on import |
 
 ## Future

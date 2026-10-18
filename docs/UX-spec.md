@@ -70,6 +70,7 @@ Typing `/` in any editor offers:
 
 ### Page details
 - A "Details" page action opens one form: aliases and categories, plus the pair on relationship pages and the changed variables on versions, and a "Keep all history" checkbox.
+- An "Auto-context" group in Details (folded by default) holds an on/off switch, extra trigger words, and what to include: Lead (default), Infobox only, or Full page.
 - Category fields suggest existing categories.
 
 ## Page creation
@@ -77,6 +78,7 @@ Typing `/` in any editor offers:
 - A template card lists the template's sections and blocks (infobox, pressure profile) as checkboxes, checked unless the template marks them optional.
 - The Relationship card asks for the two characters and suggests the title "Mira & Theo".
 - The Version card asks for the page, the continuity, and the changed variables.
+- "Draft from notes" beside the template choice opens a notes box, an assumption mode, and a one-off rules box. Starting it opens the review; the page is created only when its first section is accepted, so discarding everything leaves nothing behind.
 
 ## Templates
 - Bundled: Character, Location, Relationship. They can't be edited; "Duplicate" makes an editable copy.
@@ -136,32 +138,40 @@ Typing `/` in any editor offers:
 - The browser is asked to keep the wiki's storage on first save. Settings show whether it agreed, with a button to ask again.
 
 ## LLM actions
-Available from the page toolbar and the slash menu:
-- **Draft from notes**: notes box, template picker, assumption mode.
-- **Suggest links**: inline underlines; click to accept.
-- **Fill template**: instructions box, assumption mode.
+A run is one use of an Assistant action, from Start until its review is finished. Actions are available from the page toolbar and the slash menu:
+- **Draft from notes**: notes box, template picker, assumption mode, one-off rules. Also offered on the New page screen.
+- **Suggest links**: underlines exact mentions of page titles and aliases at once, with no model needed; click one to accept, or Accept all. "Ask the Assistant for more" adds indirect mentions found by the model.
+- **Fill template**: fills the page's empty sections. It has an instructions box, an assumption mode, and one-off rules.
 
 ### Assumption modes
 - **Strict**: uses only provided material; gaps become question callouts (`> [!question]`).
-- **Guided**: follows user rules ("assume X", "always Y").
-- **Liberal**: invents freely; inventions tagged Idea.
+- **Guided**: fills a gap when a rule covers it ("assume X", "always Y").
+- **Liberal**: invents freely; each section it writes is tagged Idea.
+
+Assistant rules saved in wiki settings apply to every run in every mode; the one-off rules box adds to them for that run.
 
 ### Review
-- Proposals appear section by section in a diff view.
+- Proposals appear section by section in a diff view as they arrive.
 - Per section: Accept, Edit, Retry with note, Discard.
-- Accept all at the end.
+- Liberal sections arrive tagged Idea; untag them or mark parts Likely or Canon before accepting.
+- A section whose reply couldn't be used says so, shows the raw reply, and offers Retry.
+- Links to pages that don't exist are flagged.
+- Accept all at the end. Each accepted batch is one history entry by the Assistant.
 
 ## Agent run panel
 - **Simple view (default)**: one status line ("Reading Mira… Drafting Background"), section checklist with progress.
-- **Details view**: full transcript of tool calls as collapsible cards with inputs and results.
+- **Details view**: full transcript of tool calls as collapsible cards with inputs and results, plus a note for each repair or retry.
 - Repeated calls show a counter badge ("read_page Mira ×6").
 - Interrupt button and a message box to redirect mid-run.
-- Setting: approve each proposal, or auto-accept into the diff view.
+- Recent runs are listed. An interrupted run, including one cut off by a reload, keeps its unreviewed proposals for review; runs never resume on their own.
+- Setting: approve each proposal, or auto-accept into the diff view (default).
 
 ## Settings
-- **Model**: endpoint URL, API key, model name, token budget.
-- **Wiki**: name, voice (fandom only in MVP), keep original images, keep history for, continuities. Deleting a wiki requires typing its name.
-- **Auto-context** (advanced): per-page triggers, match mode, follow connections depth, priority, injected content.
+- **Model** (shared by all wikis): provider (llama.cpp, koboldcpp, OpenRouter, NanoGPT, OpenAI-compatible), endpoint URL, API key, model, context size, reply length, and "Uses tools".
+  - The screen notes that the key is stored unencrypted on this device.
+  - Test connection checks the server, fills in the context size and tool support, and explains failures, including blocked browser access.
+  - When the server can't count tokens, a Tokenizer row suggests one for the model with a Download button. Without one, counts are estimated with a 10% margin.
+- **Wiki**: name, voice (fandom only in MVP), keep original images, keep history for, continuities, Assistant rules, and Follow connections depth (default 1). Deleting a wiki requires typing its name.
 - **Data**: storage status, export ZIP, import ZIP, import Obsidian vault.
 
 ## Terminology map
