@@ -4,7 +4,8 @@ import type { ModelSettings, ProviderId } from "@/db/types";
 import { testConnection, type ConnectionReport } from "@/llm/connection";
 import type { ModelInfo } from "@/llm/LlmClient";
 import { defaultModelSettings, PROVIDERS, providerById } from "@/llm/providers";
-import { llmClient, modelSettingsService } from "@/services";
+import { catalogEntry, suggestTokenizer, TOKENIZER_CATALOG } from "@/llm/tokenizerCatalog";
+import { llmClient, modelSettingsService, tokenizerService } from "@/services";
 
 const form = ref<ModelSettings>(defaultModelSettings());
 const saved = ref<string>();
@@ -43,6 +44,7 @@ async function test() {
     if (result.model && !form.value.model.trim()) form.value.model = result.model;
     if (result.contextLength) form.value.contextLength = result.contextLength;
     if (result.tools !== undefined) form.value.tools = result.tools;
+    if (!provider.value.local && !form.value.tokenizerId && suggested.value) form.value.tokenizerId = suggested.value.id;
   } finally {
     testing.value = false;
   }
@@ -50,6 +52,48 @@ async function test() {
 
 function stopTest() {
   controller?.abort();
+}
+
+const downloaded = ref(new Set<string>());
+onMounted(async () => (downloaded.value = new Set(await tokenizerService.downloadedIds())));
+
+const suggested = computed(() => {
+  const family = models.value.find((model) => model.id === form.value.model)?.tokenizer;
+  return suggestTokenizer(form.value.model, family);
+});
+const tokenizerChoice = computed({
+  get: () => form.value.tokenizerId ?? "",
+  set: (id: string) => (form.value.tokenizerId = id || undefined),
+});
+const chosenTokenizer = computed(() => catalogEntry(form.value.tokenizerId));
+
+const progress = ref<number>();
+const downloading = ref(false);
+const downloadError = ref("");
+let downloadController: AbortController | undefined;
+
+async function download() {
+  const entry = chosenTokenizer.value;
+  if (!entry) return;
+  downloadController = new AbortController();
+  downloading.value = true;
+  progress.value = undefined;
+  downloadError.value = "";
+  try {
+    await tokenizerService.download(entry, (fraction) => (progress.value = fraction), downloadController.signal);
+    downloaded.value = new Set([...downloaded.value, entry.id]);
+  } catch (cause) {
+    if (!downloadController.signal.aborted) downloadError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    downloading.value = false;
+  }
+}
+
+async function removeDownload() {
+  const entry = chosenTokenizer.value;
+  if (!entry) return;
+  await tokenizerService.remove(entry.id);
+  downloaded.value = new Set([...downloaded.value].filter((id) => id !== entry.id));
 }
 
 watch(
@@ -127,6 +171,39 @@ watch(dirty, (changed) => changed && (savedNote.value = false));
       </div>
     </div>
     <p class="hint">In tokens. The reply length is held back from the context size, so a long prompt can't crowd out the answer.</p>
+
+    <div v-if="!provider.local" class="field">
+      <label class="label" for="model-tokenizer">Tokenizer</label>
+      <select id="model-tokenizer" v-model="tokenizerChoice" class="text-input narrow">
+        <option value="">None: estimate</option>
+        <option v-for="entry in TOKENIZER_CATALOG" :key="entry.id" :value="entry.id">
+          {{ entry.label }}{{ downloaded.has(entry.id) ? " (downloaded)" : "" }}
+        </option>
+      </select>
+      <p v-if="suggested && suggested.id !== form.tokenizerId" class="hint">
+        {{ suggested.label }} looks like the match for this model.
+        <button class="link-button" type="button" @click="form.tokenizerId = suggested.id">Use it</button>
+      </p>
+      <div v-if="chosenTokenizer && !downloaded.has(chosenTokenizer.id)" class="download">
+        <template v-if="downloading">
+          <progress :value="progress" max="1" :aria-label="`Downloading ${chosenTokenizer.label}`" />
+          <button class="link-button" type="button" @click="downloadController?.abort()">Cancel</button>
+        </template>
+        <template v-else>
+          <button class="button secondary" type="button" @click="download">Download {{ chosenTokenizer.label }}</button>
+          <span class="hint">From Hugging Face, stored on this device. Counts are estimated until it's downloaded.</span>
+        </template>
+      </div>
+      <p v-else-if="chosenTokenizer" class="hint">
+        Counts use the {{ chosenTokenizer.label }} tokenizer.
+        <button class="link-button" type="button" @click="removeDownload">Remove download</button>
+      </p>
+      <p v-if="downloadError" class="form-error" role="alert">{{ downloadError }}</p>
+      <p v-if="!chosenTokenizer" class="hint">
+        Counts are estimated at about 4 characters per token, so 10% of the context is held back to be safe.
+      </p>
+    </div>
+    <p v-else class="hint">{{ provider.label }} counts tokens exactly with the loaded model.</p>
 
     <label class="check"><input v-model="form.tools" type="checkbox" /> Uses tools</label>
     <p class="hint">Lets the Assistant look up pages as it writes. Without tools, it works from auto-context alone.</p>
@@ -211,6 +288,31 @@ watch(dirty, (changed) => changed && (savedNote.value = false));
 .actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.download {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.download .hint {
+  margin: 0;
+}
+
+.download progress {
+  width: 14rem;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-link);
+  font: inherit;
+  cursor: pointer;
 }
 
 .status,

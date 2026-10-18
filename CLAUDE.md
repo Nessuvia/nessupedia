@@ -16,7 +16,7 @@ The docs define the project. Read the relevant one before starting a feature.
 
 ## Stack
 
-Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite-plugin-pwa, fflate. Tests run on Vitest with jsdom and fake-indexeddb; `tests/fakeLlm.ts` fakes an OpenAI-compatible server.
+Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite-plugin-pwa, fflate, @huggingface/tokenizers. Tests run on Vitest with jsdom and fake-indexeddb; `tests/fakeLlm.ts` fakes an OpenAI-compatible server.
 
 ## Commands
 
@@ -30,8 +30,8 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 
 - `src/db/`: data model types and the Dexie schema
 - `src/markdown/`: parse and render pipeline, wikilinks, frontmatter, directives (canon, infobox, pressure), callouts, image embeds, field line grammar
-- `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, CategoryService, TemplateService, RelationshipService, ContinuityService, WikiService, AssetService (with a worker that encodes images), ModelSettingsService; `index.ts` wires singletons to the app database
-- `src/llm/`: OpenAI-compatible client, provider presets, Test connection, and reading tool calls written as text
+- `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, CategoryService, TemplateService, RelationshipService, ContinuityService, WikiService, AssetService (with a worker that encodes images), ModelSettingsService, TokenizerService (downloaded tokenizers); `index.ts` wires singletons to the app database
+- `src/llm/`: OpenAI-compatible client, provider presets, Test connection, reading tool calls written as text, token counting, and the tokenizer catalog
 - `src/editor/`: CodeMirror extensions shared by every editor
 - `src/templates/`: bundled page templates as markdown files
 - `src/router/`: routes and the home redirect

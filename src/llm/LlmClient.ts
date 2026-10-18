@@ -107,6 +107,19 @@ export class LlmClient {
     return models.find((model) => model.id === settings.model)?.contextLength;
   }
 
+  // Exact counts from servers that tokenize with the loaded model; undefined for the rest.
+  async countTokens(settings: ModelSettings, text: string, signal?: AbortSignal): Promise<number | undefined> {
+    if (settings.provider === "koboldcpp") {
+      const body = (await this.postJson(settings, serverUrl(settings.baseUrl, "/api/extra/tokencount"), { prompt: text }, signal)) as { value?: unknown };
+      return typeof body.value === "number" ? body.value : undefined;
+    }
+    if (settings.provider === "llama.cpp") {
+      const body = (await this.postJson(settings, serverUrl(settings.baseUrl, "/tokenize"), { content: text }, signal)) as { tokens?: unknown };
+      return Array.isArray(body.tokens) ? body.tokens.length : undefined;
+    }
+    return undefined;
+  }
+
   async chat(settings: ModelSettings, request: ChatRequest): Promise<ChatResult> {
     const controller = new AbortController();
     let timedOut = false;
@@ -145,6 +158,14 @@ export class LlmClient {
   private async getJson(settings: ModelSettings, url: string, signal?: AbortSignal): Promise<unknown> {
     try {
       return await (await this.send(settings, url, { signal })).json();
+    } catch (cause) {
+      throw asLlmError(cause, signal);
+    }
+  }
+
+  private async postJson(settings: ModelSettings, url: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
+    try {
+      return await (await this.send(settings, url, { method: "POST", body: JSON.stringify(body), signal })).json();
     } catch (cause) {
       throw asLlmError(cause, signal);
     }

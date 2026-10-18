@@ -171,6 +171,8 @@ interface Tokenizer {
   family: string;
   source: string;
   data: Blob;
+  config: Blob;
+  downloadedAt: number;
 }
 ```
 - `pageId` is unset on a draft of a new page until its first section is accepted.
@@ -427,7 +429,7 @@ wiki-name/
 ### Token counting
 `TokenCounter` uses the first method available:
 1. The server's tokenize endpoint, which is exact for the loaded model.
-2. A downloaded tokenizer. A bundled catalog maps tokenizer families and model-name patterns to `tokenizer.json` URLs on ungated mirrors. Settings suggest the match for the current model, with a Download button. Files go in the `tokenizers` table, never the codebase, and run through a small JS tokenizer library loaded on demand.
+2. A downloaded tokenizer. A bundled catalog maps tokenizer families and model-name patterns to `tokenizer.json` URLs on ungated mirrors. Settings suggest the match for the current model, with a Download button. `tokenizer.json` and `tokenizer_config.json` go in the `tokenizers` table, never the codebase, and run through `@huggingface/tokenizers`, loaded on demand.
 3. An estimate of 4 characters per token, corrected by the `usage` counts replies report. When estimating, the budget shrinks by 10%.
 
 The prompt budget is `contextLength` minus `replyTokens`. Auto-context fills what the fixed parts of a request leave.
