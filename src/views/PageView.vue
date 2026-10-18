@@ -5,6 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import DeletePageDialog from "@/components/DeletePageDialog.vue";
 import PageContent from "@/components/PageContent.vue";
+import PageDetailsDialog from "@/components/PageDetailsDialog.vue";
 import RenamePageDialog from "@/components/RenamePageDialog.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Page } from "@/db/types";
@@ -45,12 +46,12 @@ const categories = computed(() => (page.value ? pageCategories(page.value.frontm
 
 // Dialogs work on a snapshot, so they stay mounted while the live page they changed reloads.
 const dialogPage = shallowRef<Page>();
-const renameOpen = ref(false);
-const deleteOpen = ref(false);
+const dialogs = { details: ref(false), rename: ref(false), delete: ref(false) };
+const { details: detailsOpen, rename: renameOpen, delete: deleteOpen } = dialogs;
 
-function openDialog(kind: "rename" | "delete") {
+function openDialog(kind: keyof typeof dialogs) {
   dialogPage.value = page.value ?? undefined;
-  (kind === "rename" ? renameOpen : deleteOpen).value = true;
+  dialogs[kind].value = true;
 }
 
 async function saveBody(body: string, summary: string, minor: boolean) {
@@ -84,11 +85,13 @@ watchEffect(() => {
           <AppIcon name="edit" />
           Edit
         </RouterLink>
+        <button class="page-action" type="button" @click="openDialog('details')">Details</button>
         <button class="page-action" type="button" @click="openDialog('rename')">Rename</button>
         <button class="page-action" type="button" @click="openDialog('delete')">Delete</button>
       </div>
     </header>
     <template v-if="dialogPage">
+      <PageDetailsDialog v-model:open="detailsOpen" :page="dialogPage" />
       <RenamePageDialog v-model:open="renameOpen" :page="dialogPage" @renamed="showRenamed" />
       <DeletePageDialog v-model:open="deleteOpen" :page="dialogPage" />
     </template>
