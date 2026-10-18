@@ -147,6 +147,10 @@ watchEffect(() => {
           Edit
         </RouterLink>
         <button class="page-action" type="button" @click="openDialog('details')">Details</button>
+        <RouterLink class="page-action" :to="{ name: 'page-history', params: { wikiId, title: titleParam(page.title) } }">
+          <AppIcon name="history" />
+          History
+        </RouterLink>
         <button class="page-action" type="button" @click="openDialog('rename')">Rename</button>
         <button class="page-action" type="button" @click="openDialog('template')">Save as template</button>
         <button class="page-action" type="button" @click="openDialog('delete')">Delete</button>

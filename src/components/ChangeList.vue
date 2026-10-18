@@ -16,6 +16,7 @@ const KIND_LABELS: Record<ChangeEntry["kind"], string> = {
 };
 
 const SUMMARIZED = new Set<ChangeEntry["kind"]>(["edit", "rename"]);
+const DIFFED = new Set<ChangeEntry["kind"]>(["create", "edit"]);
 
 const pages = useLiveQuery((wikiId) => pageService.listForWiki(wikiId), () => props.wikiId);
 const titlesById = computed(() => new Map(pages.value?.map((page) => [page.id, page.title])));
@@ -36,6 +37,18 @@ const titlesById = computed(() => new Map(pages.value?.map((page) => [page.id, p
         {{ KIND_LABELS[entry.kind] }}
         <template v-if="entry.author === 'llm'">by Assistant</template>
         · <time :datetime="new Date(entry.at).toISOString()">{{ relativeTime(entry.at) }}</time>
+        <template v-if="detailed && DIFFED.has(entry.kind) && titlesById.has(entry.pageId)">
+          ·
+          <RouterLink
+            :to="{
+              name: 'page-history',
+              params: { wikiId, title: titleParam(titlesById.get(entry.pageId)!) },
+              hash: `#change-${entry.id}`,
+            }"
+          >
+            View changes
+          </RouterLink>
+        </template>
       </span>
       <span v-if="detailed && entry.summary && SUMMARIZED.has(entry.kind)" class="summary">{{ entry.summary }}</span>
     </li>

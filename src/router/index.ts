@@ -72,6 +72,12 @@ export function createAppRouter(pinia: Pinia): Router {
             meta: { wide: true },
           },
           {
+            path: "history/:title+",
+            name: "page-history",
+            component: () => import("@/views/PageHistoryView.vue"),
+            props: pageProps,
+          },
+          {
             path: "new",
             name: "new-page",
             component: NewPageView,
