@@ -381,7 +381,6 @@ type WikiTool =
   | { name: "list_backlinks"; args: { title: string } }
   | { name: "get_relationships"; args: { title: string } }
   | { name: "get_canon"; args: { title: string; tier?: "hard" | "soft" | "maybe" } }
-  | { name: "list_open_questions"; args: { title?: string } }
   | { name: "propose_section"; args: { heading: string; markdown: string; sources: string[] } };
 ```
 - `propose_section` is the single write path; output goes to the diff view.
