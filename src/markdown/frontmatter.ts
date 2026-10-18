@@ -11,7 +11,8 @@ export function readFrontmatter(tree: Root): FrontmatterResult {
   if (node?.type !== "yaml") return { frontmatter: {} };
 
   try {
-    const value: unknown = parseYaml(node.value);
+    // Template placeholders like {{date}} parse as maps with map keys, which YAML warns about on every read.
+    const value: unknown = parseYaml(node.value, { logLevel: "error" });
     const isRecord = typeof value === "object" && value !== null && !Array.isArray(value);
     return { frontmatter: isRecord ? (value as Record<string, unknown>) : {} };
   } catch (error) {

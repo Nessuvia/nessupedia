@@ -5,7 +5,8 @@ import { titleKey, WIKILINK } from "./wikilinks";
 
 const UNLINKED_NODES = new Set(["code", "inlineCode", "yaml"]);
 
-function unlinkedRanges(tree: Root): [number, number][] {
+// Code and frontmatter, where wikilink-like text is left as written.
+export function unlinkedRanges(tree: Root): [number, number][] {
   const ranges: [number, number][] = [];
   visit(tree, (node) => {
     const start = node.position?.start.offset;

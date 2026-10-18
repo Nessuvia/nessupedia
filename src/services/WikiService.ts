@@ -1,6 +1,9 @@
 import type { WikiDatabase } from "@/db/database";
 import type { Wiki } from "@/db/types";
 
+// Every wiki opens on this page.
+export const MAIN_PAGE_TITLE = "Main Page";
+
 function requireName(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) throw new Error("A wiki needs a name");

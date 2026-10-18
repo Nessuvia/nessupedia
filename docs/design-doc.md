@@ -338,11 +338,15 @@ wiki-name/
 - Import always creates a new wiki, adding " (2)" (or the next free number) to a taken name. It accepts a ZIP of wiki folders or one with `wiki.json` at the top, checks every wiki in it before writing any, rebuilds IDs, keeps history as it was, and re-indexes links. It's offered in wiki settings and on the first-run screen.
 
 ### Obsidian import
-- Reads `.md` files and attachments from a ZIP of the vault into a new wiki.
-- Each folder on a note's path becomes a category. Titles are file names; notes that share a name get their folder in brackets ("Mira (Archive)"), and links to them, resolved the way Obsidian does, are rewritten with the old text as the label.
-- Frontmatter `tags` and inline `#tags` are listed with counts; chosen tags become categories, nested ones joined with " › ". Unchosen tags stay as they were.
-- Converts `![[image]]` to asset paths; keeps wikilinks and callouts.
+- Reads `.md` files and images from a ZIP of the vault into a new wiki, named after the folder the ZIP wraps the vault in, or the ZIP itself. Dot folders such as `.obsidian` and other files are left out.
+- Each folder on a note's path becomes a category. Titles are file names, with `[ ] | #` turned into dashes; notes that share a name get their folder in brackets ("Mira (Archive)"), the shallowest keeping the plain name. Links resolve the way Obsidian does (a path names one note; a bare name prefers the linking note's folder, then the shallowest match) and are rewritten, with the old text as the label when the title changed. Linked property values such as `categories: ["[[Movies]]"]` are unwrapped.
+- Frontmatter `tags` and inline `#tags` are listed with counts; chosen tags become categories, nested ones joined with " › ", and leave `tags`. Unchosen tags stay as they were.
+- Images are stored as assets first; `![[image]]` embeds and relative markdown images point at them. Wikilinks and callouts stay, and `\|` in tables is kept.
+- `%% comments %%` become HTML comments, which never render.
+- Notes in the templates folder named in `.obsidian/templates.json` become user templates; `{{date}}`-style placeholders in their frontmatter survive edits.
+- Each page gets a creation entry "Imported from Obsidian". A Main Page is added when the vault has none, pointing at a Readme, Home, or Index note if there is one.
 - Unknown syntax, such as block references, note embeds, and plugin blocks, passes through as text.
+- If the import fails partway, the new wiki is deleted.
 
 ## LLM integration
 

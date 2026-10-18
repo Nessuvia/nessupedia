@@ -4,6 +4,7 @@ import { computed, onMounted, ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import AppDialog from "@/components/AppDialog.vue";
 import ContinuityDialog from "@/components/ContinuityDialog.vue";
+import ImportVault from "@/components/ImportVault.vue";
 import ImportZip from "@/components/ImportZip.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Continuity } from "@/db/types";
@@ -295,6 +296,10 @@ watchEffect(() => {
       <h3 class="label subsection">Import</h3>
       <p class="hint">Makes a new wiki from a ZIP exported here, leaving this one as it is. A name already in use gets a number.</p>
       <ImportZip class="import" />
+
+      <h3 class="label subsection">Import an Obsidian vault</h3>
+      <p class="hint">Makes a new wiki from a ZIP of an Obsidian vault. Links, images, and callouts come along; folders become categories.</p>
+      <ImportVault class="import" />
     </section>
 
     <section class="danger-zone" aria-labelledby="settings-delete">

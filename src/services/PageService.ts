@@ -43,6 +43,22 @@ export function frontmatterFields(frontmatter: Record<string, unknown>): Pick<Pa
   return { aliases, aliasKeys: [...new Set(aliases.map(titleKey))], categoryKeys: categoryKeys(frontmatter) };
 }
 
+// A page record for a title that has passed the title rules.
+export function newPage(id: string, wikiId: string, title: string, body: string): Page {
+  const { frontmatter } = parseMarkdown(body);
+  return {
+    id,
+    wikiId,
+    title,
+    titleKey: titleKey(title),
+    ...frontmatterFields(frontmatter),
+    path: pathForTitle(title),
+    frontmatter,
+    body,
+    updatedAt: Date.now(),
+  };
+}
+
 export class PageService {
   constructor(
     private readonly db: WikiDatabase,
@@ -78,7 +94,7 @@ export class PageService {
 
   async create({ wikiId, title: rawTitle, body = "", path, templateId, author = "human" }: CreatePageInput): Promise<Page> {
     const title = requireTitle(rawTitle);
-    const page = { ...this.build(crypto.randomUUID(), wikiId, title, body), ...(path && { path }), ...(templateId && { templateId }) };
+    const page = { ...newPage(crypto.randomUUID(), wikiId, title, body), ...(path && { path }), ...(templateId && { templateId }) };
 
     await this.db.transaction("rw", [this.db.wikis, this.db.pages, this.db.links, this.db.changes], async () => {
       if (await this.links.findPage(wikiId, title)) throw new Error(`A page titled "${title}" already exists`);
@@ -118,27 +134,13 @@ export class PageService {
       if (clash) throw new Error(`"${clash.title}" now goes by "${title}"; rename it before restoring this page`);
       await this.requireVersionRules(wikiId, title);
 
-      const page = this.build(pageId, wikiId, title, body);
+      const page = newPage(pageId, wikiId, title, body);
       await this.insert(page);
       await this.changes.record({ wikiId, pageId, pageTitle: title, kind: "restore", author, minor: false, summary, before: "", after: body });
       return page;
     });
   }
 
-  private build(id: string, wikiId: string, title: string, body: string): Page {
-    const { frontmatter } = parseMarkdown(body);
-    return {
-      id,
-      wikiId,
-      title,
-      titleKey: titleKey(title),
-      ...frontmatterFields(frontmatter),
-      path: pathForTitle(title),
-      frontmatter,
-      body,
-      updatedAt: Date.now(),
-    };
-  }
 
   private async insert(page: Page): Promise<void> {
     await this.db.pages.add(page);

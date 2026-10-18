@@ -2,6 +2,7 @@
 import { storeToRefs } from "pinia";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
+import ImportVault from "@/components/ImportVault.vue";
 import ImportZip from "@/components/ImportZip.vue";
 import { useWikiStore } from "@/stores/wiki";
 
@@ -47,8 +48,11 @@ document.title = "Create a wiki | OC Wiki";
     </form>
     <section class="import" aria-labelledby="import-heading">
       <h2 id="import-heading">Or bring one in</h2>
-      <p class="intro">Import a ZIP exported from OC Wiki, such as a backup or a wiki from another device.</p>
-      <ImportZip />
+      <p class="intro">Import a ZIP exported from OC Wiki, such as a backup or a wiki from another device, or a ZIP of an Obsidian vault.</p>
+      <div class="import-buttons">
+        <ImportZip />
+        <ImportVault />
+      </div>
     </section>
   </main>
 </template>
@@ -83,6 +87,13 @@ input {
 
 .import {
   margin-top: 2.5rem;
+}
+
+.import-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
 
 .import h2 {

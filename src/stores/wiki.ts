@@ -5,8 +5,9 @@ import { useStoredRef } from "@/composables/useStoredRef";
 import { db } from "@/db/database";
 import type { Wiki } from "@/db/types";
 import { changeLog, pageService, wikiService } from "@/services";
+import { MAIN_PAGE_TITLE } from "@/services/WikiService";
 
-export const MAIN_PAGE_TITLE = "Main Page";
+export { MAIN_PAGE_TITLE };
 
 export function mainPageBody(wikiName: string): string {
   return `Welcome to **${wikiName}**. Start with a character like [[Main Character]] or a place like [[Home Town]].\n`;

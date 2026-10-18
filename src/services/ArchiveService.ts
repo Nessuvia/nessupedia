@@ -153,7 +153,8 @@ function wikisIn(files: ArchiveFiles): ArchiveFiles[] {
   );
 }
 
-function freeName(name: string, taken: Set<string>): string {
+// The name, or the name numbered " (2)" and up, whichever isn't taken yet; claims it.
+export function freeName(name: string, taken: Set<string>): string {
   let candidate = name;
   for (let n = 2; taken.has(candidate.toLowerCase()); n++) candidate = `${name} (${n})`;
   taken.add(candidate.toLowerCase());
@@ -257,7 +258,7 @@ export class ArchiveService {
       throw new Error("This file isn't a ZIP");
     }
     const archives = wikisIn(files).map(readArchive);
-    if (!archives.length) throw new Error("This ZIP isn't an OC Wiki export: it has no wiki.json");
+    if (!archives.length) throw new Error("This ZIP isn't an OC Wiki export: it has no wiki.json. For an Obsidian vault, use Import Obsidian vault.");
 
     const tables = [this.db.wikis, this.db.pages, this.db.links, this.db.changes, this.db.assets, this.db.templates];
     return this.db.transaction("rw", tables, async () => {

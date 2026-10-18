@@ -7,12 +7,19 @@ export class FrontmatterError extends Error {
   }
 }
 
+// Template placeholders such as {{date}} read as YAML maps and would be rewritten as {? {date}}, so they
+// stand in as plain tokens while the YAML is edited and come back as written.
+const PLACEHOLDER = /\{\{[^{}]*\}\}/g;
+const TOKEN = /__oc_placeholder_(\d+)__/g;
+
 // Applies `edit` to a page's frontmatter as a YAML document, so untouched keys keep their order and
 // comments. Frontmatter left without keys is removed.
 export function editFrontmatter(markdown: string, edit: (doc: Document) => void): string {
   const first = parseMarkdown(markdown).tree.children[0];
   const block = first?.type === "yaml" ? first : undefined;
-  const doc = parseDocument(block?.value ?? "");
+  const placeholders: string[] = [];
+  const masked = (block?.value ?? "").replace(PLACEHOLDER, (placeholder) => `__oc_placeholder_${placeholders.push(placeholder) - 1}__`);
+  const doc = parseDocument(masked);
   if (doc.errors.length > 0 || (doc.contents !== null && !isMap(doc.contents))) throw new FrontmatterError();
 
   edit(doc);
@@ -20,7 +27,8 @@ export function editFrontmatter(markdown: string, edit: (doc: Document) => void)
   const body = block ? markdown.slice(block.position!.end.offset!) : markdown;
   if (!isMap(doc.contents) || doc.contents.items.length === 0) return body.replace(/^\n+/, "");
   const rest = block ? body : body ? `\n\n${body}` : "\n";
-  return `---\n${doc.toString({ flowCollectionPadding: false }).trimEnd()}\n---${rest}`;
+  const yaml = doc.toString({ flowCollectionPadding: false }).trimEnd().replace(TOKEN, (token, index: string) => placeholders[Number(index)] ?? token);
+  return `---\n${yaml}\n---${rest}`;
 }
 
 // Writes each key as a flow list; an empty list removes its key.
