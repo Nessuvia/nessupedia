@@ -99,6 +99,21 @@ describe("PageService", () => {
   });
 });
 
+describe("ChangeLog.list filters", () => {
+  it("filters by author and by part of a page's title, then or now", async () => {
+    const mira = await pages.create({ wikiId, title: "Mira", body: "One\n" });
+    await pages.create({ wikiId, title: "Theo", body: "One\n", author: "llm" });
+    await pages.rename(mira.id, "Mira Vale");
+    await pages.create({ wikiId, title: "Ashfall", body: "One\n" });
+
+    const titles = async (filter: Parameters<ChangeLog["list"]>[1]) => (await changes.list(wikiId, filter)).map(({ kind, pageTitle }) => `${kind} ${pageTitle}`);
+    expect(await titles({ author: "llm" })).toEqual(["create Theo"]);
+    expect(await titles({ page: "vale" })).toEqual(["rename Mira Vale", "create Mira"]);
+    expect(await titles({ page: "  MIRA " })).toEqual(["rename Mira Vale", "create Mira"]);
+    expect(await titles({ page: "fall", author: "human" })).toEqual(["create Ashfall"]);
+  });
+});
+
 describe("ChangeLog merging", () => {
   it("folds quick edits by one author into one entry spanning the session", async () => {
     const page = await pages.create({ wikiId, title: "Mira", body: "One\n" });

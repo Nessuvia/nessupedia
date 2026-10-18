@@ -47,6 +47,13 @@ export interface RecordChangeInput {
   after: string;
 }
 
+export interface ChangeListFilter {
+  includeMinor?: boolean;
+  author?: ChangeEntry["author"];
+  page?: string;
+  limit?: number;
+}
+
 export class ChangeLog {
   constructor(private readonly db: WikiDatabase) {}
 
@@ -80,12 +87,22 @@ export class ChangeLog {
     return merged;
   }
 
-  list(wikiId: string, { includeMinor = false, limit = Infinity } = {}): Promise<ChangeEntry[]> {
+  // `page` matches part of a title, the one a change was made under or the page's title now.
+  async list(wikiId: string, { includeMinor = false, author, page, limit = Infinity }: ChangeListFilter = {}): Promise<ChangeEntry[]> {
+    const query = page?.trim().toLowerCase();
+    const pageIds = query
+      ? new Set(await this.db.pages.where("wikiId").equals(wikiId).filter((found) => found.title.toLowerCase().includes(query)).primaryKeys())
+      : undefined;
     return this.db.changes
       .where("wikiId")
       .equals(wikiId)
       .reverse()
-      .filter((entry) => includeMinor || !entry.minor)
+      .filter(
+        (entry) =>
+          (includeMinor || !entry.minor) &&
+          (!author || entry.author === author) &&
+          (!query || entry.pageTitle.toLowerCase().includes(query) || pageIds!.has(entry.pageId)),
+      )
       .limit(limit)
       .toArray();
   }
