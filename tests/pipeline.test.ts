@@ -83,6 +83,16 @@ describe("renderMarkdown", () => {
   const render = (markdown: string) =>
     renderMarkdown(parseMarkdown(markdown).tree, { pageExists: (title) => title === "Theo" }).html;
 
+  it("renders tables with alignment, links in cells, and escaped bars", () => {
+    const table = "| Name | Role |\n| :--- | ---: |\n| [[Theo\\|him]] | ![[assets/a.webp\\|100]] |\n| a \\| b | `x` |\n";
+    const { html, blocks } = renderMarkdown(parseMarkdown(table).tree, { pageExists: (title) => title === "Theo" });
+    expect(html).toContain('<th align="left">Name</th>');
+    expect(html).toContain('<td align="left"><a href="/wiki/Theo" class="wikilink" data-wikilink="Theo">him</a></td>');
+    expect(html).toMatch(/<td align="right"><img[^>]*width="100"/);
+    expect(html).toContain('<td align="left">a | b</td>');
+    expect(blocks).toMatchObject([{ kind: "table", start: 0, end: table.length - 1 }]);
+  });
+
   it("renders existing and missing pages", () => {
     const html = render(source);
     expect(html).toContain('<a href="/wiki/Theo" class="wikilink" data-wikilink="Theo">Theo</a>');

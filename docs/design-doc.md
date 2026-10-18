@@ -161,6 +161,7 @@ Frontmatter fields that name pages (`between`) are indexed in `links` with a `fi
 - YAML frontmatter: `title`, `aliases`, `categories`, `template`, `between` (relationship pages), `changes` (versions), `tabs` (tab order), `history: keep` (exempt from pruning), custom fields. `categories`, `aliases`, and `changes` accept a single string or a list.
 - Raw HTML never renders. An HTML comment standing as its own block (`<!-- hint -->`) renders as a hint block with its source range, hidden by CSS outside click-to-edit.
 - `[[Title]]`, `[[Title|label]]`, `[[Title#Heading]]`.
+- GitHub-style tables, with column alignment. Inside a cell a bar is written `\|`, as in `[[Title\|label]]`. Other GFM extensions (autolinks, footnotes, strikethrough, task lists) aren't parsed. A table is one click-to-edit block.
 - Obsidian callouts: `> [!type] Optional title`, with every Obsidian type and alias; unknown types style as `note`. `[!type]-` renders folded and `[!type]+` open, both as `<details>`.
 - Images: `![[assets/path.webp]]`, `![[assets/path.webp|alt text]]`, or `![[assets/path.webp|300]]` for a width. A bare file name also looks in `assets/`, so Obsidian embeds resolve. Embeds of anything but an image stay as text.
 - Directives (remark-directive). Text that only looks like a directive, such as `re:Zero`, renders as written.

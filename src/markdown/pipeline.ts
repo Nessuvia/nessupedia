@@ -17,6 +17,7 @@ import remarkDirectives from "./directives";
 import remarkEmbeds from "./embeds";
 import { readFrontmatter } from "./frontmatter";
 import { hintText } from "./hints";
+import remarkTables from "./tables";
 import type {
   Callout,
   CanonBlock,
@@ -66,6 +67,7 @@ export interface RenderOptions {
 const parser = unified()
   .use(remarkParse)
   .use(remarkFrontmatter, ["yaml"])
+  .use(remarkTables)
   .use(remarkDirective)
   .use(remarkDirectives, { parseFragment })
   .use(remarkCallouts)
