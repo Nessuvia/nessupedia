@@ -273,7 +273,7 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 
 ## Change log
 - Every save computes a unified diff of the page source, frontmatter included, against the prior source.
-- A save by the same author within 10 minutes of the page's latest entry, when that entry is an edit, folds into it: the diff is recomputed from the entry's starting source, `at` moves to the save, `minor` holds only if both are minor, and the summary becomes the latest non-empty one. Creations, renames, deletions, and restores never merge, so nothing merges across them.
+- A save by the same author within 10 minutes of the page's latest entry, when that entry is an edit, folds into it: the diff is recomputed from the entry's starting source, `at` moves to the save, `minor` holds only if both are minor, and the summaries join with "; ", each once. A session that ends where it began drops its entry. Creations, renames, deletions, and restores never merge, so nothing merges across them.
 - Entries carry the page title at the time of the change, so the feed can show pages that no longer exist.
 - Older versions are rebuilt backward from the current source by reversing diffs newest first, so pruning old entries never breaks newer ones. The diff view shows the stored patch with word-level highlights between paired removed and added lines.
 - Restore saves a rebuilt version as a `restore` entry.

@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WikiDatabase } from "@/db/database";
-import { ChangeLog } from "@/services/ChangeLog";
+import { ChangeLog, MERGE_WINDOW, sourceBefore } from "@/services/ChangeLog";
 import { LinkIndexer } from "@/services/LinkIndexer";
 import { PageService } from "@/services/PageService";
 import { SearchService } from "@/services/SearchService";
@@ -14,7 +14,15 @@ let search: SearchService;
 let wikis: WikiService;
 let wikiId: string;
 
+// Only Date is faked, so Dexie's own timers keep running.
+const later = (ms: number) => vi.setSystemTime(Date.now() + ms);
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
   db = new WikiDatabase(`test-${crypto.randomUUID()}`);
   links = new LinkIndexer(db);
   changes = new ChangeLog(db);
@@ -83,10 +91,59 @@ describe("PageService", () => {
   it("hides minor edits from the default feed", async () => {
     const page = await pages.create({ wikiId, title: "Mira", body: "One" });
     await pages.save(page.id, "Two", { minor: true });
+    later(MERGE_WINDOW + 1);
     await pages.save(page.id, "Three", { summary: "Rewrite" });
 
     expect((await changes.list(wikiId)).map((entry) => entry.summary)).toEqual(["Rewrite", "Created page"]);
     expect(await changes.list(wikiId, { includeMinor: true })).toHaveLength(3);
+  });
+});
+
+describe("ChangeLog merging", () => {
+  it("folds quick edits by one author into one entry spanning the session", async () => {
+    const page = await pages.create({ wikiId, title: "Mira", body: "One\n" });
+    await pages.save(page.id, "Two\n", { minor: true, summary: "Typo" });
+    later(MERGE_WINDOW - 1);
+    await pages.save(page.id, "Three\n", { summary: "Rewrite" });
+    later(MERGE_WINDOW - 1);
+    await pages.save(page.id, "Four\n", { minor: true, summary: "Typo" });
+
+    const [edit, create] = await changes.listForPage(page.id);
+    expect(create).toMatchObject({ kind: "create" });
+    expect(edit).toMatchObject({ kind: "edit", minor: false, summary: "Typo; Rewrite", at: Date.now() });
+    expect(sourceBefore(edit!, "Four\n")).toBe("One\n");
+  });
+
+  it("starts a new entry after the window, for another author, or after a rename", async () => {
+    const page = await pages.create({ wikiId, title: "Mira", body: "One\n" });
+    await pages.save(page.id, "Two\n");
+    later(MERGE_WINDOW + 1);
+    await pages.save(page.id, "Three\n");
+    await pages.save(page.id, "Four\n", { author: "llm" });
+    await pages.rename(page.id, "Mira Vale");
+    await pages.save(page.id, "Five\n", { author: "llm" });
+
+    expect((await changes.listForPage(page.id)).map(({ kind, author }) => `${kind} ${author}`)).toEqual([
+      "edit llm",
+      "rename human",
+      "edit llm",
+      "edit human",
+      "edit human",
+      "create human",
+    ]);
+  });
+
+  it("never folds an edit into the page's creation", async () => {
+    const page = await pages.create({ wikiId, title: "Mira", body: "One\n" });
+    await pages.save(page.id, "Two\n");
+    expect(await changes.listForPage(page.id)).toHaveLength(2);
+  });
+
+  it("drops the entry when the session ends where it began", async () => {
+    const page = await pages.create({ wikiId, title: "Mira", body: "One\n" });
+    await pages.save(page.id, "Two\n");
+    await pages.save(page.id, "One\n");
+    expect((await changes.listForPage(page.id)).map(({ kind }) => kind)).toEqual(["create"]);
   });
 });
 
