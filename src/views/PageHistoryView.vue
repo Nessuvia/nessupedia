@@ -7,7 +7,7 @@ import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { ChangeEntry } from "@/db/types";
 import { titleParam } from "@/router/params";
 import { changeLog, pageService } from "@/services";
-import { rebuildVersions } from "@/services/ChangeLog";
+import { rebuildVersions, sourceBefore } from "@/services/ChangeLog";
 import { useWikiStore } from "@/stores/wiki";
 import { diffRows, diffStats } from "@/utils/diffRows";
 import { relativeTime } from "@/utils/relativeTime";
@@ -43,23 +43,31 @@ const shownTitle = computed(() => page.value?.title ?? history.value?.deletion?.
 const current = computed(() => page.value?.body ?? "");
 const versions = computed(() => rebuildVersions(entries.value ?? [], current.value));
 
+// A deletion holds the final source. It only needs its own button once pruning has removed the entry before it.
+function versionAfter(entry: ChangeEntry, index: number): string | undefined {
+  if (entry.kind !== "delete") return versions.value.get(entry.id!);
+  const previous = entries.value?.[index + 1];
+  return index === 0 && !(previous && versions.value.has(previous.id!)) ? sourceBefore(entry, "") : undefined;
+}
+
 const shown = computed(() =>
-  entries.value?.map((entry) => {
+  entries.value?.map((entry, index) => {
     const rows = diffRows(entry.diff);
-    const version = versions.value.get(entry.id!);
-    return { entry, rows, stats: diffStats(rows), restorable: version !== undefined && version !== current.value };
+    const version = versionAfter(entry, index);
+    return { entry, rows, stats: diffStats(rows), version: version !== current.value ? version : undefined };
   }),
 );
 
 const restoring = ref<number>();
 const restoreError = ref("");
 
-async function restore(entry: ChangeEntry) {
+async function restore(entry: ChangeEntry, version: string) {
   restoring.value = entry.id;
   restoreError.value = "";
   try {
     const when = new Date(entry.at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-    const restored = await pageService.restore(history.value!.pageId!, versions.value.get(entry.id!)!, { summary: `Restored the version from ${when}` });
+    const summary = entry.kind === "delete" ? "Restored the page as it was when deleted" : `Restored the version from ${when}`;
+    const restored = await pageService.restore(history.value!.pageId!, version, { summary });
     await router.push({ name: "page", params: { wikiId: props.wikiId, title: titleParam(restored.title) } });
   } catch (cause) {
     restoreError.value = cause instanceof Error ? cause.message : String(cause);
@@ -103,7 +111,7 @@ watchEffect(() => {
 
     <p v-if="history && !history.pageId" class="empty">There's no page titled {{ title }}, and none was deleted under that title.</p>
     <ol v-else-if="shown" class="history">
-      <li v-for="{ entry, rows, stats, restorable } in shown" :id="`change-${entry.id}`" :key="entry.id">
+      <li v-for="{ entry, rows, stats, version } in shown" :id="`change-${entry.id}`" :key="entry.id">
         <details :open="entry.id === openId">
           <summary>
             <span class="what">
@@ -121,8 +129,14 @@ watchEffect(() => {
           </summary>
           <div class="change">
             <DiffView v-if="entry.kind !== 'rename'" :diff="entry.diff" :rows="rows" />
-            <button v-if="restorable" class="button secondary restore" type="button" :disabled="restoring !== undefined" @click="restore(entry)">
-              {{ restoring === entry.id ? "Restoring…" : "Restore this version" }}
+            <button
+              v-if="version !== undefined"
+              class="button secondary restore"
+              type="button"
+              :disabled="restoring !== undefined"
+              @click="restore(entry, version)"
+            >
+              {{ restoring === entry.id ? "Restoring…" : entry.kind === "delete" ? "Restore as it was when deleted" : "Restore this version" }}
             </button>
           </div>
         </details>

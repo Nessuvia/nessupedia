@@ -7,7 +7,7 @@ import ContinuityDialog from "@/components/ContinuityDialog.vue";
 import ImportZip from "@/components/ImportZip.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Continuity } from "@/db/types";
-import { archiveService, continuityService, pageService, storageService, wikiService } from "@/services";
+import { archiveService, changeLog, continuityService, pageService, storageService, wikiService } from "@/services";
 import { fileSafeName } from "@/services/ArchiveService";
 import { useWikiStore } from "@/stores/wiki";
 import { downloadFile } from "@/utils/download";
@@ -80,6 +80,34 @@ onMounted(async () => (persisted.value = await storageService.persisted()));
 async function askToKeep() {
   persisted.value = await storageService.request();
   askedToKeep.value = true;
+}
+
+const KEEP_OPTIONS = [
+  { label: "Forever", days: undefined },
+  { label: "1 year", days: 365 },
+  { label: "90 days", days: 90 },
+  { label: "30 days", days: 30 },
+];
+const pruneNote = ref("");
+
+// Shortening removes history right away, so it asks first.
+async function changeHistoryDays(event: Event) {
+  const select = event.target as HTMLSelectElement;
+  const days = select.value ? Number(select.value) : undefined;
+  const previous = currentWiki.value?.historyDays;
+  pruneNote.value = "";
+  if (days !== undefined && (previous === undefined || days < previous)) {
+    const label = KEEP_OPTIONS.find((option) => option.days === days)!.label;
+    if (!window.confirm(`Remove changes older than ${label} now? This can't be undone.`)) {
+      select.value = String(previous ?? "");
+      return;
+    }
+  }
+  await wikiService.setHistoryDays(props.wikiId, days);
+  if (days !== undefined) {
+    const removed = await changeLog.prune(props.wikiId, days);
+    pruneNote.value = removed ? `Removed ${removed} old ${removed === 1 ? "change" : "changes"}.` : "Nothing was old enough to remove.";
+  }
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -206,6 +234,19 @@ watchEffect(() => {
       />
     </section>
 
+    <section aria-labelledby="settings-history">
+      <h2 id="settings-history">History</h2>
+      <label class="label" for="history-days">Keep history for</label>
+      <select id="history-days" class="text-input history-days" :value="currentWiki?.historyDays ?? ''" @change="changeHistoryDays">
+        <option v-for="option in KEEP_OPTIONS" :key="option.label" :value="option.days ?? ''">{{ option.label }}</option>
+      </select>
+      <p class="hint">
+        Older changes are removed when the wiki opens. Deletions stay, so deleted pages can still come back, and pages set to
+        keep all history in their Details keep everything.
+      </p>
+      <p v-if="pruneNote" class="saved" role="status">{{ pruneNote }}</p>
+    </section>
+
     <section aria-labelledby="settings-data">
       <h2 id="settings-data">Data</h2>
       <h3 class="label">Storage</h3>
@@ -327,6 +368,10 @@ h2 {
 .status {
   max-width: 40rem;
   margin: 0 0 0.5rem;
+}
+
+.history-days {
+  width: auto;
 }
 
 .subsection {

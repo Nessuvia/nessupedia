@@ -278,7 +278,7 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - Older versions are rebuilt backward from the current source by reversing diffs newest first, so pruning old entries never breaks newer ones. The diff view shows the stored patch with word-level highlights between paired removed and added lines.
 - Restore saves a rebuilt version as a `restore` entry.
 - Deleting a page keeps its history and records a deletion entry whose diff holds the final source. Restoring a deleted page recreates it under its old ID from any version, re-indexing its links. Creating a page whose title matches a deleted page's drops that history first; the creation form checks and warns. A page recreated from a red link starts a fresh history under a new ID.
-- `historyDays` on the wiki sets automatic pruning; unset keeps everything. When a wiki opens, entries older than the cutoff are deleted, except deletion entries and entries of pages whose frontmatter has `history: keep` (read from the final source for deleted pages).
+- `historyDays` on the wiki sets automatic pruning; unset keeps everything. The first time a wiki opens in a session, and right after the setting is shortened (with a confirmation), entries older than the cutoff are deleted, except deletion entries and entries of pages whose frontmatter has `history: keep` (read from the final source for deleted pages). A deleted page whose earlier entries were pruned can still be restored as it was when deleted.
 
 ## Categories
 - `categories` in frontmatter; `categoryKeys` holds their normalized keys for the multi-entry index.

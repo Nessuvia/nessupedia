@@ -299,6 +299,44 @@ describe("PageService.restore", () => {
   });
 });
 
+describe("ChangeLog.prune", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  it("removes changes older than the cutoff, and newer versions still rebuild", async () => {
+    const mira = await pages.create({ wikiId, title: "Mira", body: "One\n" });
+    later(40 * DAY);
+    await pages.save(mira.id, "Two\n");
+    later(MERGE_WINDOW + 1);
+    await pages.save(mira.id, "Three\n");
+
+    expect(await changes.prune(wikiId, 30)).toBe(1);
+    const history = await changes.listForPage(mira.id);
+    expect(history.map(({ kind }) => kind)).toEqual(["edit", "edit"]);
+    expect([...rebuildVersions(history, "Three\n").values()]).toEqual(["Three\n", "Two\n"]);
+  });
+
+  it("spares pages marked history: keep, and deletions", async () => {
+    const kept = await pages.create({ wikiId, title: "Mira", body: "---\nhistory: keep\n---\nOne\n" });
+    const gone = await pages.create({ wikiId, title: "Theo", body: "One\n" });
+    await pages.delete(gone.id);
+    later(40 * DAY);
+
+    expect(await changes.prune(wikiId, 30)).toBe(1);
+    expect(await changes.listForPage(kept.id)).toHaveLength(1);
+    expect((await changes.listForPage(gone.id)).map(({ kind }) => kind)).toEqual(["delete"]);
+    expect(sourceBefore((await changes.listForPage(gone.id))[0]!, "")).toBe("One\n");
+  });
+
+  it("reads history: keep from a deleted page's final source", async () => {
+    const gone = await pages.create({ wikiId, title: "Theo", body: "---\nhistory: keep\n---\nOne\n" });
+    await pages.delete(gone.id);
+    later(40 * DAY);
+
+    expect(await changes.prune(wikiId, 30)).toBe(0);
+    expect(await changes.listForPage(gone.id)).toHaveLength(2);
+  });
+});
+
 describe("LinkIndexer", () => {
   it("indexes red links and resolves them when the target is created", async () => {
     const mira = await pages.create({ wikiId, title: "Mira", body: "Friends with [[Theo]] and [[Theo|him]]." });

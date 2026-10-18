@@ -6,6 +6,8 @@ export interface Wiki {
   themeId: string;
   voice: "fandom" | "in-universe";
   keepOriginalImages?: boolean;
+  // Changes older than this many days are pruned when the wiki opens; unset keeps them all.
+  historyDays?: number;
   continuities?: Continuity[];
   createdAt: number;
 }

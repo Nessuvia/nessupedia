@@ -1,10 +1,13 @@
 import { applyPatch, createPatch, parsePatch, reversePatch } from "diff";
 import type { WikiDatabase } from "@/db/database";
 import type { ChangeEntry } from "@/db/types";
+import { parseMarkdown } from "@/markdown/pipeline";
 import { titleKey } from "@/markdown/wikilinks";
 
 // Edits by one author this close together read as one change.
 export const MERGE_WINDOW = 10 * 60 * 1000;
+
+const DAY = 24 * 60 * 60 * 1000;
 
 // The source an entry started from, given the source it produced; undefined when the diff doesn't fit it.
 export function sourceBefore(entry: Pick<ChangeEntry, "diff">, after: string): string | undefined {
@@ -104,6 +107,35 @@ export class ChangeLog {
       if (!(await this.db.pages.get(deletion.pageId))) return deletion;
     }
     return undefined;
+  }
+
+  // Deletes changes older than the cutoff, except deletions, which restoring needs, and changes to pages
+  // marked `history: keep`, read from the final source of pages since deleted.
+  async prune(wikiId: string, days: number, now = Date.now()): Promise<number> {
+    const cutoff = now - days * DAY;
+    return this.db.transaction("rw", this.db.changes, this.db.pages, async () => {
+      const old = await this.db.changes
+        .where("wikiId")
+        .equals(wikiId)
+        .filter((entry) => entry.at < cutoff && entry.kind !== "delete")
+        .toArray();
+      const kept = new Map<string, boolean>();
+      const doomed: number[] = [];
+      for (const entry of old) {
+        if (!kept.has(entry.pageId)) kept.set(entry.pageId, await this.keepsHistory(entry.pageId));
+        if (!kept.get(entry.pageId)) doomed.push(entry.id!);
+      }
+      await this.db.changes.bulkDelete(doomed);
+      return doomed.length;
+    });
+  }
+
+  private async keepsHistory(pageId: string): Promise<boolean> {
+    const page = await this.db.pages.get(pageId);
+    if (page) return page.frontmatter.history === "keep";
+    const [latest] = await this.listForPage(pageId);
+    const final = latest?.kind === "delete" ? sourceBefore(latest, "") : undefined;
+    return final !== undefined && parseMarkdown(final).frontmatter.history === "keep";
   }
 
   async dropPageHistory(pageId: string): Promise<void> {

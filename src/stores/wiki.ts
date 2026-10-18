@@ -4,7 +4,7 @@ import { useLiveQuery } from "@/composables/useLiveQuery";
 import { useStoredRef } from "@/composables/useStoredRef";
 import { db } from "@/db/database";
 import type { Wiki } from "@/db/types";
-import { pageService, wikiService } from "@/services";
+import { changeLog, pageService, wikiService } from "@/services";
 
 export const MAIN_PAGE_TITLE = "Main Page";
 
@@ -18,8 +18,15 @@ export const useWikiStore = defineStore("wiki", () => {
   const lastWikiId = useStoredRef<string | null>("oc-wiki:last-wiki", null);
   const currentWiki = computed(() => wikis.value?.find((wiki) => wiki.id === currentWikiId.value));
 
+  // Old history is pruned the first time a wiki opens in a session.
+  const pruned = new Set<string>();
   watch(currentWiki, (wiki) => {
-    if (wiki) lastWikiId.value = wiki.id;
+    if (!wiki) return;
+    lastWikiId.value = wiki.id;
+    // Settings prune themselves when the setting changes, so later updates to the wiki don't count.
+    if (pruned.has(wiki.id)) return;
+    pruned.add(wiki.id);
+    if (wiki.historyDays) changeLog.prune(wiki.id, wiki.historyDays).catch((error) => console.error(error));
   });
 
   function createWiki(name: string): Promise<Wiki> {

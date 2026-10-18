@@ -39,6 +39,10 @@ export class WikiService {
     await this.db.wikis.update(id, { keepOriginalImages: keep });
   }
 
+  async setHistoryDays(id: string, days: number | undefined): Promise<void> {
+    await this.db.wikis.update(id, { historyDays: days });
+  }
+
   async delete(id: string): Promise<void> {
     await this.db.transaction("rw", this.db.tables, async () => {
       await this.db.wikis.delete(id);
