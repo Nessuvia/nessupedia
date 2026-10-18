@@ -1,4 +1,4 @@
-import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from "fflate";
+import { strFromU8, strToU8 } from "fflate";
 import type { Root } from "mdast";
 import type { WikiDatabase } from "@/db/database";
 import type { Asset, AutoContextSettings, ChangeEntry, Page, Template, Wiki } from "@/db/types";
@@ -8,6 +8,7 @@ import { isBundled } from "@/templates";
 import { extensionFor } from "./AssetService";
 import type { LinkIndexer } from "./LinkIndexer";
 import { frontmatterFields, pathForTitle, requireTitle } from "./PageService";
+import { syncZipper, type ZipEntries, type Zipper } from "./zipper";
 
 export const ARCHIVE_FORMAT = "oc-wiki";
 export const ARCHIVE_VERSION = 1;
@@ -163,6 +164,7 @@ export class ArchiveService {
   constructor(
     private readonly db: WikiDatabase,
     private readonly links: LinkIndexer,
+    private readonly zipper: Zipper = syncZipper,
   ) {}
 
   // One wiki's files, with paths relative to its folder.
@@ -233,25 +235,24 @@ export class ArchiveService {
   // Each wiki gets its own folder named after it.
   async exportZip(wikiIds: string[], options: ExportOptions = {}): Promise<Uint8Array<ArrayBuffer>> {
     const folders = new PathClaims();
-    const zippable: Zippable = {};
+    const entries: ZipEntries = {};
     for (const wikiId of wikiIds) {
       const wiki = await this.db.wikis.get(wikiId);
       if (!wiki) throw new Error(`Wiki ${wikiId} not found`);
       const folder = folders.claim(fileSafeName(wiki.name));
       for (const [path, data] of Object.entries(await this.serialize(wikiId, options))) {
         // Images are already compressed, so only text is deflated.
-        zippable[`${folder}/${path}`] = [data, { level: /\.(md|json)$/.test(path) ? 6 : 0 }];
+        entries[`${folder}/${path}`] = [data, { level: /\.(md|json)$/.test(path) ? 6 : 0 }];
       }
     }
-    // fflate types its output loosely, but it always allocates a plain ArrayBuffer, which Blob needs.
-    return zipSync(zippable) as Uint8Array<ArrayBuffer>;
+    return this.zipper.zip(entries);
   }
 
   // Every wiki in the ZIP becomes a new wiki; a name already in use gets a number.
   async importZip(data: Uint8Array): Promise<Wiki[]> {
     let files: ArchiveFiles;
     try {
-      files = unzipSync(data);
+      files = await this.zipper.unzip(data);
     } catch {
       throw new Error("This file isn't a ZIP");
     }

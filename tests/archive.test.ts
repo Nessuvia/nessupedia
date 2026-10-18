@@ -8,6 +8,7 @@ import { LinkIndexer } from "@/services/LinkIndexer";
 import { PageService } from "@/services/PageService";
 import { TemplateService } from "@/services/TemplateService";
 import { WikiService } from "@/services/WikiService";
+import { transferables } from "@/services/zipper";
 
 let db: WikiDatabase;
 let pages: PageService;
@@ -239,6 +240,14 @@ describe("ArchiveService.importZip", () => {
     await expect(archive.importZip(withManifest({ pages: [{ ...manifest.pages[0]!, title: "Mi[ra" }] }))).rejects.toThrow('"Mi[ra"');
     await expect(archive.importZip(zipSync({ ...files, "changes.json": strToU8("{") }))).rejects.toThrow("changes.json");
     expect(await db.wikis.count()).toBe(1);
+  });
+});
+
+describe("transferables", () => {
+  it("lists each underlying buffer once, so views sharing one don't fail the transfer", () => {
+    const shared = new Uint8Array(8);
+    const own = new Uint8Array(2);
+    expect(transferables([shared.subarray(0, 4), shared.subarray(4), own])).toEqual([shared.buffer, own.buffer]);
   });
 });
 

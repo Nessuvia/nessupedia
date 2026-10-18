@@ -12,12 +12,13 @@ import { SearchService } from "./SearchService";
 import { StorageService } from "./StorageService";
 import { TemplateService } from "./TemplateService";
 import { WikiService } from "./WikiService";
+import { workerZipper } from "./zipper";
 
 export const assetService = new AssetService(db, encodeImage);
 export const categoryService = new CategoryService(db);
 export const changeLog = new ChangeLog(db);
 export const linkIndexer = new LinkIndexer(db);
-export const archiveService = new ArchiveService(db, linkIndexer);
+export const archiveService = new ArchiveService(db, linkIndexer, workerZipper);
 export const pageService = new PageService(db, linkIndexer, changeLog);
 export const relationshipService = new RelationshipService(db, linkIndexer);
 export const continuityService = new ContinuityService(db, pageService);
