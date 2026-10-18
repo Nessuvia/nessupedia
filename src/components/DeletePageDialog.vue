@@ -41,8 +41,8 @@ async function remove() {
         Its {{ subpageCount }} {{ subpageCount === 1 ? "subpage stays" : "subpages stay" }}; delete {{ subpageCount === 1 ? "it" : "them" }} separately if you
         need to.
       </li>
-      <li>Its edit history will be removed. Recent changes keeps a note that it was created and deleted.</li>
-      <li>You can create a page with this title again later.</li>
+      <li>Its history stays, so you can restore it from Recent changes later.</li>
+      <li>Creating a new page with this title removes that history.</li>
     </ul>
     <p v-if="error" class="form-error" role="alert">{{ error }}</p>
     <div class="dialog-actions">

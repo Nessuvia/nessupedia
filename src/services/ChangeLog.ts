@@ -1,6 +1,7 @@
 import { applyPatch, createPatch, parsePatch, reversePatch } from "diff";
 import type { WikiDatabase } from "@/db/database";
 import type { ChangeEntry } from "@/db/types";
+import { titleKey } from "@/markdown/wikilinks";
 
 // Edits by one author this close together read as one change.
 export const MERGE_WINDOW = 10 * 60 * 1000;
@@ -11,6 +12,19 @@ export function sourceBefore(entry: Pick<ChangeEntry, "diff">, after: string): s
   if (!patch) return after;
   const before = applyPatch(after, reversePatch(patch));
   return before === false ? undefined : before;
+}
+
+// The source after each entry, walking back from the current source newest first. Entries older than one
+// whose diff no longer fits are left out, as are entries after which the page didn't exist.
+export function rebuildVersions(entries: ChangeEntry[], current: string): Map<number, string> {
+  const versions = new Map<number, string>();
+  let after: string | undefined = current;
+  for (const entry of entries) {
+    if (after === undefined) break;
+    if (entry.kind !== "delete") versions.set(entry.id!, after);
+    after = sourceBefore(entry, after);
+  }
+  return versions;
 }
 
 function joinSummaries(earlier: string, later: string): string {
@@ -77,11 +91,22 @@ export class ChangeLog {
     return this.db.changes.where("pageId").equals(pageId).reverse().toArray();
   }
 
+  // The latest deletion of a page that hasn't come back, found by the title it had.
+  async deletedPage(wikiId: string, title: string): Promise<ChangeEntry | undefined> {
+    const key = titleKey(title);
+    const deletions = await this.db.changes
+      .where("wikiId")
+      .equals(wikiId)
+      .filter((entry) => entry.kind === "delete" && titleKey(entry.pageTitle) === key)
+      .reverse()
+      .sortBy("id");
+    for (const deletion of deletions) {
+      if (!(await this.db.pages.get(deletion.pageId))) return deletion;
+    }
+    return undefined;
+  }
+
   async dropPageHistory(pageId: string): Promise<void> {
-    await this.db.changes
-      .where("pageId")
-      .equals(pageId)
-      .filter((entry) => entry.kind !== "create")
-      .delete();
+    await this.db.changes.where("pageId").equals(pageId).delete();
   }
 }

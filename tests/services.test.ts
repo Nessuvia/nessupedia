@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WikiDatabase } from "@/db/database";
-import { ChangeLog, MERGE_WINDOW, sourceBefore } from "@/services/ChangeLog";
+import { ChangeLog, MERGE_WINDOW, rebuildVersions, sourceBefore } from "@/services/ChangeLog";
 import { LinkIndexer } from "@/services/LinkIndexer";
 import { PageService } from "@/services/PageService";
 import { SearchService } from "@/services/SearchService";
@@ -210,22 +210,23 @@ describe("PageService.delete", () => {
     expect(await links.redLinks(wikiId)).toMatchObject([{ fromPageId: mira.id, targetTitle: "Theo" }]);
   });
 
-  it("keeps the creation and deletion entries and drops the edits in between", async () => {
+  it("keeps the page's history and records the deletion with its final source", async () => {
     const theo = await pages.create({ wikiId, title: "Theo", body: "One" });
     await pages.save(theo.id, "Two", { summary: "Expand" });
-    await pages.save(theo.id, "Three", { minor: true });
 
     await pages.delete(theo.id);
 
-    const history = await changes.list(wikiId, { includeMinor: true });
+    const history = await changes.listForPage(theo.id);
     expect(history).toMatchObject([
-      { kind: "delete", pageId: theo.id, pageTitle: "Theo", summary: "Deleted page" },
-      { kind: "create", pageId: theo.id, pageTitle: "Theo", summary: "Created page" },
+      { kind: "delete", pageTitle: "Theo", summary: "Deleted page" },
+      { kind: "edit", summary: "Expand" },
+      { kind: "create", summary: "Created page" },
     ]);
-    expect(history[0].diff).toContain("-Three");
+    expect(history[0]!.diff).toContain("-Two");
+    expect(await changes.deletedPage(wikiId, "theo")).toMatchObject({ pageId: theo.id, kind: "delete" });
   });
 
-  it("lets a red link recreate the page with a fresh history", async () => {
+  it("lets a red link recreate the page with a fresh history, dropping the deleted one", async () => {
     const theo = await pages.create({ wikiId, title: "Theo", body: "Old" });
     const mira = await pages.create({ wikiId, title: "Mira", body: "Friends with [[Theo]]." });
     await pages.save(theo.id, "Edited");
@@ -237,12 +238,9 @@ describe("PageService.delete", () => {
     expect(await links.redLinks(wikiId)).toEqual([]);
     expect(await links.backlinks(reborn.id)).toMatchObject([{ fromPageId: mira.id }]);
     expect(await changes.listForPage(reborn.id)).toMatchObject([{ kind: "create" }]);
-    expect((await changes.list(wikiId)).map(({ kind, pageTitle }) => `${kind} ${pageTitle}`)).toEqual([
-      "create Theo",
-      "delete Theo",
-      "create Mira",
-      "create Theo",
-    ]);
+    expect(await changes.listForPage(theo.id)).toEqual([]);
+    expect(await changes.deletedPage(wikiId, "Theo")).toBeUndefined();
+    expect((await changes.list(wikiId)).map(({ kind, pageTitle }) => `${kind} ${pageTitle}`)).toEqual(["create Theo", "create Mira"]);
   });
 
   it("deletes the page's assistant runs", async () => {
@@ -252,6 +250,52 @@ describe("PageService.delete", () => {
     await pages.delete(theo.id);
 
     expect(await db.runs.count()).toBe(0);
+  });
+});
+
+describe("PageService.restore", () => {
+  it("rebuilds every version newest first, and restores one as a new entry", async () => {
+    const mira = await pages.create({ wikiId, title: "Mira", body: "One\n" });
+    later(MERGE_WINDOW + 1);
+    await pages.save(mira.id, "Two\n");
+    later(MERGE_WINDOW + 1);
+    await pages.save(mira.id, "Three\n");
+
+    const history = await changes.listForPage(mira.id);
+    const versions = rebuildVersions(history, "Three\n");
+    expect(history.map((entry) => versions.get(entry.id!))).toEqual(["Three\n", "Two\n", "One\n"]);
+
+    const restored = await pages.restore(mira.id, versions.get(history[2]!.id!)!, { summary: "Restored the first version" });
+    expect(restored.body).toBe("One\n");
+    expect(await changes.listForPage(mira.id)).toMatchObject([{ kind: "restore", summary: "Restored the first version" }, {}, {}, {}]);
+
+    await pages.save(mira.id, "Four\n");
+    expect(await changes.listForPage(mira.id)).toHaveLength(5);
+  });
+
+  it("brings a deleted page back under its old ID, with its links and history", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo", body: "Knows [[Mira]].\n" });
+    const mira = await pages.create({ wikiId, title: "Mira", body: "Friends with [[Theo]].\n" });
+    await pages.save(theo.id, "Knows [[Mira]] well.\n");
+    await pages.delete(theo.id);
+
+    const history = await changes.listForPage(theo.id);
+    const versions = rebuildVersions(history, "");
+    expect(versions.has(history[0]!.id!)).toBe(false);
+    await pages.restore(theo.id, versions.get(history[2]!.id!)!);
+
+    expect(await pages.getByTitle(wikiId, "Theo")).toMatchObject({ id: theo.id, body: "Knows [[Mira]].\n" });
+    expect(await links.redLinks(wikiId)).toEqual([]);
+    expect(await links.backlinks(mira.id)).toMatchObject([{ fromPageId: theo.id }]);
+    expect((await changes.listForPage(theo.id)).map(({ kind }) => kind)).toEqual(["restore", "delete", "edit", "create"]);
+    expect(await changes.deletedPage(wikiId, "Theo")).toBeUndefined();
+  });
+
+  it("refuses to restore a deleted page over a page that took its title since", async () => {
+    const theo = await pages.create({ wikiId, title: "Theo" });
+    await pages.delete(theo.id);
+    await pages.create({ wikiId, title: "Teddy", body: "---\naliases: [Theo]\n---\n" });
+    await expect(pages.restore(theo.id, "Back\n")).rejects.toThrow('"Teddy" now goes by "Theo"');
   });
 });
 

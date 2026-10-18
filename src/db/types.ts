@@ -58,7 +58,7 @@ export interface ChangeEntry {
   wikiId: string;
   pageId: string;
   pageTitle: string;
-  kind: "create" | "edit" | "rename" | "delete";
+  kind: "create" | "edit" | "rename" | "delete" | "restore";
   author: "human" | "llm";
   minor: boolean;
   summary: string;

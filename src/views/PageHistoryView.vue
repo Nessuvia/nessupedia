@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { computed, nextTick, watch, watchEffect } from "vue";
-import { useRoute } from "vue-router";
+import { computed, nextTick, ref, watch, watchEffect } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import DiffView from "@/components/DiffView.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { ChangeEntry } from "@/db/types";
 import { titleParam } from "@/router/params";
 import { changeLog, pageService } from "@/services";
+import { rebuildVersions } from "@/services/ChangeLog";
 import { useWikiStore } from "@/stores/wiki";
 import { diffRows, diffStats } from "@/utils/diffRows";
 import { relativeTime } from "@/utils/relativeTime";
@@ -18,23 +19,54 @@ const KIND_LABELS: Record<ChangeEntry["kind"], string> = {
   edit: "Edited",
   rename: "Renamed",
   delete: "Deleted",
+  restore: "Restored",
 };
 
 const route = useRoute();
+const router = useRouter();
 const { currentWiki } = storeToRefs(useWikiStore());
 
-const page = useLiveQuery(
-  async ([wikiId, title]) => (await pageService.getByTitle(wikiId, title)) ?? null,
+// A title with no page may belong to a deleted one, whose history stays until a new page takes the title.
+const history = useLiveQuery(
+  async ([wikiId, title]) => {
+    const page = await pageService.getByTitle(wikiId, title);
+    const deletion = page ? undefined : await changeLog.deletedPage(wikiId, title);
+    const pageId = page?.id ?? deletion?.pageId;
+    return { page, deletion, pageId, entries: pageId ? await changeLog.listForPage(pageId) : [] };
+  },
   () => [props.wikiId, props.title] as const,
 );
-const entries = useLiveQuery((pageId) => (pageId ? changeLog.listForPage(pageId) : []), () => page.value?.id);
+const page = computed(() => history.value?.page);
+const entries = computed(() => history.value?.entries);
+const shownTitle = computed(() => page.value?.title ?? history.value?.deletion?.pageTitle ?? props.title);
+
+const current = computed(() => page.value?.body ?? "");
+const versions = computed(() => rebuildVersions(entries.value ?? [], current.value));
 
 const shown = computed(() =>
   entries.value?.map((entry) => {
     const rows = diffRows(entry.diff);
-    return { entry, rows, stats: diffStats(rows) };
+    const version = versions.value.get(entry.id!);
+    return { entry, rows, stats: diffStats(rows), restorable: version !== undefined && version !== current.value };
   }),
 );
+
+const restoring = ref<number>();
+const restoreError = ref("");
+
+async function restore(entry: ChangeEntry) {
+  restoring.value = entry.id;
+  restoreError.value = "";
+  try {
+    const when = new Date(entry.at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+    const restored = await pageService.restore(history.value!.pageId!, versions.value.get(entry.id!)!, { summary: `Restored the version from ${when}` });
+    await router.push({ name: "page", params: { wikiId: props.wikiId, title: titleParam(restored.title) } });
+  } catch (cause) {
+    restoreError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    restoring.value = undefined;
+  }
+}
 
 // A link from the feed opens its entry; otherwise the newest one starts open.
 const openId = computed(() => {
@@ -49,13 +81,13 @@ watch([entries, () => route.hash], async () => {
 });
 
 watchEffect(() => {
-  document.title = [`History of ${page.value?.title ?? props.title}`, currentWiki.value?.name].filter(Boolean).join(" | ");
+  document.title = [`History of ${shownTitle.value}`, currentWiki.value?.name].filter(Boolean).join(" | ");
 });
 </script>
 
 <template>
   <article class="content-card">
-    <h1>{{ page?.title ?? title }}</h1>
+    <h1>{{ shownTitle }}</h1>
     <p class="page-subtitle">
       History
       <template v-if="page">
@@ -64,9 +96,14 @@ watchEffect(() => {
       </template>
     </p>
 
-    <p v-if="page === null" class="empty">There's no page titled {{ title }}.</p>
+    <p v-if="history?.deletion" class="deleted" role="status">
+      This page was deleted {{ relativeTime(history.deletion.at) }}. Restore any earlier version to bring it back.
+    </p>
+    <p v-if="restoreError" class="form-error" role="alert">{{ restoreError }}</p>
+
+    <p v-if="history && !history.pageId" class="empty">There's no page titled {{ title }}, and none was deleted under that title.</p>
     <ol v-else-if="shown" class="history">
-      <li v-for="{ entry, rows, stats } in shown" :id="`change-${entry.id}`" :key="entry.id">
+      <li v-for="{ entry, rows, stats, restorable } in shown" :id="`change-${entry.id}`" :key="entry.id">
         <details :open="entry.id === openId">
           <summary>
             <span class="what">
@@ -84,6 +121,9 @@ watchEffect(() => {
           </summary>
           <div class="change">
             <DiffView v-if="entry.kind !== 'rename'" :diff="entry.diff" :rows="rows" />
+            <button v-if="restorable" class="button secondary restore" type="button" :disabled="restoring !== undefined" @click="restore(entry)">
+              {{ restoring === entry.id ? "Restoring…" : "Restore this version" }}
+            </button>
           </div>
         </details>
       </li>
@@ -158,6 +198,16 @@ time,
 
 .change {
   padding-bottom: 0.75rem;
+}
+
+.restore {
+  margin-top: 0.6rem;
+}
+
+.deleted {
+  padding: 0.6rem 0.8rem;
+  border-left: 4px solid var(--color-danger);
+  background: var(--color-page);
 }
 
 .change:empty {

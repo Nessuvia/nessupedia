@@ -13,10 +13,11 @@ const KIND_LABELS: Record<ChangeEntry["kind"], string> = {
   edit: "edited",
   rename: "renamed",
   delete: "deleted",
+  restore: "restored",
 };
 
-const SUMMARIZED = new Set<ChangeEntry["kind"]>(["edit", "rename"]);
-const DIFFED = new Set<ChangeEntry["kind"]>(["create", "edit"]);
+const SUMMARIZED = new Set<ChangeEntry["kind"]>(["edit", "rename", "restore"]);
+const DIFFED = new Set<ChangeEntry["kind"]>(["create", "edit", "restore"]);
 
 const pages = useLiveQuery((wikiId) => pageService.listForWiki(wikiId), () => props.wikiId);
 const titlesById = computed(() => new Map(pages.value?.map((page) => [page.id, page.title])));
@@ -48,6 +49,10 @@ const titlesById = computed(() => new Map(pages.value?.map((page) => [page.id, p
           >
             View changes
           </RouterLink>
+        </template>
+        <template v-else-if="detailed && entry.kind === 'delete' && !titlesById.has(entry.pageId)">
+          ·
+          <RouterLink :to="{ name: 'page-history', params: { wikiId, title: titleParam(entry.pageTitle) } }">History</RouterLink>
         </template>
       </span>
       <span v-if="detailed && entry.summary && SUMMARIZED.has(entry.kind)" class="summary">{{ entry.summary }}</span>

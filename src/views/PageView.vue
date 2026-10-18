@@ -21,7 +21,7 @@ import { titleSegments, topTitle } from "@/markdown/subpages";
 import { versionOf } from "@/markdown/versions";
 import { RELATIONSHIPS_TAB, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
-import { pageService, templateService } from "@/services";
+import { changeLog, pageService, templateService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
 const props = defineProps<{ wikiId: string; title: string }>();
@@ -33,6 +33,11 @@ const { currentWiki } = storeToRefs(useWikiStore());
 const page = useLiveQuery(
   async ([wikiId, title]) => (await pageService.getByTitle(wikiId, title)) ?? null,
   () => [props.wikiId, props.title] as const,
+);
+
+const deletion = useLiveQuery(
+  async ([wikiId, title, missing]) => (missing ? ((await changeLog.deletedPage(wikiId, title)) ?? null) : null),
+  () => [props.wikiId, props.title, page.value === null] as const,
 );
 
 const redirectedFrom = computed(() => {
@@ -199,7 +204,14 @@ watchEffect(() => {
       :continuity="relationshipsTab.continuity"
     />
     <div v-else-if="page === null && topPage !== undefined" class="missing">
-      <p>This page doesn't exist yet.</p>
+      <template v-if="deletion">
+        <p>
+          This page was deleted. Its
+          <RouterLink :to="{ name: 'page-history', params: { wikiId, title: titleParam(deletion.pageTitle) } }">history</RouterLink>
+          can bring it back.
+        </p>
+      </template>
+      <p v-else>This page doesn't exist yet.</p>
       <RouterLink class="create-button" :to="{ name: 'new-page', params: { wikiId }, query: { title } }">
         Create this page
       </RouterLink>

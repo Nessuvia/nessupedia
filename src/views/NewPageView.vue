@@ -9,7 +9,7 @@ import { instantiateTemplate, templateDescription, templateParts } from "@/markd
 import { titleError, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
 import ListInput from "@/components/ListInput.vue";
-import { pageService, templateService } from "@/services";
+import { changeLog, pageService, templateService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
 const VERSION_CARD = "version";
@@ -34,6 +34,10 @@ const existing = useLiveQuery(
   () => [props.wikiId, title.value] as const,
 );
 const formatError = computed(() => (title.value.trim() ? titleError(title.value) : undefined));
+const deletion = useLiveQuery(
+  async ([wikiId, wanted]) => (wanted.trim() ? ((await changeLog.deletedPage(wikiId, wanted)) ?? null) : null),
+  () => [props.wikiId, title.value] as const,
+);
 const viaAlias = computed(() => existing.value && existing.value.titleKey !== titleKey(title.value));
 const templates = useLiveQuery((wikiId) => templateService.list(wikiId), () => props.wikiId);
 const templateId = ref("");
@@ -155,6 +159,11 @@ watchEffect(() => {
         {{ viaAlias ? `"${title.trim()}" is another name for` : "A page with this title already exists:" }}
         <RouterLink :to="{ name: 'page', params: { wikiId, title: titleParam(existing.title) } }">{{ existing.title }}</RouterLink>.
       </p>
+      <p v-else-if="deletion" class="warning" role="status">
+        A deleted page named {{ deletion.pageTitle }} has
+        <RouterLink :to="{ name: 'page-history', params: { wikiId, title: titleParam(deletion.pageTitle) } }">history</RouterLink>.
+        Creating this page removes it.
+      </p>
 
       <fieldset class="starts">
         <legend class="field-label">Start from</legend>
@@ -246,6 +255,11 @@ input[type="text"] {
 .problem {
   margin: 0.5rem 0 0;
   color: var(--color-link-new);
+}
+
+.warning {
+  margin: 0.5rem 0 0;
+  color: var(--color-danger);
 }
 
 .starts {

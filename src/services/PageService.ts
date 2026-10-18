@@ -78,26 +78,15 @@ export class PageService {
 
   async create({ wikiId, title: rawTitle, body = "", path, templateId, author = "human" }: CreatePageInput): Promise<Page> {
     const title = requireTitle(rawTitle);
-    const { tree, frontmatter } = parseMarkdown(body);
-    const page: Page = {
-      id: crypto.randomUUID(),
-      wikiId,
-      title,
-      titleKey: titleKey(title),
-      ...frontmatterFields(frontmatter),
-      path: path ?? pathForTitle(title),
-      ...(templateId && { templateId }),
-      frontmatter,
-      body,
-      updatedAt: Date.now(),
-    };
+    const page = { ...this.build(crypto.randomUUID(), wikiId, title, body), ...(path && { path }), ...(templateId && { templateId }) };
 
     await this.db.transaction("rw", [this.db.wikis, this.db.pages, this.db.links, this.db.changes], async () => {
       if (await this.links.findPage(wikiId, title)) throw new Error(`A page titled "${title}" already exists`);
       await this.requireVersionRules(wikiId, title);
-      await this.db.pages.add(page);
-      await this.links.indexPage(page, tree);
-      await this.links.resolveInbound(page);
+      // A deleted page's history stays restorable until a new page takes its title.
+      const deleted = await this.changes.deletedPage(wikiId, title);
+      if (deleted) await this.changes.dropPageHistory(deleted.pageId);
+      await this.insert(page);
       await this.changes.record({
         wikiId,
         pageId: page.id,
@@ -113,7 +102,51 @@ export class PageService {
     return page;
   }
 
-  async save(pageId: string, body: string, { author = "human", minor = false, summary = "" }: SavePageOptions = {}): Promise<Page> {
+  save(pageId: string, body: string, { author = "human", minor = false, summary = "" }: SavePageOptions = {}): Promise<Page> {
+    return this.write(pageId, body, { kind: "edit", author, minor, summary });
+  }
+
+  // Brings back an earlier source, recreating the page under its old ID when it was deleted.
+  async restore(pageId: string, body: string, { author = "human", summary = "Restored an earlier version" }: Omit<SavePageOptions, "minor"> = {}): Promise<Page> {
+    return this.db.transaction("rw", [this.db.wikis, this.db.pages, this.db.links, this.db.changes], async () => {
+      if (await this.db.pages.get(pageId)) return this.write(pageId, body, { kind: "restore", author, minor: false, summary });
+
+      const [latest] = await this.changes.listForPage(pageId);
+      if (latest?.kind !== "delete") throw new Error(`Page ${pageId} not found`);
+      const { wikiId, pageTitle: title } = latest;
+      const clash = await this.links.findPage(wikiId, title);
+      if (clash) throw new Error(`"${clash.title}" now goes by "${title}"; rename it before restoring this page`);
+      await this.requireVersionRules(wikiId, title);
+
+      const page = this.build(pageId, wikiId, title, body);
+      await this.insert(page);
+      await this.changes.record({ wikiId, pageId, pageTitle: title, kind: "restore", author, minor: false, summary, before: "", after: body });
+      return page;
+    });
+  }
+
+  private build(id: string, wikiId: string, title: string, body: string): Page {
+    const { frontmatter } = parseMarkdown(body);
+    return {
+      id,
+      wikiId,
+      title,
+      titleKey: titleKey(title),
+      ...frontmatterFields(frontmatter),
+      path: pathForTitle(title),
+      frontmatter,
+      body,
+      updatedAt: Date.now(),
+    };
+  }
+
+  private async insert(page: Page): Promise<void> {
+    await this.db.pages.add(page);
+    await this.links.indexPage(page, parseMarkdown(page.body).tree);
+    await this.links.resolveInbound(page);
+  }
+
+  private write(pageId: string, body: string, { kind, author, minor, summary }: Required<SavePageOptions> & { kind: "edit" | "restore" }): Promise<Page> {
     return this.db.transaction("rw", this.db.pages, this.db.links, this.db.changes, async () => {
       const existing = await this.db.pages.get(pageId);
       if (!existing) throw new Error(`Page ${pageId} not found`);
@@ -129,7 +162,7 @@ export class PageService {
         wikiId: page.wikiId,
         pageId,
         pageTitle: page.title,
-        kind: "edit",
+        kind,
         author,
         minor,
         summary,
@@ -195,7 +228,6 @@ export class PageService {
       await this.db.pages.delete(pageId);
       await this.db.runs.where("pageId").equals(pageId).delete();
       await this.links.removePage(pageId);
-      await this.changes.dropPageHistory(pageId);
       await this.changes.record({
         wikiId: page.wikiId,
         pageId,
