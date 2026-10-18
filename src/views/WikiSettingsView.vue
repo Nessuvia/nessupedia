@@ -3,8 +3,10 @@ import { storeToRefs } from "pinia";
 import { computed, ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import AppDialog from "@/components/AppDialog.vue";
+import ContinuityDialog from "@/components/ContinuityDialog.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
-import { pageService, wikiService } from "@/services";
+import type { Continuity } from "@/db/types";
+import { continuityService, pageService, wikiService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
 const props = defineProps<{ wikiId: string }>();
@@ -38,6 +40,35 @@ async function rename() {
   }
 }
 watch(name, () => (renamed.value = false));
+
+const continuities = useLiveQuery((wikiId) => continuityService.list(wikiId), () => props.wikiId);
+const versionCounts = useLiveQuery(
+  async ([wikiId, list]) => {
+    const counts = new Map<string, number>();
+    for (const continuity of list) counts.set(continuity.id, (await continuityService.versions(wikiId, continuity.name)).length);
+    return counts;
+  },
+  () => [props.wikiId, continuities.value ?? []] as const,
+);
+const continuityOpen = ref(false);
+const editing = ref<Continuity>();
+const continuityError = ref("");
+
+function openContinuity(continuity?: Continuity) {
+  editing.value = continuity;
+  continuityError.value = "";
+  continuityOpen.value = true;
+}
+
+async function deleteContinuity(continuity: Continuity) {
+  continuityError.value = "";
+  if (!window.confirm(`Delete the ${continuity.name} continuity?`)) return;
+  try {
+    await continuityService.delete(props.wikiId, continuity.id);
+  } catch (cause) {
+    continuityError.value = cause instanceof Error ? cause.message : String(cause);
+  }
+}
 
 const deleteOpen = ref(false);
 const confirmation = ref("");
@@ -95,6 +126,38 @@ watchEffect(() => {
         Added images are scaled to at most 2048 pixels on their long edge and stored as WebP. Keeping originals stores the
         untouched file as well, which uses more space.
       </p>
+    </section>
+
+    <section aria-labelledby="settings-continuities">
+      <h2 id="settings-continuities">Continuities</h2>
+      <p class="hint">
+        Alternate universes and spinoffs. A page's version in one, such as <em>Mira/Noir AU</em>, starts from the main page and
+        changes only what you rewrite.
+      </p>
+      <ul v-if="continuities?.length" class="continuities">
+        <li v-for="continuity in continuities" :key="continuity.id">
+          <div class="about">
+            <RouterLink :to="{ name: 'continuity', params: { wikiId, name: continuity.name } }">{{ continuity.name }}</RouterLink>
+            <span class="count">
+              {{ versionCounts?.get(continuity.id) ?? 0 }} {{ versionCounts?.get(continuity.id) === 1 ? "version" : "versions" }}
+            </span>
+            <span v-if="continuity.description" class="description">{{ continuity.description }}</span>
+          </div>
+          <div class="actions">
+            <button class="link-button" type="button" @click="openContinuity(continuity)">Edit</button>
+            <button class="link-button" type="button" @click="deleteContinuity(continuity)">Delete</button>
+          </div>
+        </li>
+      </ul>
+      <p v-if="continuityError" class="form-error" role="alert">{{ continuityError }}</p>
+      <button class="button secondary add" type="button" @click="openContinuity()">Add continuity</button>
+      <ContinuityDialog
+        v-model:open="continuityOpen"
+        :wiki-id="wikiId"
+        :continuities="continuities ?? []"
+        :continuity="editing"
+        :version-count="editing && versionCounts?.get(editing.id)"
+      />
     </section>
 
     <section class="danger-zone" aria-labelledby="settings-delete">
@@ -163,6 +226,59 @@ h2 {
   margin: 0.35rem 0 0;
   color: var(--color-muted);
   font-size: 0.9rem;
+}
+
+.continuities {
+  max-width: 40rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.continuities li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.about {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  min-width: 0;
+}
+
+.count {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.description {
+  flex-basis: 100%;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-link);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.add {
+  margin-top: 1rem;
 }
 
 .danger-zone {

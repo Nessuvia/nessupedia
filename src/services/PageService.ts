@@ -6,6 +6,7 @@ import { parseMarkdown } from "@/markdown/pipeline";
 import { retargetBetween } from "@/markdown/relationships";
 import { retargetWikilinks } from "@/markdown/retarget";
 import { isDirectSubpage, titleSegments } from "@/markdown/subpages";
+import { versionOf, versionTitleError } from "@/markdown/versions";
 import { normalizeTitle, titleError, titleKey } from "@/markdown/wikilinks";
 import type { ChangeLog } from "./ChangeLog";
 import type { LinkIndexer } from "./LinkIndexer";
@@ -91,8 +92,9 @@ export class PageService {
       updatedAt: Date.now(),
     };
 
-    await this.db.transaction("rw", this.db.pages, this.db.links, this.db.changes, async () => {
+    await this.db.transaction("rw", [this.db.wikis, this.db.pages, this.db.links, this.db.changes], async () => {
       if (await this.links.findPage(wikiId, title)) throw new Error(`A page titled "${title}" already exists`);
+      await this.requireVersionRules(wikiId, title);
       await this.db.pages.add(page);
       await this.links.indexPage(page, tree);
       await this.links.resolveInbound(page);
@@ -140,13 +142,14 @@ export class PageService {
 
   async rename(pageId: string, newTitle: string, { author = "human" }: Pick<SavePageOptions, "author"> = {}): Promise<Page> {
     const title = requireTitle(newTitle);
-    return this.db.transaction("rw", this.db.pages, this.db.links, this.db.changes, async () => {
+    return this.db.transaction("rw", [this.db.wikis, this.db.pages, this.db.links, this.db.changes], async () => {
       const page = await this.db.pages.get(pageId);
       if (!page) throw new Error(`Page ${pageId} not found`);
       if (page.title === title) return page;
 
       const clash = await this.links.findPage(page.wikiId, title);
       if (clash && clash.id !== pageId) throw new Error(`A page titled "${title}" already exists`);
+      await this.requireVersionRules(page.wikiId, title);
       // Found before the rename, so a page moved under its own old title doesn't count itself.
       const children = await this.directSubpages(page.wikiId, page.title);
 
@@ -205,5 +208,16 @@ export class PageService {
         after: "",
       });
     });
+  }
+
+  // A continuity name under a page must make a top-level page's version, and the main page must exist.
+  private async requireVersionRules(wikiId: string, title: string): Promise<void> {
+    const continuities = (await this.db.wikis.get(wikiId))?.continuities ?? [];
+    const error = versionTitleError(title, continuities);
+    if (error) throw new Error(error);
+    const version = versionOf(title, continuities);
+    if (!version) return;
+    const main = await this.links.findPage(wikiId, version.main);
+    if (main?.titleKey !== titleKey(version.main)) throw new Error(`Create "${version.main}" before its ${version.continuity.name} version`);
   }
 }

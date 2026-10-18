@@ -76,6 +76,8 @@ Each step is one key:
 | `eval` | JavaScript expression evaluated in the page; the result prints as JSON |
 | `seed` | Fixture path or name |
 
+Role names match by substring unless `exact` is set, so `{ "role": "textbox", "name": "Name" }` can hit a different field than the one meant; a `fill` there has been seen appending instead of replacing. Target inputs in dialogs by id.
+
 A target is a Playwright selector string (`"text=Mira"`, `"a.wikilink.new"`, `"#search"`) or an object: `{ "role": "link", "name": "Theo", "exact": true }` or `{ "text": "Early life" }`. The first match is used.
 
 After every step the script prints the current URL. On a failed step it saves `failure.png` and stops with exit code 1. Screenshots land in `out/`, which is cleared at the start of each run; Read the printed path to view one.

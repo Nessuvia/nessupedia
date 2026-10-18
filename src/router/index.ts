@@ -6,6 +6,7 @@ import { MAIN_PAGE_TITLE, useWikiStore } from "@/stores/wiki";
 import AllPagesView from "@/views/AllPagesView.vue";
 import CategoriesView from "@/views/CategoriesView.vue";
 import CategoryView from "@/views/CategoryView.vue";
+import ContinuityView from "@/views/ContinuityView.vue";
 import NewPageView from "@/views/NewPageView.vue";
 import NewWikiView from "@/views/NewWikiView.vue";
 import PageRail from "@/views/PageRail.vue";
@@ -96,6 +97,7 @@ export function createAppRouter(pinia: Pinia): Router {
           { path: "special/categories", name: "categories", component: CategoriesView, props: true },
           { path: "special/category/:name(.*)", name: "category", component: CategoryView, props: true },
           { path: "special/templates", name: "templates", component: TemplatesView, props: true },
+          { path: "special/continuity/:name", name: "continuity", component: ContinuityView, props: true },
           {
             path: "special/templates/:templateId/edit",
             name: "edit-template",

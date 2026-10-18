@@ -6,7 +6,15 @@ export interface Wiki {
   themeId: string;
   voice: "fandom" | "in-universe";
   keepOriginalImages?: boolean;
+  continuities?: Continuity[];
   createdAt: number;
+}
+
+// An alternate universe or spinoff. Pages join it through versions titled "<page>/<name>".
+export interface Continuity {
+  id: string;
+  name: string;
+  description: string;
 }
 
 export interface AutoContextSettings {
