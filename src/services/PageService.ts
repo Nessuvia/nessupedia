@@ -3,6 +3,7 @@ import type { ChangeEntry, Page } from "@/db/types";
 import { categoryKeys } from "@/markdown/categories";
 import { stringList } from "@/markdown/frontmatter";
 import { parseMarkdown } from "@/markdown/pipeline";
+import { retargetBetween } from "@/markdown/relationships";
 import { retargetWikilinks } from "@/markdown/retarget";
 import { isDirectSubpage, titleSegments } from "@/markdown/subpages";
 import { normalizeTitle, titleError, titleKey } from "@/markdown/wikilinks";
@@ -167,7 +168,7 @@ export class PageService {
       const inbound = await this.links.linksByTitle(page);
       for (const fromPageId of new Set(inbound.map((link) => link.fromPageId))) {
         const source = (await this.db.pages.get(fromPageId))!;
-        const body = retargetWikilinks(source.body, page.title, title);
+        const body = retargetBetween(retargetWikilinks(source.body, page.title, title), page.title, title, source.frontmatter);
         if (body !== source.body) await this.save(fromPageId, body, { author, minor: true, summary: `Updated links to "${title}"` });
       }
 

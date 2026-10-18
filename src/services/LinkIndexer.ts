@@ -1,6 +1,7 @@
 import type { Root } from "mdast";
 import type { WikiDatabase } from "@/db/database";
 import type { Link, Page } from "@/db/types";
+import { pairOf } from "@/markdown/relationships";
 import { extractWikilinks, titleKey } from "@/markdown/wikilinks";
 
 export class LinkIndexer {
@@ -13,20 +14,23 @@ export class LinkIndexer {
     return this.db.pages.where("aliasKeys").equals(key).filter((page) => page.wikiId === wikiId).first();
   }
 
+  // Body links count once per target; a `between` entry is a separate link to the same target.
   async indexPage(page: Page, tree: Root): Promise<Link[]> {
-    const titlesByKey = new Map<string, string>();
+    const targets = new Map<string, { targetTitle: string; field?: Link["field"] }>();
     for (const { title } of extractWikilinks(tree)) {
       const key = titleKey(title);
-      if (!titlesByKey.has(key)) titlesByKey.set(key, title);
+      if (!targets.has(key)) targets.set(key, { targetTitle: title });
     }
+    for (const title of pairOf(page.frontmatter)) targets.set(`between:${titleKey(title)}`, { targetTitle: title, field: "between" });
 
     const links: Link[] = await Promise.all(
-      [...titlesByKey].map(async ([targetKey, targetTitle]) => ({
+      [...targets.values()].map(async ({ targetTitle, field }) => ({
         wikiId: page.wikiId,
         fromPageId: page.id,
         targetTitle,
-        targetKey,
+        targetKey: titleKey(targetTitle),
         toPageId: (await this.findPage(page.wikiId, targetTitle))?.id,
+        ...(field && { field }),
       })),
     );
 

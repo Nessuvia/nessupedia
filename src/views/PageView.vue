@@ -7,6 +7,7 @@ import DeletePageDialog from "@/components/DeletePageDialog.vue";
 import NameDialog from "@/components/NameDialog.vue";
 import PageContent from "@/components/PageContent.vue";
 import PageDetailsDialog from "@/components/PageDetailsDialog.vue";
+import RelationshipsTab from "@/components/RelationshipsTab.vue";
 import RenamePageDialog from "@/components/RenamePageDialog.vue";
 import TabBar from "@/components/TabBar.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
@@ -14,7 +15,7 @@ import { useTemplateNameCheck } from "@/composables/useTemplateNameCheck";
 import type { Page } from "@/db/types";
 import { pageCategories } from "@/markdown/categories";
 import { titleSegments, topTitle } from "@/markdown/subpages";
-import { titleKey } from "@/markdown/wikilinks";
+import { RELATIONSHIPS_TAB, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
 import { pageService, templateService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
@@ -58,9 +59,17 @@ const topPage = useLiveQuery(
   () => [props.wikiId, topTitle(shownTitle.value)] as const,
 );
 const heading = computed(() => (segments.value.length > 1 ? (topPage.value?.title ?? segments.value[0]) : shownTitle.value));
-const subtitle = computed(() =>
-  segments.value.length > 2 || (segments.value.length > 1 && page.value === null) ? segments.value.slice(1).join(" › ") : undefined,
+
+// No page can take this title, so it shows the generated tab of the page above it.
+const relationshipsOf = computed(() =>
+  segments.value.length === 2 && titleKey(segments.value[1]!) === titleKey(RELATIONSHIPS_TAB) ? topPage.value : undefined,
 );
+
+const subtitle = computed(() => {
+  if (relationshipsOf.value) return undefined;
+  const deep = segments.value.length > 2 || (segments.value.length > 1 && page.value === null);
+  return deep ? segments.value.slice(1).join(" › ") : undefined;
+});
 
 // Dialogs work on a snapshot, so they stay mounted while the live page they changed reloads.
 const dialogPage = shallowRef<Page>();
@@ -136,7 +145,8 @@ watchEffect(() => {
     </template>
     <p v-if="redirectedFrom && page" class="redirect-note">(Redirected from {{ redirectedFrom }})</p>
     <PageContent v-if="page" :key="page.id" :wiki-id="wikiId" :markdown="page.body" :save="saveBody" />
-    <div v-else-if="page === null" class="missing">
+    <RelationshipsTab v-else-if="relationshipsOf" :wiki-id="wikiId" :character="relationshipsOf" />
+    <div v-else-if="page === null && topPage !== undefined" class="missing">
       <p>This page doesn't exist yet.</p>
       <RouterLink class="create-button" :to="{ name: 'new-page', params: { wikiId }, query: { title } }">
         Create this page

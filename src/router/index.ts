@@ -77,6 +77,8 @@ export function createAppRouter(pinia: Pinia): Router {
             props: (route) => ({
               wikiId: route.params.wikiId,
               initialTitle: typeof route.query.title === "string" ? route.query.title : undefined,
+              initialTemplate: typeof route.query.template === "string" ? route.query.template : undefined,
+              pairWith: typeof route.query.with === "string" ? route.query.with : undefined,
             }),
           },
           {

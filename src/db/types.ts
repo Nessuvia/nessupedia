@@ -41,6 +41,8 @@ export interface Link {
   targetTitle: string;
   targetKey: string;
   toPageId?: string;
+  // Set for links from a frontmatter field rather than the body.
+  field?: "between";
 }
 
 export interface ChangeEntry {

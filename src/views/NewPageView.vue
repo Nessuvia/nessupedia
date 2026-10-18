@@ -3,13 +3,15 @@ import { storeToRefs } from "pinia";
 import { computed, ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import { useLiveQuery } from "@/composables/useLiveQuery";
+import { updateFrontmatter } from "@/markdown/frontmatterEdit";
+import { suggestedPairTitle } from "@/markdown/relationships";
 import { instantiateTemplate, templateDescription, templateParts } from "@/markdown/templates";
 import { titleError, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
 import { pageService, templateService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
-const props = defineProps<{ wikiId: string; initialTitle?: string }>();
+const props = defineProps<{ wikiId: string; initialTitle?: string; initialTemplate?: string; pairWith?: string }>();
 
 const router = useRouter();
 const { currentWiki } = storeToRefs(useWikiStore());
@@ -29,19 +31,52 @@ const existing = useLiveQuery(
 );
 const formatError = computed(() => (title.value.trim() ? titleError(title.value) : undefined));
 const viaAlias = computed(() => existing.value && existing.value.titleKey !== titleKey(title.value));
-const canCreate = computed(() => !!title.value.trim() && !formatError.value && existing.value === null && !saving.value);
-
 const templates = useLiveQuery((wikiId) => templateService.list(wikiId), () => props.wikiId);
 const templateId = ref("");
+watch(
+  () => props.initialTemplate,
+  (id) => (templateId.value = id ?? ""),
+  { immediate: true },
+);
 const template = computed(() => templates.value?.find(({ id }) => id === templateId.value));
 const parts = computed(() => (template.value ? templateParts(template.value.body) : []));
 const included = ref<string[]>([]);
 watch(parts, (next) => (included.value = next.filter((part) => !part.optional).map((part) => part.key)));
 
+// Templates with a `between` key make relationship pages, so they ask for the two characters.
+const asksPair = computed(() => !!template.value && "between" in template.value.frontmatter);
+const pair = ref(["", ""]);
+watch(
+  () => props.pairWith,
+  (name) => (pair.value = [name ?? "", ""]),
+  { immediate: true },
+);
+const pageTitles = useLiveQuery(async (wikiId) => (await pageService.listForWiki(wikiId)).map((page) => page.title), () => props.wikiId);
+const pairNames = computed(() => pair.value.map((name) => name.trim()));
+const pairProblem = computed(() => {
+  const [first = "", second = ""] = pairNames.value;
+  if (!first || !second) return undefined;
+  const invalid = [first, second].find((name) => titleError(name));
+  if (invalid) return `"${invalid}" can't be a page title.`;
+  return titleKey(first) === titleKey(second) ? "Pick two different characters." : undefined;
+});
+const pairReady = computed(() => !asksPair.value || (pairNames.value.every(Boolean) && !pairProblem.value));
+
+// The title follows the pair until it's typed in.
+const titleTyped = ref(!!props.initialTitle);
+watch([asksPair, pairNames], () => {
+  if (asksPair.value && !titleTyped.value && pairNames.value.every(Boolean)) title.value = suggestedPairTitle(pairNames.value);
+});
+
+const canCreate = computed(
+  () => !!title.value.trim() && !formatError.value && existing.value === null && pairReady.value && !saving.value,
+);
+
 function startingBody(): string {
   if (!template.value) return "";
   const exclude = parts.value.filter((part) => !included.value.includes(part.key)).map((part) => part.key);
-  return instantiateTemplate(template.value, { title: title.value.trim(), exclude });
+  const body = instantiateTemplate(template.value, { title: title.value.trim(), exclude });
+  return asksPair.value ? updateFrontmatter(body, { between: pairNames.value }) : body;
 }
 
 async function create() {
@@ -73,7 +108,15 @@ watchEffect(() => {
     <h1>Create a page</h1>
     <form @submit.prevent="create">
       <label class="field-label" for="page-title">Title</label>
-      <input id="page-title" v-model="title" type="text" placeholder="e.g. Mira" autocomplete="off" autofocus />
+      <input
+        id="page-title"
+        v-model="title"
+        type="text"
+        placeholder="e.g. Mira"
+        autocomplete="off"
+        autofocus
+        @input="titleTyped = true"
+      />
       <p v-if="formatError" class="problem" role="alert">{{ formatError }}</p>
       <p v-else-if="existing" class="problem" role="alert">
         {{ viaAlias ? `"${title.trim()}" is another name for` : "A page with this title already exists:" }}
@@ -92,6 +135,19 @@ watchEffect(() => {
           <strong>{{ option.name }}</strong>
           <span>{{ templateDescription(option) }}</span>
         </label>
+      </fieldset>
+
+      <fieldset v-if="asksPair" class="pair">
+        <legend class="field-label">Between</legend>
+        <div class="pair-inputs">
+          <input v-model="pair[0]" type="text" aria-label="First character" list="pair-pages" autocomplete="off" />
+          <span aria-hidden="true">&amp;</span>
+          <input v-model="pair[1]" type="text" aria-label="Second character" list="pair-pages" autocomplete="off" />
+        </div>
+        <datalist id="pair-pages">
+          <option v-for="pageTitle in pageTitles" :key="pageTitle" :value="pageTitle" />
+        </datalist>
+        <p v-if="pairProblem" class="problem" role="alert">{{ pairProblem }}</p>
       </fieldset>
 
       <fieldset v-if="parts.length" class="parts">
@@ -170,6 +226,18 @@ input[type="text"] {
 .start-card span {
   color: var(--color-muted);
   font-size: 0.85rem;
+}
+
+.pair {
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 0;
+}
+
+.pair-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .parts {

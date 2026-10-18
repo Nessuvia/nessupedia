@@ -301,6 +301,7 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 
 ## Relationships
 - A page whose `between` names two pages is a relationship page. Versions take `between` from their main page.
+- A template with a `between` key, like the bundled Relationship template's empty list, makes its creation card ask for the two pages and suggest "A & B" as the title until one is typed. `/new?template=<id>&with=<title>` opens it with the first page filled in.
 - The Relationships tab lists, for each relationship page linking the character through `between`, the other character as an `h2`, the pair page's lead without its infobox, and a "Read more" link. Pairs sort by the other character's title.
 - On a version, each pair uses its own version in that continuity when one exists.
 - `get_relationships` returns the same list.

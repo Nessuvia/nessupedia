@@ -15,6 +15,9 @@ const open = defineModel<boolean>("open", { required: true });
 
 const aliases = ref<string[]>([]);
 const categories = ref<string[]>([]);
+const between = ref<string[]>([]);
+// Only relationship pages, and pages meant to become one, have the field.
+const hasPair = computed(() => "between" in props.page.frontmatter);
 const minor = ref(false);
 const saving = ref(false);
 const error = ref("");
@@ -28,6 +31,7 @@ watch(
     if (!isOpen) return;
     aliases.value = written("aliases");
     categories.value = written("categories");
+    between.value = written("between");
     minor.value = false;
     error.value = "";
   },
@@ -66,11 +70,24 @@ function categoryProblem(name: string): string | undefined {
   return titleError(name) ? `"${name}" can't be a category: names can't contain [ ] | or #.` : undefined;
 }
 
+const pageTitles = useLiveQuery(
+  async (wikiId) => (await pageService.listForWiki(wikiId)).map((page) => page.title),
+  () => props.page.wikiId,
+);
+
+function pairProblem(name: string): string | undefined {
+  if (titleError(name)) return `"${name}" can't be a page title.`;
+  return titleKey(name) === props.page.titleKey ? "A relationship page can't name itself." : undefined;
+}
+
+const LABELS: Record<string, string> = { aliases: "aliases", categories: "categories", between: "the pair" };
+
 const changes = computed(() => {
   const same = (a: string[], b: string[]) => a.length === b.length && a.every((name, index) => name === b[index]);
   const update: Record<string, string[]> = {};
   if (!same(aliases.value, written("aliases"))) update.aliases = aliases.value;
   if (!same(categories.value, written("categories"))) update.categories = categories.value;
+  if (hasPair.value && !same(between.value, written("between"))) update.between = between.value;
   return update;
 });
 
@@ -79,15 +96,18 @@ const blocked = computed(
     !!yamlProblem.value ||
     takenAliases.value === undefined ||
     aliases.value.some((name) => aliasProblem(name)) ||
-    categories.value.some((name) => categoryProblem(name)),
+    categories.value.some((name) => categoryProblem(name)) ||
+    between.value.some((name) => pairProblem(name)),
 );
 
 const aliasInput = useTemplateRef("aliasInput");
 const categoryInput = useTemplateRef("categoryInput");
+const pairInput = useTemplateRef("pairInput");
 
 async function save() {
   aliasInput.value?.commit();
   categoryInput.value?.commit();
+  pairInput.value?.commit();
   const keys = Object.keys(changes.value);
   if (blocked.value || saving.value) return;
   if (keys.length === 0) return void (open.value = false);
@@ -99,7 +119,7 @@ async function save() {
     if ((await takenBy(props.page.wikiId, aliases.value)).size > 0) return;
     // Reads the stored body again so an edit made since the dialog opened isn't lost.
     const latest = (await pageService.get(props.page.id))!;
-    await pageService.save(latest.id, updateFrontmatter(latest.body, changes.value), { summary: `Edited ${keys.join(" and ")}`, minor: minor.value });
+    await pageService.save(latest.id, updateFrontmatter(latest.body, changes.value), { summary: `Edited ${keys.map((key) => LABELS[key]).join(" and ")}`, minor: minor.value });
     open.value = false;
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
@@ -116,6 +136,10 @@ async function save() {
       <ListInput ref="aliasInput" v-model="aliases" label="Aliases" :check="aliasProblem" />
       <p class="note">Other names that lead to this page, such as nicknames.</p>
       <ListInput ref="categoryInput" v-model="categories" label="Categories" :suggestions="knownCategories" :check="categoryProblem" />
+      <template v-if="hasPair">
+        <ListInput ref="pairInput" v-model="between" class="pair" label="Between" :suggestions="pageTitles" :check="pairProblem" />
+        <p class="note">The characters this relationship page is about. It shows on each one's Relationships tab.</p>
+      </template>
       <p v-if="error" class="form-error" role="alert">{{ error }}</p>
       <div class="dialog-actions">
         <label class="minor"><input v-model="minor" type="checkbox" /> Minor edit</label>
@@ -127,6 +151,10 @@ async function save() {
 </template>
 
 <style scoped>
+.pair {
+  margin-top: 1rem;
+}
+
 .note {
   margin: 0.35rem 0 1rem;
   color: var(--color-muted);

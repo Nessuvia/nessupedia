@@ -2,21 +2,24 @@
 import { computed } from "vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { orderTabs, subpageName, tabTitle, topTitle } from "@/markdown/subpages";
-import { titleKey } from "@/markdown/wikilinks";
+import { RELATIONSHIPS_TAB, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
-import { pageService } from "@/services";
+import { pageService, relationshipService } from "@/services";
 
-// The tab bar of the page a title sits under: Overview, then that page's direct subpages.
-// It shows only once the page has a subpage.
+// The tab bar of the page a title sits under: Overview, Relationships when it has any, then its direct
+// subpages. It shows once there's a tab besides Overview.
 const props = defineProps<{ wikiId: string; title: string }>();
 
 const tabs = useLiveQuery(
   async ([wikiId, top]) => {
     const page = await pageService.getByTitle(wikiId, top);
-    const subpages = orderTabs(await pageService.directSubpages(wikiId, page?.title ?? top), page?.frontmatter);
-    if (subpages.length === 0) return [];
+    const topName = page?.title ?? top;
+    const subpages = orderTabs(await pageService.directSubpages(wikiId, topName), page?.frontmatter);
+    const hasRelationships = page ? (await relationshipService.count(page)) > 0 : false;
+    if (subpages.length === 0 && !hasRelationships) return [];
     return [
-      { label: "Overview", title: page?.title ?? top, exists: !!page },
+      { label: "Overview", title: topName, exists: !!page },
+      ...(hasRelationships ? [{ label: RELATIONSHIPS_TAB, title: `${topName}/${RELATIONSHIPS_TAB}`, exists: true }] : []),
       ...subpages.map((subpage) => ({ label: subpageName(subpage.title), title: subpage.title, exists: true })),
     ];
   },

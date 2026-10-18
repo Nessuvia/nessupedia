@@ -1,6 +1,7 @@
 ---
 description: How two characters relate, on one page per pair.
 categories: [Relationships]
+between: []
 optional: [Trivia]
 ---
 

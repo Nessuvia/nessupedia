@@ -17,4 +17,6 @@ export const BUNDLED_TEMPLATES: readonly Template[] = [
   bundled("relationship", "Relationship", relationship),
 ];
 
+export const RELATIONSHIP_TEMPLATE_ID = "bundled:relationship";
+
 export const isBundled = (template: Pick<Template, "id">) => template.id.startsWith("bundled:");
