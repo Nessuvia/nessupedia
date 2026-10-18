@@ -19,12 +19,12 @@
 - Callouts, images as assets
 
 ## M3: Structure
-- Templates: bundled and user-made, and the slash menu's "Section from template"
-- Spinoffs
-- Relationship pages
+- Categories: `categories` frontmatter field, "in:" line above the page title, category listing pages, and a Details dialog for aliases and categories
+- Templates: bundled and user-made, section checkboxes at creation, and the slash menu's "Section from template"
+- Subpages shown as a tab bar
+- Relationship pages and a generated Relationships tab
+- Continuities: wiki-wide alternate universes with page versions that inherit section by section
 - Open questions board
-- Interviews section
-- Categories: `categories` frontmatter field, "in:" line above the page title, category listing pages
 
 ## M4: History and data
 - Change log with minor edits, diff view, squash, prune
@@ -49,5 +49,5 @@
 2. Theme customization
 3. Director's Desk
 4. In-universe voice
-5. Character messaging app
+5. Character messaging app, with in-character interviews
 6. OC social media spinoff

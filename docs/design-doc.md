@@ -42,7 +42,14 @@ interface Wiki {
   themeId: string;
   voice: "fandom" | "in-universe";
   keepOriginalImages?: boolean;
+  continuities?: Continuity[];
   createdAt: number;
+}
+
+interface Continuity {
+  id: string;
+  name: string;
+  description: string;
 }
 
 interface Page {
@@ -52,9 +59,9 @@ interface Page {
   titleKey: string;
   aliases: string[];
   aliasKeys: string[];
+  categoryKeys: string[];
   path: string;
   templateId?: string;
-  spinoffOf?: string;
   frontmatter: Record<string, unknown>;
   body: string;
   autoContext?: AutoContextSettings;
@@ -68,6 +75,7 @@ interface Link {
   targetTitle: string;
   targetKey: string;
   toPageId?: string;
+  field?: "between";
 }
 
 interface ChangeEntry {
@@ -80,6 +88,7 @@ interface ChangeEntry {
   minor: boolean;
   summary: string;
   diff: string;
+  resolved?: string[];
   at: number;
 }
 
@@ -129,19 +138,30 @@ this.version(1).stores({
 this.version(2).stores({
   assets: "id, wikiId, [wikiId+path], [wikiId+hash]",
 });
+this.version(3).stores({
+  pages: "id, wikiId, [wikiId+titleKey], *aliasKeys, *categoryKeys, [wikiId+path], updatedAt",
+});
 ```
+Version 3 fills `categoryKeys` from each page's frontmatter.
 
 ### Page titles
 Titles are trimmed, must not be blank, and must not contain `[`, `]`, `|`, or `#`, which wikilink syntax reserves. Creation and rename enforce this; a title can't match another page's title or alias.
 
+A `/` makes a subpage: `Mira/History` belongs to `Mira`. Each segment is trimmed and must not be blank. `Relationships` is reserved as a last segment for the generated tab. A last segment that names a continuity makes the page a version (`Mira/Noir AU`), which needs its main page and can't have subpages.
+
 ### Storage model
-Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; the `links` table resolves titles to IDs. Titles and aliases match case-insensitively through normalized keys (`titleKey`, `aliasKeys`, `targetKey`): trimmed, whitespace collapsed, lowercased. Renames update the title and path and rewrite inbound link text as minor edits; links by alias, and wikilink-like text in code or frontmatter, stay untouched. Export and import translate between IDs and paths.
+Hybrid: records keyed by ID, each with a `path`. Markdown stores link titles; the `links` table resolves titles to IDs. Titles and aliases match case-insensitively through normalized keys (`titleKey`, `aliasKeys`, `targetKey`): trimmed, whitespace collapsed, lowercased. Renames update the title and path and rewrite inbound link text as minor edits; links by alias, and wikilink-like text in code or frontmatter, stay untouched. Renaming a page renames its subpages and versions with it. Export and import translate between IDs and paths.
+
+Paths follow titles, with slashes as folders: `Mira/History` is stored at `pages/Mira/History.md`.
+
+Frontmatter fields that name pages (`between`) are indexed in `links` with a `field` marker, so they resolve, show red, count in What links here, and are rewritten on rename like body links. Rewriting edits only that field's YAML.
 
 ## Markdown format
 - The page title renders as the page's only `h1`; bodies start at `##`.
-- YAML frontmatter: `title`, `aliases`, `categories` (M3), `template`, `spinoffOf`, `changes`, custom fields.
+- YAML frontmatter: `title`, `aliases`, `categories`, `template`, `between` (relationship pages), `changes` (versions), `tabs` (tab order), custom fields. `categories`, `aliases`, and `changes` accept a single string or a list.
+- HTML comments (`<!-- hint -->`) render as nothing; raw HTML never renders.
 - `[[Title]]`, `[[Title|label]]`, `[[Title#Heading]]`.
-- Obsidian callouts: `> [!type] Optional title`, with every Obsidian type and alias; unknown types style as `note`. `[!type]-` renders folded and `[!type]+` open, both as `<details>`.
+- Obsidian callouts: `> [!type] Optional title`, with every Obsidian type and alias; unknown types style as `note`. `[!type]-` renders folded and `[!type]+` open, both as `<details>`. Question callouts (`question` and its aliases `help` and `faq`) are open questions.
 - Images: `![[assets/path.webp]]`, `![[assets/path.webp|alt text]]`, or `![[assets/path.webp|300]]` for a width. A bare file name also looks in `assets/`, so Obsidian embeds resolve. Embeds of anything but an image stay as text.
 - Directives (remark-directive). Text that only looks like a directive, such as `re:Zero`, renders as written.
   - `:::canon{tier=hard|soft|maybe}` wraps blocks; `:canon[a phrase]{tier=maybe}` marks text inline. `canon`, `likely`, and `idea` are accepted as tier names; a missing tier means `hard`.
@@ -198,6 +218,14 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/w/:wikiId/special/settings` | Wiki settings: rename, delete with typed confirmation |
 | `/w/:wikiId/special/all-pages` | All pages, grouped by first letter |
 | `/w/:wikiId/special/recent-changes` | Recent changes feed |
+| `/w/:wikiId/special/categories` | Every category with its page count |
+| `/w/:wikiId/special/category/:name` | A category's pages, grouped by first letter |
+| `/w/:wikiId/special/questions` | Open questions board |
+| `/w/:wikiId/special/templates` | Bundled and user templates |
+| `/w/:wikiId/special/templates/:templateId/edit` | Split view editor for a user template |
+| `/w/:wikiId/special/continuity/:name` | A continuity's description and versions |
+
+`/w/:wikiId/wiki/Mira/Relationships` and `/w/:wikiId/wiki/Mira/Noir AU/Relationships` render the generated Relationships tab; no page holds them.
 
 Routes under `/w/:wikiId` render inside the wiki layout. A route can add right rail modules through a named `rail` view. History mode. The service worker serves the app shell for every navigation, so deep links work offline. Views read Dexie through `useLiveQuery`, so lists and pages update after any write.
 
@@ -207,13 +235,15 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - A title that matches an alias redirects to the page's title and shows "(Redirected from …)"; a case-only mismatch corrects the URL silently.
 - The lead (everything before the first `##`) renders above a numbered Contents box, shown at three or more h2 to h4 headings, with a remembered hide toggle.
 - The right rail adds What links here; for a missing page it lists pages whose red links target that title.
-- Page actions beside the title: Edit, Rename, Delete. Rename and Delete open dialogs that state their effects (how many pages' links get rewritten or turn red) before acting. Dialogs use the native `<dialog>` element.
+- Categories show as an "in:" line above the title, in frontmatter order.
+- Page actions beside the title: Edit, Details, Rename, Save as template, Delete. Details writes frontmatter through the `yaml` document API, so other keys, their order, and comments survive. Rename and Delete open dialogs that state their effects (how many pages' links get rewritten or turn red) before acting. Dialogs use the native `<dialog>` element.
 
 ## Search
 - `suggest` matches titles and aliases for type-ahead and the page picker.
 - `search` adds full text over each page's plain text (frontmatter excluded, wikilinks read as their labels).
 - Ranking: exact, prefix, word prefix, then substring; titles beat aliases at the same tier; any name match beats body matches, which need every term and rank by occurrence count.
 - In-memory scan with plain text cached per page until its body changes.
+- A version is searched by its own text only; sections it inherits belong to the main page.
 - The global bar's search box is a combobox over `suggest`: arrows pick a suggestion, Enter opens it, Enter with none picked opens the results page. Matches are highlighted with text spans, never HTML.
 
 ## Split view
@@ -247,12 +277,44 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - Deleting a page drops its history except the creation entry, then records a deletion entry whose diff holds the final body. A page recreated from a red link starts a fresh history under a new ID.
 - Squash merges selected entries into one diff.
 - Prune deletes entries older than a cutoff.
+- A save records in `resolved` the open questions it removes. Questions match by plain text; rewording one, which removes and adds one at the same position, doesn't resolve it.
 
-## Spinoffs
-- `spinoffOf` points at the source page.
-- Frontmatter `changes` lists altered variables.
-- Render shows a banner linking to the source page and listing changes.
-- Agent tools expose the source page alongside the spinoff.
+## Categories
+- `categories` in frontmatter; `categoryKeys` holds their normalized keys for the multi-entry index.
+- Category names follow page title rules. A category exists while a page lists it.
+- The category page shows each page's title; the Categories page counts pages per key and shows the most common spelling.
+
+## Templates
+- Bundled templates ship as markdown files in `src/templates/` with IDs like `bundled:character`; they never enter the database. User templates live in `templates` with their `wikiId`.
+- A template is a page body with frontmatter. `description` and `optional` are template-only keys; every other key is copied to new pages, which also get `template: <name>` and `templateId`.
+- `{{title}}` becomes the new page's title. Hints are HTML comments, kept in the source for editing and for the assistant.
+- At creation, each `##` section and each top-level infobox or pressure block is a checkbox. Those named in `optional` (by heading, or `Infobox` / `Pressure profile`) start unchecked; unchecked parts are left out.
+- "Save as template" copies the page's body and frontmatter, minus `title`, `aliases`, and `template`.
+- "Section from template" lists every template's `##` sections and inserts one with its subsections.
+
+## Subpages and tabs
+- Subpages are found by title prefix on `[wikiId+titleKey]`, so they need no extra index.
+- The tab bar belongs to the top page: Overview, Relationships when it has pairs, then its direct subpages, ordered by its `tabs` field and then alphabetically. Versions don't appear as tabs.
+- On a subpage the `h1` shows the top page's title, and the tab for the page or its ancestor is selected.
+
+## Relationships
+- A page whose `between` names two pages is a relationship page. Versions take `between` from their main page.
+- The Relationships tab lists, for each relationship page linking the character through `between`, the other character as an `h2`, the pair page's lead without its infobox, and a "Read more" link. Pairs sort by the other character's title.
+- On a version, each pair uses its own version in that continuity when one exists.
+- `get_relationships` returns the same list.
+
+## Continuities
+- Continuities live on the wiki record. Names follow page title rules without `/`, are unique case-insensitively, and can't be `Relationships`.
+- Renaming a continuity renames its versions; one with versions can't be deleted until they're deleted or renamed.
+- A version's own body holds its lead and the sections it overrides. Rendering merges it with the main page: a non-blank lead replaces the main lead (infobox included), and `##` sections match by heading key. Main sections keep their order, with version-only sections after the section they follow in the version. A matched section with no content hides it.
+- Inherited blocks render with the main page's offsets and stay read-only; "Change for this version" appends the section's source to the version body, in place by the merge rule.
+- Links rendered on a version prefer `<title>/<continuity>` when that page exists. Red links still test the plain title.
+- The banner shows the continuity's description and the version's `changes`.
+- Agent tools read a version as the merged page, with inherited sections marked as main canon.
+
+## Open questions
+- Question callouts are collected per page from the mdast, cached like search text until the body changes.
+- The board groups open questions by page, with each linking to its section. "Recently resolved" lists change entries with `resolved`, newest first, linking to the change (its diff once M4 adds the diff view).
 
 ## Archive
 ### Layout
@@ -264,6 +326,7 @@ wiki-name/
   assets/**/*
   changes.json
 ```
+- `wiki.json` holds the wiki's settings and continuities.
 - One serializer serves ZIP export and later Dropbox sync.
 - Import validates `wiki.json`, rebuilds IDs, re-indexes links.
 

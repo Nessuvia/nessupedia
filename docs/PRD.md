@@ -26,13 +26,17 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 - `[[Wikilinks]]` with page picker, red links for missing pages, backlinks.
 - Infobox, canon tiers (Canon / Likely / Idea), pressure profile, callouts.
 - Images stored as wiki assets.
+- Subpages shown as tabs; categories with listing pages.
+- Relationship pages, one per pair, gathered into a Relationships tab on each character.
+- Open questions gathered on a board.
 
 ### Templates
-- Bundled: character, location, relationship, spinoff.
+- Bundled: character, location, relationship.
 - User-created templates per wiki.
 
-### Spinoffs
-- Spinoff pages inherit from a main-canon page and record the changed variables.
+### Continuities
+- Wiki-wide continuities hold spinoffs and alternate universes.
+- A page's version in a continuity inherits the main page section by section and records the changed variables.
 
 ### Change log
 - Entry on every save.
@@ -83,5 +87,5 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 2. Theme customization
 3. Director's Desk (scene cards, prose, notes-driven revision, self-insert seat)
 4. In-universe wiki voice
-5. Character messaging app
+5. Character messaging app, with in-character interviews
 6. OC social media spinoff
