@@ -8,6 +8,7 @@ import PageContent from "@/components/PageContent.vue";
 import RenamePageDialog from "@/components/RenamePageDialog.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Page } from "@/db/types";
+import { pageCategories } from "@/markdown/categories";
 import { titleKey } from "@/markdown/wikilinks";
 import { pageService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
@@ -40,6 +41,8 @@ watch(page, (found) => {
   });
 });
 
+const categories = computed(() => (page.value ? pageCategories(page.value.frontmatter) : []));
+
 // Dialogs work on a snapshot, so they stay mounted while the live page they changed reloads.
 const dialogPage = shallowRef<Page>();
 const renameOpen = ref(false);
@@ -66,7 +69,16 @@ watchEffect(() => {
 <template>
   <article class="content-card">
     <header class="page-header">
-      <h1 class="page-title">{{ page?.title ?? title }}</h1>
+      <div class="page-heading">
+        <p v-if="categories.length" class="page-categories">
+          in:
+          <template v-for="(category, index) in categories" :key="category">
+            <RouterLink :to="{ name: 'category', params: { wikiId, name: category } }">{{ category }}</RouterLink>
+            <template v-if="index < categories.length - 1">, </template>
+          </template>
+        </p>
+        <h1 class="page-title">{{ page?.title ?? title }}</h1>
+      </div>
       <div v-if="page" class="page-actions">
         <RouterLink class="page-action" :to="{ name: 'edit-page', params: { wikiId, title: page.title } }">
           <AppIcon name="edit" />
@@ -98,6 +110,16 @@ watchEffect(() => {
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid var(--color-border);
+}
+
+.page-heading {
+  min-width: 0;
+}
+
+.page-categories {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8rem;
 }
 
 .page-title {

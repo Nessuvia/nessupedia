@@ -3,6 +3,8 @@ import { createRouter, createWebHistory, type RouteLocationRaw, type Router } fr
 import { wikiService } from "@/services";
 import { MAIN_PAGE_TITLE, useWikiStore } from "@/stores/wiki";
 import AllPagesView from "@/views/AllPagesView.vue";
+import CategoriesView from "@/views/CategoriesView.vue";
+import CategoryView from "@/views/CategoryView.vue";
 import NewPageView from "@/views/NewPageView.vue";
 import NewWikiView from "@/views/NewWikiView.vue";
 import PageRail from "@/views/PageRail.vue";
@@ -85,6 +87,8 @@ export function createAppRouter(pinia: Pinia): Router {
           { path: "special/settings", name: "wiki-settings", component: WikiSettingsView, props: true },
           { path: "special/all-pages", name: "all-pages", component: AllPagesView, props: true },
           { path: "special/recent-changes", name: "recent-changes", component: RecentChangesView, props: true },
+          { path: "special/categories", name: "categories", component: CategoriesView, props: true },
+          { path: "special/category/:name(.*)", name: "category", component: CategoryView, props: true },
         ],
       },
       { path: "/:unknown(.*)*", redirect: "/" },

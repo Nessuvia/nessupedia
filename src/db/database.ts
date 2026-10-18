@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
+import { categoryKeys } from "@/markdown/categories";
 import type { AgentRun, Asset, ChangeEntry, Link, Page, Template, Wiki } from "./types";
 
 export class WikiDatabase extends Dexie {
@@ -24,6 +25,19 @@ export class WikiDatabase extends Dexie {
     this.version(2).stores({
       assets: "id, wikiId, [wikiId+path], [wikiId+hash]",
     });
+    this.version(3)
+      .stores({
+        pages: "id, wikiId, [wikiId+titleKey], *aliasKeys, *categoryKeys, [wikiId+path], updatedAt",
+      })
+      .upgrade((tx) =>
+        tx
+          .table<Page & { spinoffOf?: string }>("pages")
+          .toCollection()
+          .modify((page) => {
+            page.categoryKeys = categoryKeys(page.frontmatter);
+            delete page.spinoffOf;
+          }),
+      );
   }
 }
 

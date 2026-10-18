@@ -1,9 +1,10 @@
 import type { WikiDatabase } from "@/db/database";
 import type { ChangeEntry, Page } from "@/db/types";
+import { categoryKeys } from "@/markdown/categories";
 import { stringList } from "@/markdown/frontmatter";
 import { parseMarkdown } from "@/markdown/pipeline";
 import { retargetWikilinks } from "@/markdown/retarget";
-import { titleKey } from "@/markdown/wikilinks";
+import { titleError, titleKey } from "@/markdown/wikilinks";
 import type { ChangeLog } from "./ChangeLog";
 import type { LinkIndexer } from "./LinkIndexer";
 
@@ -13,7 +14,6 @@ export interface CreatePageInput {
   body?: string;
   path?: string;
   templateId?: string;
-  spinoffOf?: string;
   author?: ChangeEntry["author"];
 }
 
@@ -28,23 +28,15 @@ export function pathForTitle(title: string): string {
   return `pages/${fileName}.md`;
 }
 
-const TITLE_FORBIDDEN = /[[\]|#]/;
-
-export function titleError(title: string): string | undefined {
-  if (!title.trim()) return "A page needs a title";
-  if (TITLE_FORBIDDEN.test(title)) return "Page titles can't contain [ ] | or #";
-  return undefined;
-}
-
 function requireTitle(title: string): string {
   const error = titleError(title);
   if (error) throw new Error(error);
   return title.trim();
 }
 
-function aliasFields(frontmatter: Record<string, unknown>): Pick<Page, "aliases" | "aliasKeys"> {
+function frontmatterFields(frontmatter: Record<string, unknown>): Pick<Page, "aliases" | "aliasKeys" | "categoryKeys"> {
   const aliases = stringList(frontmatter.aliases);
-  return { aliases, aliasKeys: [...new Set(aliases.map(titleKey))] };
+  return { aliases, aliasKeys: [...new Set(aliases.map(titleKey))], categoryKeys: categoryKeys(frontmatter) };
 }
 
 export class PageService {
@@ -70,7 +62,7 @@ export class PageService {
     return this.db.pages.where("wikiId").equals(wikiId).count();
   }
 
-  async create({ wikiId, title: rawTitle, body = "", path, templateId, spinoffOf, author = "human" }: CreatePageInput): Promise<Page> {
+  async create({ wikiId, title: rawTitle, body = "", path, templateId, author = "human" }: CreatePageInput): Promise<Page> {
     const title = requireTitle(rawTitle);
     const { tree, frontmatter } = parseMarkdown(body);
     const page: Page = {
@@ -78,10 +70,9 @@ export class PageService {
       wikiId,
       title,
       titleKey: titleKey(title),
-      ...aliasFields(frontmatter),
+      ...frontmatterFields(frontmatter),
       path: path ?? pathForTitle(title),
       ...(templateId && { templateId }),
-      ...(spinoffOf && { spinoffOf }),
       frontmatter,
       body,
       updatedAt: Date.now(),
@@ -113,7 +104,7 @@ export class PageService {
       if (!existing) throw new Error(`Page ${pageId} not found`);
 
       const { tree, frontmatter } = parseMarkdown(body);
-      const page: Page = { ...existing, body, frontmatter, ...aliasFields(frontmatter), updatedAt: Date.now() };
+      const page: Page = { ...existing, body, frontmatter, ...frontmatterFields(frontmatter), updatedAt: Date.now() };
 
       await this.db.pages.put(page);
       await this.links.indexPage(page, tree);

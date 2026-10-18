@@ -25,9 +25,9 @@ export interface Page {
   titleKey: string;
   aliases: string[];
   aliasKeys: string[];
+  categoryKeys: string[];
   path: string;
   templateId?: string;
-  spinoffOf?: string;
   frontmatter: Record<string, unknown>;
   body: string;
   autoContext?: AutoContextSettings;

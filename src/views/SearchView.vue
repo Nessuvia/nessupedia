@@ -4,7 +4,7 @@ import { ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { pageService, searchService } from "@/services";
-import { titleError } from "@/services/PageService";
+import { titleError } from "@/markdown/wikilinks";
 import { useWikiStore } from "@/stores/wiki";
 import { highlightParts } from "@/utils/highlight";
 

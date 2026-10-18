@@ -36,6 +36,14 @@ export function titleKey(title: string): string {
   return title.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+const TITLE_FORBIDDEN = /[[\]|#]/;
+
+export function titleError(title: string): string | undefined {
+  if (!title.trim()) return "A page needs a title";
+  if (TITLE_FORBIDDEN.test(title)) return "Page titles can't contain [ ] | or #";
+  return undefined;
+}
+
 export function extractWikilinks(tree: Root): WikiLink[] {
   const links: WikiLink[] = [];
   visit(tree, "wikiLink", (node) => {

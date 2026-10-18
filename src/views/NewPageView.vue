@@ -3,9 +3,8 @@ import { storeToRefs } from "pinia";
 import { computed, ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import { useLiveQuery } from "@/composables/useLiveQuery";
-import { titleKey } from "@/markdown/wikilinks";
+import { titleError, titleKey } from "@/markdown/wikilinks";
 import { pageService } from "@/services";
-import { titleError } from "@/services/PageService";
 import { useWikiStore } from "@/stores/wiki";
 
 const props = defineProps<{ wikiId: string; initialTitle?: string }>();

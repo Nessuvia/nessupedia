@@ -1,5 +1,6 @@
 import { db } from "@/db/database";
 import { AssetService } from "./AssetService";
+import { CategoryService } from "./CategoryService";
 import { ChangeLog } from "./ChangeLog";
 import { encodeImage } from "./imageEncoder";
 import { LinkIndexer } from "./LinkIndexer";
@@ -8,6 +9,7 @@ import { SearchService } from "./SearchService";
 import { WikiService } from "./WikiService";
 
 export const assetService = new AssetService(db, encodeImage);
+export const categoryService = new CategoryService(db);
 export const changeLog = new ChangeLog(db);
 export const linkIndexer = new LinkIndexer(db);
 export const pageService = new PageService(db, linkIndexer, changeLog);

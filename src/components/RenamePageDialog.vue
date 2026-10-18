@@ -3,7 +3,7 @@ import { computed, ref, watch } from "vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Page } from "@/db/types";
 import { linkIndexer, pageService } from "@/services";
-import { titleError } from "@/services/PageService";
+import { titleError } from "@/markdown/wikilinks";
 import AppDialog from "./AppDialog.vue";
 
 const props = defineProps<{ page: Page }>();
