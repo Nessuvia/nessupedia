@@ -1,7 +1,7 @@
 import { strFromU8, strToU8 } from "fflate";
 import type { Root } from "mdast";
 import type { WikiDatabase } from "@/db/database";
-import type { Asset, AutoContextSettings, ChangeEntry, Page, Template, Wiki } from "@/db/types";
+import type { Asset, ChangeEntry, Page, Template, Wiki } from "@/db/types";
 import { parseMarkdown } from "@/markdown/pipeline";
 import { titleKey } from "@/markdown/wikilinks";
 import { isBundled } from "@/templates";
@@ -29,7 +29,6 @@ export interface ArchivedPage {
   title: string;
   path: string;
   templateId?: string;
-  autoContext?: AutoContextSettings;
   updatedAt: number;
 }
 
@@ -193,7 +192,6 @@ export class ArchiveService {
         title: page.title,
         path,
         ...(page.templateId && { templateId: page.templateId }),
-        ...(page.autoContext && { autoContext: page.autoContext }),
         updatedAt: page.updatedAt,
       });
     }
@@ -297,7 +295,6 @@ export class ArchiveService {
         ...frontmatterFields(frontmatter),
         path: pathForTitle(title),
         ...(templateId && { templateId }),
-        ...(entry.autoContext && { autoContext: entry.autoContext }),
         frontmatter,
         body,
         updatedAt: entry.updatedAt ?? Date.now(),

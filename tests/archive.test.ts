@@ -142,14 +142,15 @@ describe("ArchiveService.importZip", () => {
   async function fullWiki() {
     await db.wikis.update(wikiId, { keepOriginalImages: true, continuities: [{ id: "noir", name: "Noir AU", description: "Rain" }] });
     const template = await templates.create(wikiId, "Faction", "## Members\n<!-- Who belongs? -->\n");
-    const mira = await pages.create({ wikiId, title: "Mira", body: "---\naliases: [Mi]\ncategories: [Leads]\n---\nShe trusts [[Theo]], not [[Corin]].\n" });
+    const mira = await pages.create({
+      wikiId,
+      title: "Mira",
+      body: "---\naliases: [Mi]\ncategories: [Leads]\nauto-context:\n  triggers: [the courier]\n  include: infobox\n---\nShe trusts [[Theo]], not [[Corin]].\n",
+    });
     await pages.save(mira.id, `${mira.body}\n![[assets/mira-0123456789.webp]]\n`, { minor: true, summary: "Portrait" });
     await pages.create({ wikiId, title: "Theo", body: "Knows [[Mi]].\n", templateId: template.id });
     await pages.create({ wikiId, title: "Mira/Noir AU", body: "---\nchanges: [A detective]\n---\nRain.\n" });
     await pages.create({ wikiId, title: "Mira & Theo", body: "---\nbetween: [Mira, Theo]\n---\nOld friends.\n" });
-    await db.pages.update(mira.id, {
-      autoContext: { enabled: true, extraTriggers: ["the courier"], match: "any", followDepth: 1, priority: 2, inject: "summary" },
-    });
     const gone = await pages.create({ wikiId, title: "Gone", body: "Bye\n" });
     await pages.delete(gone.id);
     await db.assets.add(asset({ original: new Blob([new Uint8Array([9, 9])], { type: "image/png" }) }));

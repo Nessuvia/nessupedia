@@ -19,15 +19,6 @@ export interface Continuity {
   description: string;
 }
 
-export interface AutoContextSettings {
-  enabled: boolean;
-  extraTriggers: string[];
-  match: "any" | "all" | "not";
-  followDepth: number;
-  priority: number;
-  inject: "full" | "summary" | "infobox" | { section: string };
-}
-
 export interface Page {
   id: string;
   wikiId: string;
@@ -40,7 +31,6 @@ export interface Page {
   templateId?: string;
   frontmatter: Record<string, unknown>;
   body: string;
-  autoContext?: AutoContextSettings;
   updatedAt: number;
 }
 
