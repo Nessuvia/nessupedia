@@ -159,7 +159,7 @@ Frontmatter fields that name pages (`between`) are indexed in `links` with a `fi
 ## Markdown format
 - The page title renders as the page's only `h1`; bodies start at `##`.
 - YAML frontmatter: `title`, `aliases`, `categories`, `template`, `between` (relationship pages), `changes` (versions), `tabs` (tab order), custom fields. `categories`, `aliases`, and `changes` accept a single string or a list.
-- HTML comments (`<!-- hint -->`) render as nothing; raw HTML never renders.
+- Raw HTML never renders. An HTML comment standing as its own block (`<!-- hint -->`) renders as a hint block with its source range, hidden by CSS outside click-to-edit.
 - `[[Title]]`, `[[Title|label]]`, `[[Title#Heading]]`.
 - Obsidian callouts: `> [!type] Optional title`, with every Obsidian type and alias; unknown types style as `note`. `[!type]-` renders folded and `[!type]+` open, both as `<details>`. Question callouts (`question` and its aliases `help` and `faq`) are open questions.
 - Images: `![[assets/path.webp]]`, `![[assets/path.webp|alt text]]`, or `![[assets/path.webp|300]]` for a width. A bare file name also looks in `assets/`, so Obsidian embeds resolve. Embeds of anything but an image stay as text.

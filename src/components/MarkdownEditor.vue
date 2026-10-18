@@ -2,14 +2,14 @@
 import { markdown } from "@codemirror/lang-markdown";
 import { yamlFrontmatter } from "@codemirror/lang-yaml";
 import { EditorState, Prec } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from "vue";
 import { wikiEditing } from "@/editor";
 
 // Compact editors grow with their text and drop the gutter, for inline blocks and form fields.
 const props = withDefaults(
-  defineProps<{ label: string; wikiId: string; surroundingText?: string; compact?: boolean; autofocus?: boolean }>(),
+  defineProps<{ label: string; wikiId: string; surroundingText?: string; compact?: boolean; autofocus?: boolean; placeholder?: string }>(),
   { autofocus: true },
 );
 const emit = defineEmits<{ submit: []; cancel: [] }>();
@@ -37,6 +37,7 @@ onMounted(() => {
         basicSetup,
         yamlFrontmatter({ content: markdown() }),
         EditorView.lineWrapping,
+        ...(props.placeholder ? [placeholder(props.placeholder)] : []),
         EditorView.contentAttributes.of({ "aria-label": props.label }),
         wikiEditing({
           wikiId: () => props.wikiId,

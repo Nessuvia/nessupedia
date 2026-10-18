@@ -7,6 +7,17 @@
   --infobox-width: 18rem;
 }
 
+/* Template hints only show where clicking them opens an editor. */
+.page-body .template-hint {
+  display: none;
+}
+
+.page-body.editable .template-hint {
+  display: block;
+  color: var(--color-muted);
+  font-style: italic;
+}
+
 /* Boxed blocks sit beside the floating infobox instead of running underneath it. */
 .page-body .canon,
 .page-body .callout,

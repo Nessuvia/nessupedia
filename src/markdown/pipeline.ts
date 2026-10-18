@@ -1,6 +1,6 @@
 import type { Element, ElementContent, Properties, Root as HastRoot } from "hast";
 import { toHtml } from "hast-util-to-html";
-import type { Root, RootContent } from "mdast";
+import type { Paragraph, Root, RootContent } from "mdast";
 import type { State } from "mdast-util-to-hast";
 import { slug } from "github-slugger";
 import remarkDirective from "remark-directive";
@@ -16,6 +16,7 @@ import remarkCallouts from "./callouts";
 import remarkDirectives from "./directives";
 import remarkEmbeds from "./embeds";
 import { readFrontmatter } from "./frontmatter";
+import { hintText } from "./hints";
 import type {
   Callout,
   CanonBlock,
@@ -262,6 +263,13 @@ const handlers = {
     }),
 };
 
+const hintParagraph = (hint: string, { position }: RootContent): Paragraph => ({
+  type: "paragraph",
+  children: [{ type: "text", value: hint }],
+  position,
+  data: { hProperties: { className: ["template-hint"], dataKind: "hint" } },
+});
+
 export function renderMarkdown(tree: Root, options: RenderOptions = {}): RenderedMarkdown {
   const { pageExists = () => true, pageHref = defaultPageHref } = options;
   const headings: RenderedHeading[] = [];
@@ -278,6 +286,11 @@ export function renderMarkdown(tree: Root, options: RenderOptions = {}): Rendere
     .use(rehypeCollectHeadings(headings));
 
   const copy = structuredClone(tree);
+  // Raw HTML never renders, but a comment on its own becomes a hint that click-to-edit can show.
+  copy.children = copy.children.map((node) => {
+    const hint = node.type === "html" ? hintText(node.value) : undefined;
+    return hint ? hintParagraph(hint, node) : node;
+  });
   for (const node of copy.children) {
     const range = sourceRange(node);
     if (range.dataStart !== undefined) node.data = { ...node.data, hProperties: { ...node.data?.hProperties, ...range } };

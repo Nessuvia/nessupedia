@@ -84,6 +84,19 @@ describe("instantiateTemplate", () => {
   });
 });
 
+describe("hints", () => {
+  it("renders a comment standing alone as a hint block with its source range, and drops other HTML", () => {
+    const markdown = "## Looks\n\n<!-- What do they look like? -->\n\nShe <!-- not a hint --> waves.\n\n<div>raw</div>";
+    const { blocks } = renderMarkdown(parseMarkdown(markdown).tree);
+    const hint = blocks.find((block) => block.kind === "hint")!;
+
+    expect(hint.html).toBe('<p class="template-hint" data-kind="hint" data-start="10" data-end="42">What do they look like?</p>');
+    expect(markdown.slice(hint.start, hint.end)).toBe("<!-- What do they look like? -->");
+    expect(blocks.map((block) => block.kind)).toEqual(["h2", "hint", "p"]);
+    expect(blocks[2]!.html).not.toMatch(/not a hint|raw/);
+  });
+});
+
 describe("bundled templates", () => {
   it.each(BUNDLED_TEMPLATES.map((bundled) => [bundled.name, bundled] as const))("%s builds a page that renders without its hints", (_name, bundled) => {
     expect(bundled.frontmatter.description).toEqual(expect.any(String));

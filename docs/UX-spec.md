@@ -82,7 +82,7 @@ Typing `/` in any editor offers:
 - Bundled: Character, Location, Relationship. They can't be edited; "Duplicate" makes an editable copy.
 - "Save as template" in the page actions turns a page into a user template.
 - The Templates page lists bundled and user templates; user templates can be renamed, edited in the split view editor, and deleted.
-- Hints such as "What do they look like?" show in the editor and stay hidden on the page.
+- Hints such as "What do they look like?" show as faint placeholders in click-to-edit. Clicking one opens an empty editor with the hint as its placeholder; what you write replaces the hint, and saving nothing keeps it. Previews and exports never show them.
 
 ## Categories
 - Pages list categories in the Details dialog; they show as an "in:" line above the title, each linking to its category page.

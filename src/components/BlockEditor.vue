@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
+import { hintText } from "@/markdown/hints";
 import CanonForm from "./forms/CanonForm.vue";
 import InfoboxForm from "./forms/InfoboxForm.vue";
 import PressureForm from "./forms/PressureForm.vue";
@@ -19,13 +20,16 @@ const FORMS = { infobox: InfoboxForm, pressure: PressureForm, canon: CanonForm }
 const form = computed(() => FORMS[props.kind as keyof typeof FORMS]);
 const label = computed(() => (/^h[1-6]$/.test(props.kind) ? "Heading" : "Block markdown"));
 
-const draft = ref(props.source);
+// A hint opens empty with its text as the placeholder; what's written replaces it, and nothing keeps it.
+const hint = computed(() => (props.kind === "hint" ? hintText(props.source) : undefined));
+
+const draft = ref(hint.value ? "" : props.source);
 const minor = ref(false);
 const root = useTemplateRef("root");
 
 function submit() {
   if (props.saving) return;
-  if (draft.value === props.source) return emit("cancel");
+  if (draft.value === props.source || (hint.value && !draft.value.trim())) return emit("cancel");
   emit("save", draft.value, minor.value);
 }
 
@@ -62,6 +66,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onPointerDown)
       :label="label"
       :wiki-id="wikiId"
       :surrounding-text="surroundingText"
+      :placeholder="hint"
       @submit="submit"
       @cancel="emit('cancel')"
     />
