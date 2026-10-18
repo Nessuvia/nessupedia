@@ -67,6 +67,7 @@ Each step is one key:
 | `click` | Target |
 | `fill` | `[target, value]`; replaces the value of an input, or the text of a contenteditable |
 | `type` | `[target, text]` typed key by key, or `text` for the focused element. Use for CodeMirror, where it exercises real input handling |
+| `upload` | `[target, filePath]`: sets a file input's file, hidden inputs included, as if picked |
 | `dialogs` | `"accept"` or `"dismiss"`: how later `alert` / `confirm` / `beforeunload` prompts are answered. Default `dismiss`; each prompt prints as `dialog …` |
 | `press` | Key (`"Enter"`), or `[target, key]` |
 | `wait` | Milliseconds, or a target to wait for |

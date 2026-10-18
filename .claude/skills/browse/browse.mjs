@@ -134,6 +134,10 @@ async function runStep(page, step, context) {
       if (Array.isArray(arg)) await locate(page, arg[0]).pressSequentially(arg[1]);
       else await page.keyboard.type(arg);
       break;
+    case "upload":
+      await locate(page, arg[0]).setInputFiles(arg[1]);
+      await settle(page);
+      break;
     case "dialogs":
       if (arg !== "accept" && arg !== "dismiss") throw new Error(`dialogs takes "accept" or "dismiss"`);
       context.dialogs = arg;
