@@ -38,13 +38,15 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 - A page's version in a continuity inherits the main page section by section and records the changed variables.
 
 ### Change log
-- Entry on every save.
+- Entry on every save; quick successive saves to a page merge into one entry.
 - Minor-edit flag hides entries from the default feed.
-- Squash a range; prune by age.
+- Page history with diffs; restore any earlier version, including of deleted pages.
+- Old history pruned automatically, unless a page opts out.
 
 ### Backup
-- ZIP export and import of a whole wiki.
-- Obsidian vault import (Obsidian-inspired format, non-strict compatibility).
+- ZIP export and import of one wiki or all wikis, with history optional.
+- Obsidian vault import from a ZIP (Obsidian-inspired format, non-strict compatibility).
+- Persistent storage requested from the browser, with its status in settings.
 
 ### LLM features
 - Bring-your-own OpenAI-compatible endpoint and key.

@@ -42,6 +42,7 @@ interface Wiki {
   themeId: string;
   voice: "fandom" | "in-universe";
   keepOriginalImages?: boolean;
+  historyDays?: number;
   continuities?: Continuity[];
   createdAt: number;
 }
@@ -83,7 +84,7 @@ interface ChangeEntry {
   wikiId: string;
   pageId: string;
   pageTitle: string;
-  kind: "create" | "edit" | "rename" | "delete";
+  kind: "create" | "edit" | "rename" | "delete" | "restore";
   author: "human" | "llm";
   minor: boolean;
   summary: string;
@@ -157,7 +158,7 @@ Frontmatter fields that name pages (`between`) are indexed in `links` with a `fi
 
 ## Markdown format
 - The page title renders as the page's only `h1`; bodies start at `##`.
-- YAML frontmatter: `title`, `aliases`, `categories`, `template`, `between` (relationship pages), `changes` (versions), `tabs` (tab order), custom fields. `categories`, `aliases`, and `changes` accept a single string or a list.
+- YAML frontmatter: `title`, `aliases`, `categories`, `template`, `between` (relationship pages), `changes` (versions), `tabs` (tab order), `history: keep` (exempt from pruning), custom fields. `categories`, `aliases`, and `changes` accept a single string or a list.
 - Raw HTML never renders. An HTML comment standing as its own block (`<!-- hint -->`) renders as a hint block with its source range, hidden by CSS outside click-to-edit.
 - `[[Title]]`, `[[Title|label]]`, `[[Title#Heading]]`.
 - Obsidian callouts: `> [!type] Optional title`, with every Obsidian type and alias; unknown types style as `note`. `[!type]-` renders folded and `[!type]+` open, both as `<details>`.
@@ -212,6 +213,7 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/w/:wikiId` | Redirects to the wiki's Main Page |
 | `/w/:wikiId/wiki/:title` | Page view |
 | `/w/:wikiId/edit/:title` | Split view editor, loaded on demand; hides the right rail |
+| `/w/:wikiId/history/:title` | A page's history, diffs, and restore; also serves deleted pages |
 | `/w/:wikiId/new?title=` | Create a page, title prefilled from red links |
 | `/w/:wikiId/special/search?q=` | Full-text results with snippets, plus "Create page" when no title or alias matches |
 | `/w/:wikiId/special/settings` | Wiki settings: rename, delete with typed confirmation |
@@ -234,7 +236,7 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - The lead (everything before the first `##`) renders above a numbered Contents box, shown at three or more h2 to h4 headings, with a remembered hide toggle.
 - The right rail adds What links here; for a missing page it lists pages whose red links target that title.
 - Categories show as an "in:" line above the title, in frontmatter order.
-- Page actions beside the title: Edit, Details, Rename, Save as template, Delete. Details writes frontmatter through the `yaml` document API, so other keys, their order, and comments survive. Rename and Delete open dialogs that state their effects (how many pages' links get rewritten or turn red) before acting. Dialogs use the native `<dialog>` element.
+- Page actions beside the title: Edit, Details, History, Rename, Save as template, Delete. Details writes frontmatter through the `yaml` document API, so other keys, their order, and comments survive. Rename and Delete open dialogs that state their effects (how many pages' links get rewritten or turn red) before acting. Dialogs use the native `<dialog>` element.
 
 ## Search
 - `suggest` matches titles and aliases for type-ahead and the page picker.
@@ -270,11 +272,13 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - Rendered images carry `data-asset`; the page view resolves them to object URLs through a cache keyed by wiki and path.
 
 ## Change log
-- Every save computes a unified diff against the prior body.
+- Every save computes a unified diff of the page source, frontmatter included, against the prior source.
+- A save by the same author within 10 minutes of the page's latest entry, when that entry is an edit, folds into it: the diff is recomputed from the entry's starting source, `at` moves to the save, `minor` holds only if both are minor, and the summary becomes the latest non-empty one. Creations, renames, deletions, and restores never merge, so nothing merges across them.
 - Entries carry the page title at the time of the change, so the feed can show pages that no longer exist.
-- Deleting a page drops its history except the creation entry, then records a deletion entry whose diff holds the final body. A page recreated from a red link starts a fresh history under a new ID.
-- Squash merges selected entries into one diff.
-- Prune deletes entries older than a cutoff.
+- Older versions are rebuilt backward from the current source by reversing diffs newest first, so pruning old entries never breaks newer ones. The diff view shows the stored patch with word-level highlights between paired removed and added lines.
+- Restore saves a rebuilt version as a `restore` entry.
+- Deleting a page keeps its history and records a deletion entry whose diff holds the final source. Restoring a deleted page recreates it under its old ID from any version, re-indexing its links. Creating a page whose title matches a deleted page's drops that history first; the creation form checks and warns. A page recreated from a red link starts a fresh history under a new ID.
+- `historyDays` on the wiki sets automatic pruning; unset keeps everything. When a wiki opens, entries older than the cutoff are deleted, except deletion entries and entries of pages whose frontmatter has `history: keep` (read from the final source for deleted pages).
 
 ## Categories
 - `categories` in frontmatter; `categoryKeys` holds their normalized keys for the multi-entry index.
@@ -326,13 +330,18 @@ wiki-name/
   changes.json
 ```
 - `wiki.json` holds the wiki's settings and continuities.
+- Exporting all wikis puts one such folder per wiki in the ZIP.
+- `changes.json` is optional and can be cut to entries newer than a chosen age. Entries name their page by an archive-local key, so deleted pages' histories survive.
+- Original images go under `assets/originals/` when the wiki keeps them.
 - One serializer serves ZIP export and later Dropbox sync.
-- Import validates `wiki.json`, rebuilds IDs, re-indexes links.
+- Import always creates a new wiki, adding " (2)" (or the next free number) to a taken name. It validates `wiki.json`, rebuilds IDs, and re-indexes links.
 
 ### Obsidian import
-- Reads `.md` files and attachments from a folder or ZIP.
+- Reads `.md` files and attachments from a ZIP of the vault into a new wiki.
+- Each folder on a note's path becomes a category. Titles are file names; notes that share a name get their folder in brackets ("Mira (Archive)"), and links to them, resolved the way Obsidian does, are rewritten with the old text as the label.
+- Frontmatter `tags` and inline `#tags` are listed with counts; chosen tags become categories, nested ones joined with " › ". Unchosen tags stay as they were.
 - Converts `![[image]]` to asset paths; keeps wikilinks and callouts.
-- Unknown syntax passes through untouched.
+- Unknown syntax, such as block references, note embeds, and plugin blocks, passes through as text.
 
 ## LLM integration
 
@@ -387,7 +396,7 @@ type WikiTool =
 ## PWA
 - App shell precached; offline by default.
 - Install prompt after first wiki creation.
-- `navigator.storage.persist()` requested on first save.
+- `navigator.storage.persist()` requested on first save; settings show `navigator.storage.persisted()` with a button to ask again.
 
 ## Risks
 | Risk | Mitigation |

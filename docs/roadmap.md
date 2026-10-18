@@ -26,10 +26,10 @@
 - Continuities: wiki-wide alternate universes with page versions that inherit section by section
 
 ## M4: History and data
-- Change log with minor edits, diff view, squash, prune
-- ZIP export / import
-- Obsidian vault import
-- Persistent storage request
+- Persistent storage request and status
+- ZIP export / import of one wiki or all, with optional history
+- Change log: page history with diffs, restore (deleted pages too), merged edit sessions, automatic prune
+- Obsidian vault import from a ZIP, with folders and chosen tags as categories
 
 ## M5: LLM
 - Endpoint settings and client

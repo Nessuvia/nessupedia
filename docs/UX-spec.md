@@ -69,7 +69,7 @@ Typing `/` in any editor offers:
 - A "Minor edit" checkbox sits beside the save action.
 
 ### Page details
-- A "Details" page action opens one form: aliases and categories, plus the pair on relationship pages and the changed variables on versions.
+- A "Details" page action opens one form: aliases and categories, plus the pair on relationship pages and the changed variables on versions, and a "Keep all history" checkbox.
 - Category fields suggest existing categories.
 
 ## Page creation
@@ -118,9 +118,22 @@ Typing `/` in any editor offers:
 - Each continuity has a page listing its versions.
 
 ## Change log
-- Feed of saves with author (you / assistant), page, summary, time.
+- Feed of saves with author (you / Assistant), page, summary, time.
 - Filter: hide minor edits (default on), by page, by author.
-- Actions: view diff, squash selected, prune older than…
+- Saves to the same page by the same author within 10 minutes merge into one entry, so a burst of fixes reads as one change.
+- Each entry opens its diff: the markdown source, with changed words highlighted inside changed lines.
+- A "History" page action lists the page's entries, each with its diff and "Restore this version", which saves the old text as a new change.
+- A deleted page's entry in the feed opens its history, where any version can be restored. Creating a new page with the same title removes that history, and the creation screen says so before creating.
+- Wiki settings choose how long history is kept: Forever (default), 1 year, 90 days, or 30 days. "Keep all history" in a page's Details exempts that page.
+
+## Export and import
+- **Export ZIP**: this wiki, or all wikis when more than one exists. "Include history" is checked by default, with a slider for how far back: 7 days, 30 days, 90 days, 1 year, All (default). Original images go in when "Keep original images" is on.
+- **Import ZIP** creates a new wiki; a name that's taken gets " (2)".
+- **Import Obsidian vault** takes a ZIP of the vault and creates a new wiki.
+  - Folders become categories. Notes that share a name get their folder added ("Mira (Archive)"), and links to them are rewritten.
+  - A list of the vault's tags with counts lets you choose which become categories; the rest stay as they were.
+  - Block references, note embeds, and plugin syntax stay as plain text.
+- The browser is asked to keep the wiki's storage on first save. Settings show whether it agreed, with a button to ask again.
 
 ## LLM actions
 Available from the page toolbar and the slash menu:
@@ -147,9 +160,9 @@ Available from the page toolbar and the slash menu:
 
 ## Settings
 - **Model**: endpoint URL, API key, model name, token budget.
-- **Wiki**: name, voice (fandom only in MVP), keep original images, continuities. Deleting a wiki requires typing its name.
+- **Wiki**: name, voice (fandom only in MVP), keep original images, keep history for, continuities. Deleting a wiki requires typing its name.
 - **Auto-context** (advanced): per-page triggers, match mode, follow connections depth, priority, injected content.
-- **Data**: export ZIP, import ZIP, import Obsidian vault.
+- **Data**: storage status, export ZIP, import ZIP, import Obsidian vault.
 
 ## Terminology map
 | UI label | Internal term |
