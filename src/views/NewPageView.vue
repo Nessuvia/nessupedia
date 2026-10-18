@@ -3,8 +3,9 @@ import { storeToRefs } from "pinia";
 import { computed, ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import { useLiveQuery } from "@/composables/useLiveQuery";
+import { instantiateTemplate, templateDescription, templateParts } from "@/markdown/templates";
 import { titleError, titleKey } from "@/markdown/wikilinks";
-import { pageService } from "@/services";
+import { pageService, templateService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
 const props = defineProps<{ wikiId: string; initialTitle?: string }>();
@@ -29,12 +30,30 @@ const formatError = computed(() => (title.value.trim() ? titleError(title.value)
 const viaAlias = computed(() => existing.value && existing.value.titleKey !== titleKey(title.value));
 const canCreate = computed(() => !!title.value.trim() && !formatError.value && existing.value === null && !saving.value);
 
+const templates = useLiveQuery((wikiId) => templateService.list(wikiId), () => props.wikiId);
+const templateId = ref("");
+const template = computed(() => templates.value?.find(({ id }) => id === templateId.value));
+const parts = computed(() => (template.value ? templateParts(template.value.body) : []));
+const included = ref<string[]>([]);
+watch(parts, (next) => (included.value = next.filter((part) => !part.optional).map((part) => part.key)));
+
+function startingBody(): string {
+  if (!template.value) return "";
+  const exclude = parts.value.filter((part) => !included.value.includes(part.key)).map((part) => part.key);
+  return instantiateTemplate(template.value, { title: title.value.trim(), exclude });
+}
+
 async function create() {
   if (!canCreate.value) return;
   saving.value = true;
   saveError.value = "";
   try {
-    const page = await pageService.create({ wikiId: props.wikiId, title: title.value });
+    const page = await pageService.create({
+      wikiId: props.wikiId,
+      title: title.value,
+      body: startingBody(),
+      ...(template.value && { templateId: template.value.id }),
+    });
     await router.push({ name: "edit-page", params: { wikiId: props.wikiId, title: page.title } });
   } catch (cause) {
     saveError.value = cause instanceof Error ? cause.message : String(cause);
@@ -63,9 +82,22 @@ watchEffect(() => {
       <fieldset class="starts">
         <legend class="field-label">Start from</legend>
         <label class="start-card">
-          <input type="radio" name="start" value="blank" checked />
+          <input v-model="templateId" type="radio" name="start" value="" />
           <strong>Blank</strong>
           <span>An empty page.</span>
+        </label>
+        <label v-for="option in templates" :key="option.id" class="start-card">
+          <input v-model="templateId" type="radio" name="start" :value="option.id" />
+          <strong>{{ option.name }}</strong>
+          <span>{{ templateDescription(option) }}</span>
+        </label>
+      </fieldset>
+
+      <fieldset v-if="parts.length" class="parts">
+        <legend class="field-label">Include</legend>
+        <label v-for="part in parts" :key="part.key" class="part">
+          <input v-model="included" type="checkbox" :value="part.key" />
+          {{ part.label }}
         </label>
       </fieldset>
 
@@ -137,6 +169,21 @@ input[type="text"] {
 .start-card span {
   color: var(--color-muted);
   font-size: 0.85rem;
+}
+
+.parts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 0;
+}
+
+.part {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 button {
