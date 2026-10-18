@@ -8,10 +8,14 @@ import { suggestedPairTitle } from "@/markdown/relationships";
 import { instantiateTemplate, templateDescription, templateParts } from "@/markdown/templates";
 import { titleError, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
+import ListInput from "@/components/ListInput.vue";
 import { pageService, templateService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
-const props = defineProps<{ wikiId: string; initialTitle?: string; initialTemplate?: string; pairWith?: string }>();
+const VERSION_CARD = "version";
+
+// `withTitle` fills in the first character of a pair, or the page a version is of.
+const props = defineProps<{ wikiId: string; initialTitle?: string; initialTemplate?: string; withTitle?: string }>();
 
 const router = useRouter();
 const { currentWiki } = storeToRefs(useWikiStore());
@@ -47,7 +51,7 @@ watch(parts, (next) => (included.value = next.filter((part) => !part.optional).m
 const asksPair = computed(() => !!template.value && "between" in template.value.frontmatter);
 const pair = ref(["", ""]);
 watch(
-  () => props.pairWith,
+  () => props.withTitle,
   (name) => (pair.value = [name ?? "", ""]),
   { immediate: true },
 );
@@ -68,11 +72,38 @@ watch([asksPair, pairNames], () => {
   if (asksPair.value && !titleTyped.value && pairNames.value.every(Boolean)) title.value = suggestedPairTitle(pairNames.value);
 });
 
+// The version card makes a page's version in a continuity, titled for it and holding only the changes.
+const makingVersion = computed(() => templateId.value === VERSION_CARD);
+const continuities = computed(() => [...(currentWiki.value?.continuities ?? [])].sort((a, b) => a.name.localeCompare(b.name)));
+const versionedTitle = ref(props.withTitle ?? "");
+const continuityName = ref("");
+const versionChanges = ref<string[]>([]);
+watch(continuities, (list) => {
+  if (!continuityName.value && list.length === 1) continuityName.value = list[0]!.name;
+}, { immediate: true });
+const topLevelTitles = computed(() => pageTitles.value?.filter((pageTitle) => !pageTitle.includes("/")) ?? []);
+const versionProblem = computed(() => {
+  const name = versionedTitle.value.trim();
+  if (!name || !pageTitles.value) return undefined;
+  return topLevelTitles.value.some((pageTitle) => titleKey(pageTitle) === titleKey(name)) ? undefined : "Pick an existing page without a slash in its title.";
+});
+const versionReady = computed(() => !makingVersion.value || (!!versionedTitle.value.trim() && !!continuityName.value && !versionProblem.value));
+watch(
+  [makingVersion, versionedTitle, continuityName, topLevelTitles],
+  () => {
+    if (!makingVersion.value) return;
+    const main = topLevelTitles.value.find((pageTitle) => titleKey(pageTitle) === titleKey(versionedTitle.value)) ?? versionedTitle.value.trim();
+    title.value = main && continuityName.value ? `${main}/${continuityName.value}` : "";
+  },
+  { immediate: true },
+);
+
 const canCreate = computed(
-  () => !!title.value.trim() && !formatError.value && existing.value === null && pairReady.value && !saving.value,
+  () => !!title.value.trim() && !formatError.value && existing.value === null && pairReady.value && versionReady.value && !saving.value,
 );
 
 function startingBody(): string {
+  if (makingVersion.value) return versionChanges.value.length ? updateFrontmatter("", { changes: versionChanges.value }) : "";
   if (!template.value) return "";
   const exclude = parts.value.filter((part) => !included.value.includes(part.key)).map((part) => part.key);
   const body = instantiateTemplate(template.value, { title: title.value.trim(), exclude });
@@ -90,7 +121,8 @@ async function create() {
       body: startingBody(),
       ...(template.value && { templateId: template.value.id }),
     });
-    await router.push({ name: "edit-page", params: { wikiId: props.wikiId, title: titleParam(page.title) } });
+    // A new version already shows its main page's content, so it opens where sections can be changed one by one.
+    await router.push({ name: makingVersion.value ? "page" : "edit-page", params: { wikiId: props.wikiId, title: titleParam(page.title) } });
   } catch (cause) {
     saveError.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -115,6 +147,7 @@ watchEffect(() => {
         placeholder="e.g. Mira"
         autocomplete="off"
         autofocus
+        :readonly="makingVersion"
         @input="titleTyped = true"
       />
       <p v-if="formatError" class="problem" role="alert">{{ formatError }}</p>
@@ -135,6 +168,33 @@ watchEffect(() => {
           <strong>{{ option.name }}</strong>
           <span>{{ templateDescription(option) }}</span>
         </label>
+        <label class="start-card">
+          <input v-model="templateId" type="radio" name="start" :value="VERSION_CARD" />
+          <strong>Version in a continuity</strong>
+          <span>A page as it is in an alternate universe, changing only what you rewrite.</span>
+        </label>
+      </fieldset>
+
+      <fieldset v-if="makingVersion" class="version">
+        <legend class="visually-hidden">Version</legend>
+        <label class="field-label" for="version-of">Page</label>
+        <input id="version-of" v-model="versionedTitle" type="text" list="version-pages" autocomplete="off" placeholder="e.g. Mira" />
+        <datalist id="version-pages">
+          <option v-for="pageTitle in topLevelTitles" :key="pageTitle" :value="pageTitle" />
+        </datalist>
+        <p v-if="versionProblem" class="problem" role="alert">{{ versionProblem }}</p>
+
+        <label class="field-label" for="version-continuity">Continuity</label>
+        <select v-if="continuities.length" id="version-continuity" v-model="continuityName">
+          <option value="" disabled>Pick a continuity</option>
+          <option v-for="continuity in continuities" :key="continuity.id" :value="continuity.name">{{ continuity.name }}</option>
+        </select>
+        <p v-else class="note">
+          No continuities yet. <RouterLink :to="{ name: 'wiki-settings', params: { wikiId } }">Add one in wiki settings</RouterLink>.
+        </p>
+
+        <ListInput v-model="versionChanges" class="changes" label="What changes" />
+        <p class="note">Listed on the version's banner. Everything else starts the same as the main page.</p>
       </fieldset>
 
       <fieldset v-if="asksPair" class="pair">
@@ -226,6 +286,46 @@ input[type="text"] {
 .start-card span {
   color: var(--color-muted);
   font-size: 0.85rem;
+}
+
+.version {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 0;
+}
+
+.version .field-label:not(:first-of-type) {
+  margin-top: 0.75rem;
+}
+
+.version select {
+  align-self: flex-start;
+  padding: 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.version .changes {
+  margin-top: 0.75rem;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .pair {

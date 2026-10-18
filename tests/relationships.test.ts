@@ -87,8 +87,26 @@ describe("RelationshipService", () => {
 
     const list = await relationships.of(mira);
     expect(list.map(({ pair, other, lead }) => ({ pair: pair.title, other, lead }))).toEqual([
-      { pair: "Mira and Ash", other: { title: "Ash", exists: false }, lead: "Rivals." },
-      { pair: "Mira & Theo", other: { title: "Theo", exists: true }, lead: "Childhood friends." },
+      { pair: "Mira and Ash", other: { title: "Ash", exists: false, target: "Ash" }, lead: "Rivals." },
+      { pair: "Mira & Theo", other: { title: "Theo", exists: true, target: "Theo" }, lead: "Childhood friends." },
+    ]);
+  });
+
+  it("points pairs and other pages at their versions in a continuity, taking the pair version's merged lead", async () => {
+    const { ContinuityService } = await import("@/services/ContinuityService");
+    await new ContinuityService(db, pages).create(wikiId, "Noir AU");
+    const mira = await pages.create({ wikiId, title: "Mira" });
+    await pages.create({ wikiId, title: "Theo" });
+    await pages.create({ wikiId, title: "Ash" });
+    await pages.create({ wikiId, title: "Theo/Noir AU" });
+    await pages.create({ wikiId, title: "Mira & Theo", body: pairPage("[Mira, Theo]", "Friends.\n\n## History\n\nLong.") });
+    await pages.create({ wikiId, title: "Mira & Theo/Noir AU", body: "Partners in crime." });
+    await pages.create({ wikiId, title: "Mira & Ash", body: pairPage("[Mira, Ash]", "Rivals.") });
+
+    const list = await relationships.of(mira, "Noir AU");
+    expect(list.map(({ pairTarget, other, lead }) => ({ pairTarget, other: other.target, lead }))).toEqual([
+      { pairTarget: "Mira & Ash", other: "Ash", lead: "Rivals." },
+      { pairTarget: "Mira & Theo/Noir AU", other: "Theo/Noir AU", lead: "Partners in crime." },
     ]);
   });
 

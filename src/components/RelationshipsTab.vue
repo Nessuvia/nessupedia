@@ -7,21 +7,25 @@ import { RELATIONSHIP_TEMPLATE_ID } from "@/templates";
 import PageContent from "./PageContent.vue";
 
 // The generated Relationships tab: a section per relationship page naming this character, led by the
-// other character and filled with the pair page's lead.
-const props = defineProps<{ wikiId: string; character: Page }>();
+// other character and filled with the pair page's lead. On a version's tab, pairs and characters with a
+// version in the same continuity show that version.
+const props = defineProps<{ wikiId: string; character: Page; continuity?: string }>();
 
-const relationships = useLiveQuery((page) => relationshipService.of(page), () => props.character);
+const relationships = useLiveQuery(
+  ([page, continuity]) => relationshipService.of(page, continuity),
+  () => [props.character, props.continuity] as const,
+);
 </script>
 
 <template>
   <div class="relationships">
     <p v-if="relationships?.length === 0" class="empty">No relationship pages name {{ character.title }} yet.</p>
-    <section v-for="{ pair, other, lead } in relationships" :key="`${pair.id}:${other.title}`" class="relationship">
+    <section v-for="{ pair, pairTarget, other, lead } in relationships" :key="`${pair.id}:${other.title}`" class="relationship">
       <h2>
         <RouterLink
           v-if="other.exists"
           class="wikilink"
-          :to="{ name: 'page', params: { wikiId, title: titleParam(other.title) } }"
+          :to="{ name: 'page', params: { wikiId, title: titleParam(other.target) } }"
         >
           {{ other.title }}
         </RouterLink>
@@ -29,13 +33,14 @@ const relationships = useLiveQuery((page) => relationshipService.of(page), () =>
           {{ other.title }}
         </RouterLink>
       </h2>
-      <PageContent v-if="lead" :wiki-id="wikiId" :markdown="lead" />
+      <PageContent v-if="lead" :wiki-id="wikiId" :markdown="lead" :continuity="continuity" />
       <p v-else class="empty">{{ pair.title }} has no summary yet.</p>
-      <RouterLink class="read-more" :to="{ name: 'page', params: { wikiId, title: titleParam(pair.title) } }">
+      <RouterLink class="read-more" :to="{ name: 'page', params: { wikiId, title: titleParam(pairTarget) } }">
         Read more: {{ pair.title }}
       </RouterLink>
     </section>
     <RouterLink
+      v-if="!continuity"
       class="button add"
       :to="{ name: 'new-page', params: { wikiId }, query: { template: RELATIONSHIP_TEMPLATE_ID, with: character.title } }"
     >

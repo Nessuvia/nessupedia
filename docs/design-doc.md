@@ -314,6 +314,8 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - "Change for this version" appends the section's source to the version body, or puts the main lead after its frontmatter; "Hide in this version" appends an empty heading. The split view preview shows the merge too.
 - Links rendered on a version prefer `<title>/<continuity>` when that page exists. Red links still test the plain title.
 - The banner shows the continuity's description and the version's `changes`.
+- The "Version in a continuity" card titles the page `<page>/<continuity>`, takes a top-level page, and writes only `changes`; a "New version" link beside a top-level page's title opens it as `/new?template=version&with=<title>`. New versions open in the page view, where sections can be changed one by one.
+- A version's tab bar holds Overview and, when its main page has relationships, Relationships at `<page>/<continuity>/Relationships`. That tab lists the main page's relationships, linking each pair and other character to their version in the continuity when one exists, with the pair version's merged lead. Relationships are added from main canon, so it has no "Add relationship" button.
 - Agent tools read a version as the merged page, with inherited sections marked as main canon.
 
 ## Open questions

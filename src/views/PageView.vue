@@ -64,13 +64,20 @@ const topPage = useLiveQuery(
 );
 const heading = computed(() => (segments.value.length > 1 ? (topPage.value?.title ?? segments.value[0]) : shownTitle.value));
 
-// No page can take this title, so it shows the generated tab of the page above it.
-const relationshipsOf = computed(() =>
-  segments.value.length === 2 && titleKey(segments.value[1]!) === titleKey(RELATIONSHIPS_TAB) ? topPage.value : undefined,
-);
+const continuities = computed(() => currentWiki.value?.continuities ?? []);
+
+// No page can take this title, so it shows the generated tab of the page above it, or of the version
+// above it, which lists the main page's relationships as they are in that continuity.
+const relationshipsTab = computed(() => {
+  const owner = segments.value.slice(0, -1).join("/");
+  if (segments.value.length < 2 || titleKey(segments.value.at(-1)!) !== titleKey(RELATIONSHIPS_TAB) || !topPage.value) return undefined;
+  if (segments.value.length === 2) return { character: topPage.value };
+  const ownerVersion = versionOf(owner, continuities.value);
+  return ownerVersion && { character: topPage.value, continuity: ownerVersion.continuity.name };
+});
+const relationshipsOf = computed(() => relationshipsTab.value?.character);
 
 // A version renders over its main page, the top page, unless that's gone.
-const continuities = computed(() => currentWiki.value?.continuities ?? []);
 const version = computed(() => versionOf(shownTitle.value, continuities.value));
 const inheritFrom = computed(() => (version.value && topPage.value ? topPage.value.body : undefined));
 const changes = computed(() => (page.value ? stringList(page.value.frontmatter.changes) : []));
@@ -125,6 +132,13 @@ watchEffect(() => {
         <div class="title-row">
           <h1 class="page-title">{{ heading }}</h1>
           <VersionSwitcher :wiki-id="wikiId" :title="shownTitle" :continuities="continuities" />
+          <RouterLink
+            v-if="page && continuities.length && segments.length === 1"
+            class="new-version"
+            :to="{ name: 'new-page', params: { wikiId }, query: { template: 'version', with: page.title } }"
+          >
+            New version
+          </RouterLink>
         </div>
       </div>
       <div v-if="page" class="page-actions">
@@ -174,7 +188,12 @@ watchEffect(() => {
       :inherit-from="inheritFrom"
       :continuity="version?.continuity.name"
     />
-    <RelationshipsTab v-else-if="relationshipsOf" :wiki-id="wikiId" :character="relationshipsOf" />
+    <RelationshipsTab
+      v-else-if="relationshipsTab"
+      :wiki-id="wikiId"
+      :character="relationshipsTab.character"
+      :continuity="relationshipsTab.continuity"
+    />
     <div v-else-if="page === null && topPage !== undefined" class="missing">
       <p>This page doesn't exist yet.</p>
       <RouterLink class="create-button" :to="{ name: 'new-page', params: { wikiId }, query: { title } }">
@@ -208,6 +227,10 @@ watchEffect(() => {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem 0.75rem;
+}
+
+.new-version {
+  font-size: 0.8rem;
 }
 
 .page-title {
