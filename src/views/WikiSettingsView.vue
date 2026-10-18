@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { computed, ref, watch, watchEffect } from "vue";
+import { computed, onMounted, ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import AppDialog from "@/components/AppDialog.vue";
 import ContinuityDialog from "@/components/ContinuityDialog.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Continuity } from "@/db/types";
-import { continuityService, pageService, wikiService } from "@/services";
+import { continuityService, pageService, storageService, wikiService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
 const props = defineProps<{ wikiId: string }>();
@@ -68,6 +68,15 @@ async function deleteContinuity(continuity: Continuity) {
   } catch (cause) {
     continuityError.value = cause instanceof Error ? cause.message : String(cause);
   }
+}
+
+const persisted = ref<boolean>();
+const askedToKeep = ref(false);
+onMounted(async () => (persisted.value = await storageService.persisted()));
+
+async function askToKeep() {
+  persisted.value = await storageService.request();
+  askedToKeep.value = true;
 }
 
 const deleteOpen = ref(false);
@@ -160,6 +169,23 @@ watchEffect(() => {
       />
     </section>
 
+    <section aria-labelledby="settings-data">
+      <h2 id="settings-data">Data</h2>
+      <h3 class="label">Storage</h3>
+      <template v-if="!storageService.supported">
+        <p class="status">This browser can't promise to keep your wikis.</p>
+        <p class="hint">Wikis live only on this device, and the browser may clear them when space runs low.</p>
+      </template>
+      <p v-else-if="persisted" class="status kept" role="status">This browser keeps your wikis until you delete them.</p>
+      <template v-else-if="persisted === false">
+        <p class="status" role="status">The browser may clear your wikis when space runs low.</p>
+        <button class="button secondary" type="button" @click="askToKeep">Ask the browser to keep them</button>
+        <p v-if="askedToKeep" class="hint" role="alert">
+          The browser said no. Some browsers decide by how often you use a site, and installing the app usually helps.
+        </p>
+      </template>
+    </section>
+
     <section class="danger-zone" aria-labelledby="settings-delete">
       <h2 id="settings-delete">Delete this wiki</h2>
       <p>
@@ -226,6 +252,16 @@ h2 {
   margin: 0.35rem 0 0;
   color: var(--color-muted);
   font-size: 0.9rem;
+}
+
+.status {
+  max-width: 40rem;
+  margin: 0 0 0.5rem;
+}
+
+.kept::before {
+  content: "✓ ";
+  color: var(--color-success);
 }
 
 .continuities {
