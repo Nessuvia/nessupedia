@@ -334,7 +334,7 @@ wiki-name/
 - `changes.json` is optional and can be cut to entries newer than a chosen age. Entries name their page by an archive-local key, so deleted pages' histories survive.
 - Original images go under `assets/originals/` when the wiki keeps them.
 - One serializer serves ZIP export and later Dropbox sync.
-- Import always creates a new wiki, adding " (2)" (or the next free number) to a taken name. It validates `wiki.json`, rebuilds IDs, and re-indexes links.
+- Import always creates a new wiki, adding " (2)" (or the next free number) to a taken name. It accepts a ZIP of wiki folders or one with `wiki.json` at the top, checks every wiki in it before writing any, rebuilds IDs, keeps history as it was, and re-indexes links. It's offered in wiki settings and on the first-run screen.
 
 ### Obsidian import
 - Reads `.md` files and attachments from a ZIP of the vault into a new wiki.

@@ -32,13 +32,13 @@ export function pathForTitle(title: string): string {
   return `pages/${segments.join("/")}.md`;
 }
 
-function requireTitle(title: string): string {
+export function requireTitle(title: string): string {
   const error = titleError(title);
   if (error) throw new Error(error);
   return normalizeTitle(title.trim());
 }
 
-function frontmatterFields(frontmatter: Record<string, unknown>): Pick<Page, "aliases" | "aliasKeys" | "categoryKeys"> {
+export function frontmatterFields(frontmatter: Record<string, unknown>): Pick<Page, "aliases" | "aliasKeys" | "categoryKeys"> {
   const aliases = stringList(frontmatter.aliases);
   return { aliases, aliasKeys: [...new Set(aliases.map(titleKey))], categoryKeys: categoryKeys(frontmatter) };
 }

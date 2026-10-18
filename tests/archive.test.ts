@@ -1,4 +1,4 @@
-import { strFromU8, unzipSync } from "fflate";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { beforeEach, describe, expect, it } from "vitest";
 import { WikiDatabase } from "@/db/database";
 import type { Asset } from "@/db/types";
@@ -41,7 +41,7 @@ beforeEach(async () => {
   pages = new PageService(db, new LinkIndexer(db), changes);
   templates = new TemplateService(db);
   wikis = new WikiService(db);
-  archive = new ArchiveService(db);
+  archive = new ArchiveService(db, new LinkIndexer(db));
   wikiId = (await wikis.create("Ashfall")).id;
 });
 
@@ -133,6 +133,112 @@ describe("ArchiveService.exportZip", () => {
     expect(text(files, "Ashfall/pages/Mira.md")).toBe("Hi\n");
     expect(manifestOf(files, "Noir- Draft/").wiki.name).toBe("Noir: Draft");
     expect(manifestOf(files, "noir- draft (2)/").wiki.name).toBe("noir- draft");
+  });
+});
+
+describe("ArchiveService.importZip", () => {
+  // Everything a wiki holds: a version, a pair page, a template in use, auto-context, an image with its original, and a deleted page's history.
+  async function fullWiki() {
+    await db.wikis.update(wikiId, { keepOriginalImages: true, continuities: [{ id: "noir", name: "Noir AU", description: "Rain" }] });
+    const template = await templates.create(wikiId, "Faction", "## Members\n<!-- Who belongs? -->\n");
+    const mira = await pages.create({ wikiId, title: "Mira", body: "---\naliases: [Mi]\ncategories: [Leads]\n---\nShe trusts [[Theo]], not [[Corin]].\n" });
+    await pages.save(mira.id, `${mira.body}\n![[assets/mira-0123456789.webp]]\n`, { minor: true, summary: "Portrait" });
+    await pages.create({ wikiId, title: "Theo", body: "Knows [[Mi]].\n", templateId: template.id });
+    await pages.create({ wikiId, title: "Mira/Noir AU", body: "---\nchanges: [A detective]\n---\nRain.\n" });
+    await pages.create({ wikiId, title: "Mira & Theo", body: "---\nbetween: [Mira, Theo]\n---\nOld friends.\n" });
+    await db.pages.update(mira.id, {
+      autoContext: { enabled: true, extraTriggers: ["the courier"], match: "any", followDepth: 1, priority: 2, inject: "summary" },
+    });
+    const gone = await pages.create({ wikiId, title: "Gone", body: "Bye\n" });
+    await pages.delete(gone.id);
+    await db.assets.add(asset({ original: new Blob([new Uint8Array([9, 9])], { type: "image/png" }) }));
+  }
+
+  // Keys are export-time IDs, so they differ between exports; everything else must match.
+  function withoutKeys(files: Record<string, Uint8Array>) {
+    const manifest = manifestOf(files);
+    const keys = new Map<string, string>();
+    const keyOf = (key: string) => keys.get(key) ?? keys.set(key, `#${keys.size}`).get(key)!;
+    return {
+      files: Object.fromEntries(Object.entries(files).filter(([path]) => !path.endsWith(".json"))),
+      wiki: { ...manifest.wiki, name: undefined },
+      templates: manifest.templates.map((template) => ({ ...template, key: keyOf(template.key) })),
+      pages: manifest.pages.map((page) => ({ ...page, key: keyOf(page.key), templateId: page.templateId && keyOf(page.templateId) })),
+      assets: manifest.assets,
+      changes: changesOf(files).map((change) => ({ ...change, page: keyOf(change.page) })),
+    };
+  }
+
+  it("round-trips a wiki with no loss", async () => {
+    await fullWiki();
+    const [copy] = await archive.importZip(await archive.exportZip([wikiId]));
+    expect(copy).toMatchObject({ name: "Ashfall (2)", keepOriginalImages: true, continuities: [{ name: "Noir AU", description: "Rain" }] });
+    expect(copy!.id).not.toBe(wikiId);
+    expect(withoutKeys(await archive.serialize(copy!.id))).toEqual(withoutKeys(await archive.serialize(wikiId)));
+  });
+
+  it("rebuilds the link index and maps templates to their new IDs", async () => {
+    await fullWiki();
+    const [copy] = await archive.importZip(await archive.exportZip([wikiId]));
+    const copyPages = await db.pages.where("wikiId").equals(copy!.id).toArray();
+    const titleOf = new Map(copyPages.map((page) => [page.id, page.title]));
+    const links = await db.links.where("wikiId").equals(copy!.id).toArray();
+    expect(links.map((link) => [titleOf.get(link.fromPageId), link.targetTitle, link.toPageId && titleOf.get(link.toPageId), link.field]).sort()).toEqual(
+      [
+        ["Mira", "Theo", "Theo", undefined],
+        ["Mira", "Corin", undefined, undefined],
+        ["Theo", "Mi", "Mira", undefined],
+        ["Mira & Theo", "Mira", "Mira", "between"],
+        ["Mira & Theo", "Theo", "Theo", "between"],
+      ].sort(),
+    );
+
+    const theo = copyPages.find((page) => page.title === "Theo")!;
+    const [faction] = await db.templates.where("wikiId").equals(copy!.id).toArray();
+    expect(theo.templateId).toBe(faction!.id);
+    expect(copyPages.find((page) => page.title === "Mira")).toMatchObject({ aliases: ["Mi"], categoryKeys: ["leads"] });
+  });
+
+  it("keeps a deleted page's history together under an ID no page has", async () => {
+    await fullWiki();
+    const [copy] = await archive.importZip(await archive.exportZip([wikiId]));
+    const changes = await db.changes.where("wikiId").equals(copy!.id).toArray();
+    const goneIds = new Set(changes.filter((change) => change.pageTitle === "Gone").map((change) => change.pageId));
+    expect(goneIds.size).toBe(1);
+    expect(await db.pages.get([...goneIds][0]!)).toBeUndefined();
+  });
+
+  it("imports every wiki in an export of all wikis, numbering names in use", async () => {
+    await pages.create({ wikiId, title: "Mira" });
+    const other = await wikis.create("Second Wiki");
+    const imported = await archive.importZip(await archive.exportZip([wikiId, other.id]));
+    expect(imported.map(({ name }) => name)).toEqual(["Ashfall (2)", "Second Wiki (2)"]);
+    const again = await archive.importZip(await archive.exportZip([wikiId]));
+    expect(again.map(({ name }) => name)).toEqual(["Ashfall (3)"]);
+  });
+
+  it("accepts a ZIP with wiki.json at the top", async () => {
+    await pages.create({ wikiId, title: "Mira", body: "Hi\n" });
+    const files = await archive.serialize(wikiId);
+    const [copy] = await archive.importZip(zipSync(files));
+    expect(await pages.getByTitle(copy!.id, "Mira")).toMatchObject({ body: "Hi\n" });
+  });
+
+  it("refuses damaged exports without writing anything", async () => {
+    await pages.create({ wikiId, title: "Mira" });
+    const files = await archive.serialize(wikiId);
+    const manifest = manifestOf(files);
+    const withManifest = (changes: Partial<ArchiveManifest>) => zipSync({ ...files, "wiki.json": strToU8(JSON.stringify({ ...manifest, ...changes })) });
+    const { "pages/Mira.md": _mira, ...missingPage } = files;
+
+    await expect(archive.importZip(strToU8("not a zip"))).rejects.toThrow("isn't a ZIP");
+    await expect(archive.importZip(zipSync({ "notes.md": strToU8("Hi") }))).rejects.toThrow("has no wiki.json");
+    await expect(archive.importZip(withManifest({ version: 99 }))).rejects.toThrow("newer version");
+    await expect(archive.importZip(withManifest({ format: "other" as "oc-wiki" }))).rejects.toThrow("isn't from an OC Wiki export");
+    await expect(archive.importZip(zipSync(missingPage))).rejects.toThrow("missing pages/Mira.md");
+    await expect(archive.importZip(withManifest({ pages: [{ ...manifest.pages[0]!, title: "Mi[ra" }] }))).rejects.toThrow('"Mi[ra"');
+    await expect(archive.importZip(zipSync({ ...files, "changes.json": strToU8("{") }))).rejects.toThrow("changes.json");
+    expect(await db.wikis.count()).toBe(1);
   });
 });
 

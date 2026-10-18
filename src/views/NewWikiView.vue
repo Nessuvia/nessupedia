@@ -2,6 +2,7 @@
 import { storeToRefs } from "pinia";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
+import ImportZip from "@/components/ImportZip.vue";
 import { useWikiStore } from "@/stores/wiki";
 
 const store = useWikiStore();
@@ -44,6 +45,11 @@ document.title = "Create a wiki | OC Wiki";
         <RouterLink v-if="!firstWiki && wikis" :to="{ name: 'home' }">Cancel</RouterLink>
       </div>
     </form>
+    <section class="import" aria-labelledby="import-heading">
+      <h2 id="import-heading">Or bring one in</h2>
+      <p class="intro">Import a ZIP exported from OC Wiki, such as a backup or a wiki from another device.</p>
+      <ImportZip />
+    </section>
   </main>
 </template>
 
@@ -73,6 +79,15 @@ input {
 
 .error {
   color: var(--color-link-new);
+}
+
+.import {
+  margin-top: 2.5rem;
+}
+
+.import h2 {
+  margin: 0;
+  font-size: 1.1rem;
 }
 
 .actions {

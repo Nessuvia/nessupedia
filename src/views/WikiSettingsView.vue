@@ -4,6 +4,7 @@ import { computed, onMounted, ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import AppDialog from "@/components/AppDialog.vue";
 import ContinuityDialog from "@/components/ContinuityDialog.vue";
+import ImportZip from "@/components/ImportZip.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Continuity } from "@/db/types";
 import { archiveService, continuityService, pageService, storageService, wikiService } from "@/services";
@@ -14,7 +15,7 @@ import { downloadFile } from "@/utils/download";
 const props = defineProps<{ wikiId: string }>();
 
 const router = useRouter();
-const { currentWiki } = storeToRefs(useWikiStore());
+const { currentWiki, wikis } = storeToRefs(useWikiStore());
 const pageCount = useLiveQuery((wikiId) => pageService.countForWiki(wikiId), () => props.wikiId);
 
 const name = ref("");
@@ -90,7 +91,6 @@ const HISTORY_SPANS = [
   { label: "All of it", days: undefined },
 ];
 
-const wikis = useLiveQuery(() => wikiService.list());
 const exportScope = ref<"wiki" | "all">("wiki");
 const includeHistory = ref(true);
 const historySpan = ref(HISTORY_SPANS.length - 1);
@@ -250,6 +250,10 @@ watchEffect(() => {
         </div>
         <p v-if="exportError" class="form-error" role="alert">{{ exportError }}</p>
       </form>
+
+      <h3 class="label subsection">Import</h3>
+      <p class="hint">Makes a new wiki from a ZIP exported here, leaving this one as it is. A name already in use gets a number.</p>
+      <ImportZip class="import" />
     </section>
 
     <section class="danger-zone" aria-labelledby="settings-delete">
@@ -327,6 +331,10 @@ h2 {
 
 .subsection {
   margin-top: 1.5rem;
+}
+
+.import {
+  margin-top: 0.75rem;
 }
 
 .export {

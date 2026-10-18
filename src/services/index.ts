@@ -13,11 +13,11 @@ import { StorageService } from "./StorageService";
 import { TemplateService } from "./TemplateService";
 import { WikiService } from "./WikiService";
 
-export const archiveService = new ArchiveService(db);
 export const assetService = new AssetService(db, encodeImage);
 export const categoryService = new CategoryService(db);
 export const changeLog = new ChangeLog(db);
 export const linkIndexer = new LinkIndexer(db);
+export const archiveService = new ArchiveService(db, linkIndexer);
 export const pageService = new PageService(db, linkIndexer, changeLog);
 export const relationshipService = new RelationshipService(db, linkIndexer);
 export const continuityService = new ContinuityService(db, pageService);
