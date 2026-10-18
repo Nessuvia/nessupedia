@@ -15,6 +15,7 @@ const linkingPages = useLiveQuery(
   async (page) => new Set((await linkIndexer.backlinks(page.id)).map((link) => link.fromPageId).filter((id) => id !== page.id)).size,
   () => props.page,
 );
+const subpageCount = useLiveQuery(async (page) => (await pageService.subpages(page.wikiId, page.title)).length, () => props.page);
 
 async function remove() {
   deleting.value = true;
@@ -35,6 +36,10 @@ async function remove() {
     <ul class="consequences">
       <li v-if="linkingPages">
         {{ linkingPages }} {{ linkingPages === 1 ? "page links" : "pages link" }} here; those links will turn red.
+      </li>
+      <li v-if="subpageCount">
+        Its {{ subpageCount }} {{ subpageCount === 1 ? "subpage stays" : "subpages stay" }}; delete {{ subpageCount === 1 ? "it" : "them" }} separately if you
+        need to.
       </li>
       <li>Its edit history will be removed. Recent changes keeps a note that it was created and deleted.</li>
       <li>You can create a page with this title again later.</li>

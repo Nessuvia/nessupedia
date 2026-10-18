@@ -295,7 +295,9 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 ## Subpages and tabs
 - Subpages are found by title prefix on `[wikiId+titleKey]`, so they need no extra index.
 - The tab bar belongs to the top page: Overview, Relationships when it has pairs, then its direct subpages, ordered by its `tabs` field and then alphabetically. Versions don't appear as tabs.
-- On a subpage the `h1` shows the top page's title, and the tab for the page or its ancestor is selected.
+- On a subpage the `h1` shows the top page's title, and the tab for the page or its ancestor is selected. Deeper and missing subpages add a subtitle naming them ("History › Childhood").
+- Page and edit routes take the title as path segments, so URLs read `/wiki/Mira/History`; an escaped `%2F` resolves the same.
+- Renaming a page renames its subpages at every depth in one transaction; a clash anywhere refuses the whole rename. Deleting a page leaves its subpages.
 
 ## Relationships
 - A page whose `between` names two pages is a relationship page. Versions take `between` from their main page.

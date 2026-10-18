@@ -18,6 +18,18 @@
         {
           "title": "Ashfall",
           "body": "---\ncategories: Places\n---\n\nThe old city. Home to [[Mira]] and [[Theo]].\n\n```\n[[Not a link]]\n```"
+        },
+        {
+          "title": "Mira/History",
+          "body": "Mira grew up in the archive's back rooms. See [[Mira/History/Childhood]].\n\n## The fire\n\nShe saved the ledgers."
+        },
+        {
+          "title": "Mira/History/Childhood",
+          "body": "Her earliest memory is the smell of ink."
+        },
+        {
+          "title": "Mira/Quotes",
+          "body": "> Count the exits, then count again."
         }
       ]
     },

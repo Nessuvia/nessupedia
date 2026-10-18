@@ -1,6 +1,7 @@
 import type { Pinia } from "pinia";
-import { createRouter, createWebHistory, type RouteLocationRaw, type Router } from "vue-router";
+import { createRouter, createWebHistory, type RouteLocationNormalized, type RouteLocationRaw, type Router } from "vue-router";
 import { wikiService } from "@/services";
+import { titleFromRoute, titleParam } from "./params";
 import { MAIN_PAGE_TITLE, useWikiStore } from "@/stores/wiki";
 import AllPagesView from "@/views/AllPagesView.vue";
 import CategoriesView from "@/views/CategoriesView.vue";
@@ -20,6 +21,8 @@ declare module "vue-router" {
     wide?: boolean;
   }
 }
+
+const pageProps = (route: RouteLocationNormalized) => ({ wikiId: route.params.wikiId, title: titleFromRoute(route) });
 
 export async function homeLocation(lastWikiId: string | null): Promise<RouteLocationRaw> {
   const wikis = await wikiService.list();
@@ -52,19 +55,19 @@ export function createAppRouter(pinia: Pinia): Router {
           {
             path: "",
             name: "wiki",
-            redirect: (to) => ({ name: "page", params: { wikiId: to.params.wikiId, title: MAIN_PAGE_TITLE } }),
+            redirect: (to) => ({ name: "page", params: { wikiId: to.params.wikiId, title: titleParam(MAIN_PAGE_TITLE) } }),
           },
           {
-            path: "wiki/:title(.*)",
+            path: "wiki/:title+",
             name: "page",
             components: { default: PageView, rail: PageRail },
-            props: { default: true, rail: true },
+            props: { default: pageProps, rail: pageProps },
           },
           {
-            path: "edit/:title(.*)",
+            path: "edit/:title+",
             name: "edit-page",
             component: () => import("@/views/EditView.vue"),
-            props: true,
+            props: pageProps,
             meta: { wide: true },
           },
           {

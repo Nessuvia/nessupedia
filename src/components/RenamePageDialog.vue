@@ -28,6 +28,7 @@ const linkingPages = useLiveQuery(
   async (page) => new Set((await linkIndexer.linksByTitle(page)).map((link) => link.fromPageId).filter((id) => id !== page.id)).size,
   () => props.page,
 );
+const subpageCount = useLiveQuery(async (page) => (await pageService.subpages(page.wikiId, page.title)).length, () => props.page);
 const clash = useLiveQuery(
   async ([wikiId, wanted]) => {
     const found = wanted.trim() ? await pageService.getByTitle(wikiId, wanted) : undefined;
@@ -72,6 +73,9 @@ async function rename() {
         </template>
         <template v-else>No other pages link here by this title.</template>
         Links that use an alias stay as they are.
+      </p>
+      <p v-if="subpageCount" class="note">
+        Its {{ subpageCount }} {{ subpageCount === 1 ? "subpage moves" : "subpages move" }} with it, keeping their names under the new title.
       </p>
       <p v-if="error" class="form-error" role="alert">{{ error }}</p>
       <div class="dialog-actions">

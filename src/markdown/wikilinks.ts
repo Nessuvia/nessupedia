@@ -33,14 +33,30 @@ const remarkWikilinks: Plugin<[], Root> = () => (tree) => splitTextNodes(tree, W
 export default remarkWikilinks;
 
 export function titleKey(title: string): string {
-  return title.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
+  return title.normalize("NFC").trim().replace(/\s+/g, " ").replace(/ ?\/ ?/g, "/").toLowerCase();
+}
+
+// Trims each segment of a subpage title, so "Mira / History" is stored as "Mira/History".
+export function normalizeTitle(title: string): string {
+  return title
+    .split("/")
+    .map((segment) => segment.trim())
+    .join("/");
 }
 
 const TITLE_FORBIDDEN = /[[\]|#]/;
 
+// The generated Relationships tab takes this name under every page.
+export const RELATIONSHIPS_TAB = "Relationships";
+
 export function titleError(title: string): string | undefined {
   if (!title.trim()) return "A page needs a title";
   if (TITLE_FORBIDDEN.test(title)) return "Page titles can't contain [ ] | or #";
+  const segments = normalizeTitle(title).split("/");
+  if (segments.some((segment) => !segment)) return "Each part of a title around a / needs a name";
+  if (segments.length > 1 && titleKey(segments.at(-1)!) === titleKey(RELATIONSHIPS_TAB)) {
+    return `"${RELATIONSHIPS_TAB}" is kept for the generated tab`;
+  }
   return undefined;
 }
 

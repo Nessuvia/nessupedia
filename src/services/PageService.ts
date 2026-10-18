@@ -4,7 +4,8 @@ import { categoryKeys } from "@/markdown/categories";
 import { stringList } from "@/markdown/frontmatter";
 import { parseMarkdown } from "@/markdown/pipeline";
 import { retargetWikilinks } from "@/markdown/retarget";
-import { titleError, titleKey } from "@/markdown/wikilinks";
+import { isDirectSubpage, titleSegments } from "@/markdown/subpages";
+import { normalizeTitle, titleError, titleKey } from "@/markdown/wikilinks";
 import type { ChangeLog } from "./ChangeLog";
 import type { LinkIndexer } from "./LinkIndexer";
 
@@ -23,15 +24,16 @@ export interface SavePageOptions {
   summary?: string;
 }
 
+// Subpages become folders: "Mira/History" is stored at pages/Mira/History.md.
 export function pathForTitle(title: string): string {
-  const fileName = title.replace(/[\\/:*?"<>|]/g, "-").trim();
-  return `pages/${fileName}.md`;
+  const segments = titleSegments(title).map((segment) => segment.replace(/[\\:*?"<>|]/g, "-"));
+  return `pages/${segments.join("/")}.md`;
 }
 
 function requireTitle(title: string): string {
   const error = titleError(title);
   if (error) throw new Error(error);
-  return title.trim();
+  return normalizeTitle(title.trim());
 }
 
 function frontmatterFields(frontmatter: Record<string, unknown>): Pick<Page, "aliases" | "aliasKeys" | "categoryKeys"> {
@@ -60,6 +62,16 @@ export class PageService {
 
   countForWiki(wikiId: string): Promise<number> {
     return this.db.pages.where("wikiId").equals(wikiId).count();
+  }
+
+  // Every page under a title, at any depth, by title.
+  subpages(wikiId: string, title: string): Promise<Page[]> {
+    const prefix = `${titleKey(title)}/`;
+    return this.db.pages.where("[wikiId+titleKey]").between([wikiId, prefix], [wikiId, `${prefix}￿`]).sortBy("title");
+  }
+
+  async directSubpages(wikiId: string, title: string): Promise<Page[]> {
+    return (await this.subpages(wikiId, title)).filter((page) => isDirectSubpage(page.title, title));
   }
 
   async create({ wikiId, title: rawTitle, body = "", path, templateId, author = "human" }: CreatePageInput): Promise<Page> {
@@ -134,6 +146,8 @@ export class PageService {
 
       const clash = await this.links.findPage(page.wikiId, title);
       if (clash && clash.id !== pageId) throw new Error(`A page titled "${title}" already exists`);
+      // Found before the rename, so a page moved under its own old title doesn't count itself.
+      const children = await this.directSubpages(page.wikiId, page.title);
 
       const renamed: Page = { ...page, title, titleKey: titleKey(title), path: pathForTitle(title), updatedAt: Date.now() };
       await this.db.pages.put(renamed);
@@ -159,6 +173,12 @@ export class PageService {
 
       await this.links.detachInbound(pageId, [renamed.titleKey, ...renamed.aliasKeys]);
       await this.links.resolveInbound(renamed);
+
+      // Each subpage moves its own subpages in turn.
+      const depth = titleSegments(page.title).length;
+      for (const child of children) {
+        await this.rename(child.id, [title, ...titleSegments(child.title).slice(depth)].join("/"), { author });
+      }
       return (await this.db.pages.get(pageId))!;
     });
   }

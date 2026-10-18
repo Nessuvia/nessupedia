@@ -4,6 +4,7 @@ import { useDismiss } from "@/composables/useDismiss";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Wiki } from "@/db/types";
 import { pageService } from "@/services";
+import { titleParam } from "@/router/params";
 import { MAIN_PAGE_TITLE } from "@/stores/wiki";
 
 const props = defineProps<{ wiki: Wiki }>();
@@ -16,7 +17,7 @@ useDismiss(exploreOpen, useTemplateRef("explore"));
 <template>
   <div class="wiki-header">
     <div class="identity">
-      <RouterLink class="wiki-name" :to="{ name: 'page', params: { wikiId: wiki.id, title: MAIN_PAGE_TITLE } }">
+      <RouterLink class="wiki-name" :to="{ name: 'page', params: { wikiId: wiki.id, title: titleParam(MAIN_PAGE_TITLE) } }">
         {{ wiki.name }}
       </RouterLink>
       <nav aria-label="Wiki navigation">
@@ -26,7 +27,7 @@ useDismiss(exploreOpen, useTemplateRef("explore"));
           </button>
           <ul v-if="exploreOpen" id="explore-menu" class="menu">
             <li>
-              <RouterLink :to="{ name: 'page', params: { wikiId: wiki.id, title: MAIN_PAGE_TITLE } }">Main Page</RouterLink>
+              <RouterLink :to="{ name: 'page', params: { wikiId: wiki.id, title: titleParam(MAIN_PAGE_TITLE) } }">Main Page</RouterLink>
             </li>
             <li><RouterLink :to="{ name: 'all-pages', params: { wikiId: wiki.id } }">All pages</RouterLink></li>
             <li><RouterLink :to="{ name: 'categories', params: { wikiId: wiki.id } }">Categories</RouterLink></li>

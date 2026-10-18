@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 import SplitPanes from "@/components/SplitPanes.vue";
 import { useLeaveGuard } from "@/composables/useLeaveGuard";
 import { useLiveQuery } from "@/composables/useLiveQuery";
+import { titleParam } from "@/router/params";
 import { pageService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
@@ -46,7 +47,7 @@ async function save() {
   try {
     const saved = await pageService.save(page.value.id, draft.value, { minor: minor.value, summary: summary.value.trim() });
     base.value = saved.body;
-    await router.push({ name: "page", params: { wikiId: props.wikiId, title: saved.title } });
+    await router.push({ name: "page", params: { wikiId: props.wikiId, title: titleParam(saved.title) } });
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -84,7 +85,7 @@ watchEffect(() => {
         </label>
         <div class="actions">
           <p v-if="error" class="form-error" role="alert">{{ error }}</p>
-          <RouterLink :to="{ name: 'page', params: { wikiId, title: page?.title ?? title } }">Cancel</RouterLink>
+          <RouterLink :to="{ name: 'page', params: { wikiId, title: titleParam(page?.title ?? title) } }">Cancel</RouterLink>
           <button class="button" type="submit" :disabled="!dirty || saving">{{ saving ? "Saving…" : "Save" }}</button>
         </div>
       </form>

@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { ChangeEntry } from "@/db/types";
+import { titleParam } from "@/router/params";
 import { pageService } from "@/services";
 import { relativeTime } from "@/utils/relativeTime";
 
@@ -26,7 +27,7 @@ const titlesById = computed(() => new Map(pages.value?.map((page) => [page.id, p
       <RouterLink
         v-if="titlesById.has(entry.pageId)"
         class="title"
-        :to="{ name: 'page', params: { wikiId, title: titlesById.get(entry.pageId) } }"
+        :to="{ name: 'page', params: { wikiId, title: titleParam(titlesById.get(entry.pageId)!) } }"
       >
         {{ entry.pageTitle }}
       </RouterLink>

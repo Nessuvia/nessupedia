@@ -8,11 +8,14 @@ import NameDialog from "@/components/NameDialog.vue";
 import PageContent from "@/components/PageContent.vue";
 import PageDetailsDialog from "@/components/PageDetailsDialog.vue";
 import RenamePageDialog from "@/components/RenamePageDialog.vue";
+import TabBar from "@/components/TabBar.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { useTemplateNameCheck } from "@/composables/useTemplateNameCheck";
 import type { Page } from "@/db/types";
 import { pageCategories } from "@/markdown/categories";
+import { titleSegments, topTitle } from "@/markdown/subpages";
 import { titleKey } from "@/markdown/wikilinks";
+import { titleParam } from "@/router/params";
 import { pageService, templateService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
@@ -38,13 +41,26 @@ watch(page, (found) => {
   const viaAlias = found.titleKey !== titleKey(props.title);
   void router.replace({
     name: "page",
-    params: { wikiId: props.wikiId, title: found.title },
+    params: { wikiId: props.wikiId, title: titleParam(found.title) },
     hash: route.hash,
     ...(viaAlias && { state: { redirectedFrom: props.title } }),
   });
 });
 
 const categories = computed(() => (page.value ? pageCategories(page.value.frontmatter) : []));
+
+// Subpages carry their top page's title as the heading; the tab bar shows which one this is, and a
+// subtitle names pages the bar can't, deeper ones and missing ones.
+const shownTitle = computed(() => page.value?.title ?? props.title);
+const segments = computed(() => titleSegments(shownTitle.value));
+const topPage = useLiveQuery(
+  async ([wikiId, top]) => (await pageService.getByTitle(wikiId, top)) ?? null,
+  () => [props.wikiId, topTitle(shownTitle.value)] as const,
+);
+const heading = computed(() => (segments.value.length > 1 ? (topPage.value?.title ?? segments.value[0]) : shownTitle.value));
+const subtitle = computed(() =>
+  segments.value.length > 2 || (segments.value.length > 1 && page.value === null) ? segments.value.slice(1).join(" › ") : undefined,
+);
 
 // Dialogs work on a snapshot, so they stay mounted while the live page they changed reloads.
 const dialogPage = shallowRef<Page>();
@@ -68,7 +84,7 @@ async function saveBody(body: string, summary: string, minor: boolean) {
 }
 
 function showRenamed(title: string) {
-  void router.replace({ name: "page", params: { wikiId: props.wikiId, title } });
+  void router.replace({ name: "page", params: { wikiId: props.wikiId, title: titleParam(title) } });
 }
 
 watchEffect(() => {
@@ -87,10 +103,10 @@ watchEffect(() => {
             <template v-if="index < categories.length - 1">, </template>
           </template>
         </p>
-        <h1 class="page-title">{{ page?.title ?? title }}</h1>
+        <h1 class="page-title">{{ heading }}</h1>
       </div>
       <div v-if="page" class="page-actions">
-        <RouterLink class="page-action" :to="{ name: 'edit-page', params: { wikiId, title: page.title } }">
+        <RouterLink class="page-action" :to="{ name: 'edit-page', params: { wikiId, title: titleParam(page.title) } }">
           <AppIcon name="edit" />
           Edit
         </RouterLink>
@@ -100,6 +116,8 @@ watchEffect(() => {
         <button class="page-action" type="button" @click="openDialog('delete')">Delete</button>
       </div>
     </header>
+    <TabBar :wiki-id="wikiId" :title="shownTitle" />
+    <p v-if="subtitle" class="page-subtitle">{{ subtitle }}</p>
     <template v-if="dialogPage">
       <PageDetailsDialog v-model:open="detailsOpen" :page="dialogPage" />
       <RenamePageDialog v-model:open="renameOpen" :page="dialogPage" @renamed="showRenamed" />
@@ -178,6 +196,12 @@ watchEffect(() => {
 .page-action .icon {
   width: 1rem;
   height: 1rem;
+}
+
+.page-subtitle {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
 }
 
 .dialog-note {

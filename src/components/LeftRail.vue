@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { RouteLocationRaw } from "vue-router";
+import { titleParam } from "@/router/params";
 import { MAIN_PAGE_TITLE } from "@/stores/wiki";
 import AppIcon, { type IconName } from "./AppIcon.vue";
 
 const props = defineProps<{ wikiId: string }>();
 
 const items = computed((): { label: string; icon: IconName; to: RouteLocationRaw; bottom?: boolean }[] => [
-  { label: "Home", icon: "home", to: { name: "page", params: { wikiId: props.wikiId, title: MAIN_PAGE_TITLE } } },
+  { label: "Home", icon: "home", to: { name: "page", params: { wikiId: props.wikiId, title: titleParam(MAIN_PAGE_TITLE) } } },
   { label: "All pages", icon: "pages", to: { name: "all-pages", params: { wikiId: props.wikiId } } },
   { label: "Changes", icon: "history", to: { name: "recent-changes", params: { wikiId: props.wikiId } } },
   { label: "New page", icon: "add", to: { name: "new-page", params: { wikiId: props.wikiId } } },

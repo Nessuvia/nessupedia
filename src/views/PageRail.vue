@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useLiveQuery } from "@/composables/useLiveQuery";
+import { titleParam } from "@/router/params";
 import { linkIndexer, pageService } from "@/services";
 
 const props = defineProps<{ wikiId: string; title: string }>();
@@ -25,7 +26,7 @@ const linkingPages = useLiveQuery(
     <h2 id="rail-backlinks">What links here</h2>
     <ul v-if="linkingPages?.length">
       <li v-for="linkingTitle in linkingPages" :key="linkingTitle">
-        <RouterLink :to="{ name: 'page', params: { wikiId, title: linkingTitle } }">{{ linkingTitle }}</RouterLink>
+        <RouterLink :to="{ name: 'page', params: { wikiId, title: titleParam(linkingTitle) } }">{{ linkingTitle }}</RouterLink>
       </li>
     </ul>
     <p v-else-if="linkingPages" class="empty">No pages link here yet.</p>

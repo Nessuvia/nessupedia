@@ -2,6 +2,7 @@
 import { computed, ref, useTemplateRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useDismiss } from "@/composables/useDismiss";
+import { titleParam } from "@/router/params";
 import { searchService } from "@/services";
 import type { SearchHit } from "@/services/SearchService";
 import { highlightParts } from "@/utils/highlight";
@@ -46,7 +47,7 @@ function move(step: number) {
 
 function openHit(hit: SearchHit) {
   open.value = false;
-  void router.push({ name: "page", params: { wikiId: props.wikiId, title: hit.title } });
+  void router.push({ name: "page", params: { wikiId: props.wikiId, title: titleParam(hit.title) } });
 }
 
 function submit() {

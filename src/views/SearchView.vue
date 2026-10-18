@@ -3,6 +3,7 @@ import { storeToRefs } from "pinia";
 import { ref, watch, watchEffect } from "vue";
 import { useRouter } from "vue-router";
 import { useLiveQuery } from "@/composables/useLiveQuery";
+import { titleParam } from "@/router/params";
 import { pageService, searchService } from "@/services";
 import { titleError } from "@/markdown/wikilinks";
 import { useWikiStore } from "@/stores/wiki";
@@ -60,7 +61,7 @@ watchEffect(() => {
       </p>
       <ol class="results">
         <li v-for="hit in results.hits" :key="hit.pageId">
-          <RouterLink class="result-title" :to="{ name: 'page', params: { wikiId, title: hit.title } }">
+          <RouterLink class="result-title" :to="{ name: 'page', params: { wikiId, title: titleParam(hit.title) } }">
             <template v-for="(part, index) in highlightParts(hit.title, query)" :key="index">
               <mark v-if="part.match">{{ part.text }}</mark>
               <template v-else>{{ part.text }}</template>

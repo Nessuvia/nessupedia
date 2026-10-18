@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { instantiateTemplate, templateDescription, templateParts } from "@/markdown/templates";
 import { titleError, titleKey } from "@/markdown/wikilinks";
+import { titleParam } from "@/router/params";
 import { pageService, templateService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
@@ -54,7 +55,7 @@ async function create() {
       body: startingBody(),
       ...(template.value && { templateId: template.value.id }),
     });
-    await router.push({ name: "edit-page", params: { wikiId: props.wikiId, title: page.title } });
+    await router.push({ name: "edit-page", params: { wikiId: props.wikiId, title: titleParam(page.title) } });
   } catch (cause) {
     saveError.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -76,7 +77,7 @@ watchEffect(() => {
       <p v-if="formatError" class="problem" role="alert">{{ formatError }}</p>
       <p v-else-if="existing" class="problem" role="alert">
         {{ viaAlias ? `"${title.trim()}" is another name for` : "A page with this title already exists:" }}
-        <RouterLink :to="{ name: 'page', params: { wikiId, title: existing.title } }">{{ existing.title }}</RouterLink>.
+        <RouterLink :to="{ name: 'page', params: { wikiId, title: titleParam(existing.title) } }">{{ existing.title }}</RouterLink>.
       </p>
 
       <fieldset class="starts">

@@ -8,6 +8,7 @@ import { setCanonTier, shiftTier, TIER_LABELS } from "@/markdown/canon";
 import { headingId, parseMarkdown, renderMarkdown, type RenderedBlock, type RenderOptions } from "@/markdown/pipeline";
 import { buildToc } from "@/markdown/toc";
 import { titleKey } from "@/markdown/wikilinks";
+import { titleParam } from "@/router/params";
 import { assetService, pageService } from "@/services";
 import TableOfContents from "./TableOfContents.vue";
 
@@ -41,7 +42,7 @@ const rendered = computed(() => {
     pageHref: (title, heading) =>
       router.resolve(
         exists(title)
-          ? { name: "page", params: { wikiId: props.wikiId, title }, hash: heading && `#${headingId(heading)}` }
+          ? { name: "page", params: { wikiId: props.wikiId, title: titleParam(title) }, hash: heading && `#${headingId(heading)}` }
           : { name: "new-page", params: { wikiId: props.wikiId }, query: { title } },
       ).href,
   };
