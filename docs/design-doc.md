@@ -88,7 +88,6 @@ interface ChangeEntry {
   minor: boolean;
   summary: string;
   diff: string;
-  resolved?: string[];
   at: number;
 }
 
@@ -161,7 +160,7 @@ Frontmatter fields that name pages (`between`) are indexed in `links` with a `fi
 - YAML frontmatter: `title`, `aliases`, `categories`, `template`, `between` (relationship pages), `changes` (versions), `tabs` (tab order), custom fields. `categories`, `aliases`, and `changes` accept a single string or a list.
 - Raw HTML never renders. An HTML comment standing as its own block (`<!-- hint -->`) renders as a hint block with its source range, hidden by CSS outside click-to-edit.
 - `[[Title]]`, `[[Title|label]]`, `[[Title#Heading]]`.
-- Obsidian callouts: `> [!type] Optional title`, with every Obsidian type and alias; unknown types style as `note`. `[!type]-` renders folded and `[!type]+` open, both as `<details>`. Question callouts (`question` and its aliases `help` and `faq`) are open questions.
+- Obsidian callouts: `> [!type] Optional title`, with every Obsidian type and alias; unknown types style as `note`. `[!type]-` renders folded and `[!type]+` open, both as `<details>`.
 - Images: `![[assets/path.webp]]`, `![[assets/path.webp|alt text]]`, or `![[assets/path.webp|300]]` for a width. A bare file name also looks in `assets/`, so Obsidian embeds resolve. Embeds of anything but an image stay as text.
 - Directives (remark-directive). Text that only looks like a directive, such as `re:Zero`, renders as written.
   - `:::canon{tier=hard|soft|maybe}` wraps blocks; `:canon[a phrase]{tier=maybe}` marks text inline. `canon`, `likely`, and `idea` are accepted as tier names; a missing tier means `hard`.
@@ -220,7 +219,6 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/w/:wikiId/special/recent-changes` | Recent changes feed |
 | `/w/:wikiId/special/categories` | Every category with its page count |
 | `/w/:wikiId/special/category/:name` | A category's pages, grouped by first letter |
-| `/w/:wikiId/special/questions` | Open questions board |
 | `/w/:wikiId/special/templates` | Bundled and user templates |
 | `/w/:wikiId/special/templates/:templateId/edit` | Split view editor for a user template |
 | `/w/:wikiId/special/continuity/:name` | A continuity's description and versions |
@@ -277,7 +275,6 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - Deleting a page drops its history except the creation entry, then records a deletion entry whose diff holds the final body. A page recreated from a red link starts a fresh history under a new ID.
 - Squash merges selected entries into one diff.
 - Prune deletes entries older than a cutoff.
-- A save records in `resolved` the open questions it removes. Questions match by plain text; rewording one, which removes and adds one at the same position, doesn't resolve it.
 
 ## Categories
 - `categories` in frontmatter; `categoryKeys` holds their normalized keys for the multi-entry index.
@@ -317,10 +314,6 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - The "Version in a continuity" card titles the page `<page>/<continuity>`, takes a top-level page, and writes only `changes`; a "New version" link beside a top-level page's title opens it as `/new?template=version&with=<title>`. New versions open in the page view, where sections can be changed one by one.
 - A version's tab bar holds Overview and, when its main page has relationships, Relationships at `<page>/<continuity>/Relationships`. That tab lists the main page's relationships, linking each pair and other character to their version in the continuity when one exists, with the pair version's merged lead. Relationships are added from main canon, so it has no "Add relationship" button.
 - Agent tools read a version as the merged page, with inherited sections marked as main canon.
-
-## Open questions
-- Question callouts are collected per page from the mdast, cached like search text until the body changes.
-- The board groups open questions by page, with each linking to its section. "Recently resolved" lists change entries with `resolved`, newest first, linking to the change (its diff once M4 adds the diff view).
 
 ## Archive
 ### Layout

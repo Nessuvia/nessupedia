@@ -13,8 +13,8 @@
 ## Layout
 Follows the Fandom page structure; colors, fonts, and background art arrive with the theme in M6.
 - **Global bar** (thin, full width): wiki switcher, search, run panel toggle, settings.
-- **Left rail** (icons with small labels): Home, All pages, Recent changes, Open questions, New page, Settings. Hidden on narrow screens, where the wiki header's Explore menu covers navigation.
-- **Wiki header**: wiki name, page count, Explore menu (Main Page, All pages, Categories, Recent changes, Open questions, Templates).
+- **Left rail** (icons with small labels): Home, All pages, Recent changes, New page, Settings. Hidden on narrow screens, where the wiki header's Explore menu covers navigation.
+- **Wiki header**: wiki name, page count, Explore menu (Main Page, All pages, Categories, Recent changes, Templates).
 - **Main**: page header ("in:" line of categories, title, version switcher, page actions), the tab bar when the page has tabs, then the rendered page.
 - **Right rail**: modules such as What links here and Recent changes. Moves below the page on medium and narrow screens.
 - **Right drawer**: agent run panel.
@@ -122,12 +122,6 @@ Typing `/` in any editor offers:
 - Filter: hide minor edits (default on), by page, by author.
 - Actions: view diff, squash selected, prune older than…
 
-## Open questions
-- Written as question callouts (`> [!question]`) anywhere in a page; the page itself adds nothing else.
-- The Open questions board lists open questions grouped by page, each linking to its section.
-- Removing a question, by deleting it or turning it into an answer, resolves it. The board's "Recently resolved" list links each one to the edit that removed it.
-- Template fields left empty in Strict mode become open questions.
-
 ## LLM actions
 Available from the page toolbar and the slash menu:
 - **Draft from notes**: notes box, template picker, assumption mode.
@@ -135,7 +129,7 @@ Available from the page toolbar and the slash menu:
 - **Fill template**: instructions box, assumption mode.
 
 ### Assumption modes
-- **Strict**: uses only provided material; gaps become open questions.
+- **Strict**: uses only provided material; gaps become question callouts (`> [!question]`).
 - **Guided**: follows user rules ("assume X", "always Y").
 - **Liberal**: invents freely; inventions tagged Idea.
 

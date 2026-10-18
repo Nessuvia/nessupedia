@@ -28,7 +28,6 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 - Images stored as wiki assets.
 - Subpages shown as tabs; categories with listing pages.
 - Relationship pages, one per pair, gathered into a Relationships tab on each character.
-- Open questions gathered on a board.
 
 ### Templates
 - Bundled: character, location, relationship.
@@ -67,6 +66,7 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 - In-universe voice mode.
 - Director's Desk roleplay module.
 - Character messaging app, OC social media.
+- Open questions board.
 
 ## User stories
 - As a writer, I jot a few lines about a character and get a full draft page to review section by section.

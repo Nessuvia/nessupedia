@@ -24,7 +24,6 @@
 - Subpages shown as a tab bar
 - Relationship pages and a generated Relationships tab
 - Continuities: wiki-wide alternate universes with page versions that inherit section by section
-- Open questions board
 
 ## M4: History and data
 - Change log with minor edits, diff view, squash, prune
@@ -51,3 +50,4 @@
 4. In-universe voice
 5. Character messaging app, with in-character interviews
 6. OC social media spinoff
+7. Open questions board
