@@ -1,6 +1,8 @@
 import { snippet, startCompletion, type Completion, type CompletionSource } from "@codemirror/autocomplete";
 import type { EditorView } from "@codemirror/view";
 import { PRESSURE_FIELDS } from "@/markdown/fields";
+import { templateParts } from "@/markdown/templates";
+import { templateService } from "@/services";
 import { insertImages, type ImageInsertOptions } from "./images";
 
 export interface SlashMenuOptions extends ImageInsertOptions {
@@ -19,6 +21,30 @@ function blockSnippet(template: string): Apply {
     const prefix = view.state.sliceDoc(line.from, from).trim() ? "\n\n" : "";
     snippet(prefix + template)(view, completion, from, to);
   };
+}
+
+// Inserts text as written, for content that may hold snippet syntax, with the cursor after it.
+function blockText(text: string): Apply {
+  return (view, _completion, from, to) => {
+    const line = view.state.doc.lineAt(from);
+    const insert = (view.state.sliceDoc(line.from, from).trim() ? "\n\n" : "") + text;
+    view.dispatch({ changes: { from, to, insert }, selection: { anchor: from + insert.length } });
+  };
+}
+
+const TEMPLATE_SECTIONS = { name: "Section from template", rank: 1 };
+
+async function templateSections(wikiId: string): Promise<Completion[]> {
+  const templates = await templateService.list(wikiId);
+  return templates.flatMap((template) =>
+    templateParts(template.body)
+      .filter((part) => part.kind === "section")
+      .map((part) => ({
+        label: `${template.name} › ${part.label}`,
+        section: TEMPLATE_SECTIONS,
+        apply: blockText(`${template.body.slice(part.start, part.end).trimEnd()}\n`),
+      })),
+  );
 }
 
 function pickImages(view: EditorView, from: number, to: number, options: ImageInsertOptions) {
@@ -56,7 +82,7 @@ export function slashMenu(options: SlashMenuOptions): CompletionSource {
     },
   ];
 
-  return (context) => {
+  return async (context) => {
     const typed = context.matchBefore(/\/[\w ]*$/);
     if (!typed) return null;
     const before = context.state.sliceDoc(typed.from - 1, typed.from);
@@ -66,7 +92,9 @@ export function slashMenu(options: SlashMenuOptions): CompletionSource {
 
     // Options filter on the text after the slash, and applying one replaces the slash too.
     const hasPressure = PRESSURE.test(context.state.doc.toString()) || PRESSURE.test(options.surroundingText?.() ?? "");
-    const withSlash = commands(hasPressure).map((command) => ({
+    const sections = await templateSections(options.wikiId());
+    if (context.aborted) return null;
+    const withSlash = [...commands(hasPressure), ...sections].map((command) => ({
       ...command,
       apply: ((view, completion, from, to) => (command.apply as Apply)(view, completion, from - 1, to)) satisfies Apply,
     }));
