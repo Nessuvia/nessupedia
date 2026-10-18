@@ -4,14 +4,16 @@ import { computed, ref, shallowRef, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import DeletePageDialog from "@/components/DeletePageDialog.vue";
+import NameDialog from "@/components/NameDialog.vue";
 import PageContent from "@/components/PageContent.vue";
 import PageDetailsDialog from "@/components/PageDetailsDialog.vue";
 import RenamePageDialog from "@/components/RenamePageDialog.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
+import { useTemplateNameCheck } from "@/composables/useTemplateNameCheck";
 import type { Page } from "@/db/types";
 import { pageCategories } from "@/markdown/categories";
 import { titleKey } from "@/markdown/wikilinks";
-import { pageService } from "@/services";
+import { pageService, templateService } from "@/services";
 import { useWikiStore } from "@/stores/wiki";
 
 const props = defineProps<{ wikiId: string; title: string }>();
@@ -46,12 +48,19 @@ const categories = computed(() => (page.value ? pageCategories(page.value.frontm
 
 // Dialogs work on a snapshot, so they stay mounted while the live page they changed reloads.
 const dialogPage = shallowRef<Page>();
-const dialogs = { details: ref(false), rename: ref(false), delete: ref(false) };
-const { details: detailsOpen, rename: renameOpen, delete: deleteOpen } = dialogs;
+const dialogs = { details: ref(false), rename: ref(false), template: ref(false), delete: ref(false) };
+const { details: detailsOpen, rename: renameOpen, template: templateOpen, delete: deleteOpen } = dialogs;
 
 function openDialog(kind: keyof typeof dialogs) {
   dialogPage.value = page.value ?? undefined;
   dialogs[kind].value = true;
+}
+
+const { check: checkTemplateName } = useTemplateNameCheck(() => props.wikiId);
+
+async function saveAsTemplate(name: string) {
+  const template = await templateService.fromPage((await pageService.get(dialogPage.value!.id))!, name);
+  await router.push({ name: "edit-template", params: { wikiId: props.wikiId, templateId: template.id } });
 }
 
 async function saveBody(body: string, summary: string, minor: boolean) {
@@ -87,12 +96,24 @@ watchEffect(() => {
         </RouterLink>
         <button class="page-action" type="button" @click="openDialog('details')">Details</button>
         <button class="page-action" type="button" @click="openDialog('rename')">Rename</button>
+        <button class="page-action" type="button" @click="openDialog('template')">Save as template</button>
         <button class="page-action" type="button" @click="openDialog('delete')">Delete</button>
       </div>
     </header>
     <template v-if="dialogPage">
       <PageDetailsDialog v-model:open="detailsOpen" :page="dialogPage" />
       <RenamePageDialog v-model:open="renameOpen" :page="dialogPage" @renamed="showRenamed" />
+      <NameDialog
+        v-model:open="templateOpen"
+        :title="`Save ${dialogPage.title} as a template`"
+        label="Template name"
+        :initial="dialogPage.title"
+        action="Save template"
+        :check="(name) => checkTemplateName(name)"
+        :submit="saveAsTemplate"
+      >
+        <p class="dialog-note">The template copies this page as it is. You can trim it to a starting shape next.</p>
+      </NameDialog>
       <DeletePageDialog v-model:open="deleteOpen" :page="dialogPage" />
     </template>
     <p v-if="redirectedFrom && page" class="redirect-note">(Redirected from {{ redirectedFrom }})</p>
@@ -157,6 +178,12 @@ watchEffect(() => {
 .page-action .icon {
   width: 1rem;
   height: 1rem;
+}
+
+.dialog-note {
+  margin: 0.75rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.9rem;
 }
 
 .redirect-note {

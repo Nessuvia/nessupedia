@@ -11,6 +11,7 @@ import PageRail from "@/views/PageRail.vue";
 import PageView from "@/views/PageView.vue";
 import RecentChangesView from "@/views/RecentChangesView.vue";
 import SearchView from "@/views/SearchView.vue";
+import TemplatesView from "@/views/TemplatesView.vue";
 import WikiLayout from "@/views/WikiLayout.vue";
 import WikiSettingsView from "@/views/WikiSettingsView.vue";
 
@@ -89,6 +90,14 @@ export function createAppRouter(pinia: Pinia): Router {
           { path: "special/recent-changes", name: "recent-changes", component: RecentChangesView, props: true },
           { path: "special/categories", name: "categories", component: CategoriesView, props: true },
           { path: "special/category/:name(.*)", name: "category", component: CategoryView, props: true },
+          { path: "special/templates", name: "templates", component: TemplatesView, props: true },
+          {
+            path: "special/templates/:templateId/edit",
+            name: "edit-template",
+            component: () => import("@/views/TemplateEditView.vue"),
+            props: true,
+            meta: { wide: true },
+          },
         ],
       },
       { path: "/:unknown(.*)*", redirect: "/" },

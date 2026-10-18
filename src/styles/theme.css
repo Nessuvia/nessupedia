@@ -121,6 +121,27 @@ a:hover {
   margin-top: 1.25rem;
 }
 
+.save-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.save-bar .actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.save-bar .form-error {
+  margin: 0;
+}
+
 a.wikilink.new {
   color: var(--color-link-new);
 }
