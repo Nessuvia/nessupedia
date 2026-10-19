@@ -46,6 +46,10 @@ export class WikiService {
     await this.db.wikis.update(id, { historyDays: days });
   }
 
+  async setAutoContextDepth(id: string, depth: number | undefined): Promise<void> {
+    await this.db.wikis.update(id, { autoContextDepth: depth });
+  }
+
   async delete(id: string): Promise<void> {
     // Tables indexed by wikiId hold this wiki's data; app-wide tables such as settings aren't, and bundled templates have no wikiId.
     const wikiTables = this.db.tables.filter((table) => table.name !== "wikis" && table.schema.idxByName.wikiId);

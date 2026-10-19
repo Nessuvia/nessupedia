@@ -2,6 +2,7 @@
 import { computed, ref, useTemplateRef, watch } from "vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Page } from "@/db/types";
+import { readAutoContext, writeAutoContext, type AutoContextInclude } from "@/markdown/autoContext";
 import { stringList } from "@/markdown/frontmatter";
 import { editFrontmatter, updateFrontmatter } from "@/markdown/frontmatterEdit";
 import { parseMarkdown } from "@/markdown/pipeline";
@@ -20,6 +21,9 @@ const between = ref<string[]>([]);
 const hasPair = computed(() => "between" in props.page.frontmatter);
 const keepHistory = ref(false);
 const keepsHistory = () => props.page.frontmatter.history === "keep";
+const contextEnabled = ref(true);
+const triggers = ref<string[]>([]);
+const include = ref<AutoContextInclude>("lead");
 const minor = ref(false);
 const saving = ref(false);
 const error = ref("");
@@ -35,6 +39,10 @@ watch(
     categories.value = written("categories");
     between.value = written("between");
     keepHistory.value = keepsHistory();
+    const context = readAutoContext(props.page.frontmatter);
+    contextEnabled.value = context.enabled;
+    triggers.value = context.triggers;
+    include.value = context.include;
     minor.value = false;
     error.value = "";
   },
@@ -83,7 +91,25 @@ function pairProblem(name: string): string | undefined {
   return titleKey(name) === props.page.titleKey ? "A relationship page can't name itself." : undefined;
 }
 
-const LABELS: Record<string, string> = { aliases: "aliases", categories: "categories", between: "the pair", history: "history setting" };
+const LABELS: Record<string, string> = {
+  aliases: "aliases",
+  categories: "categories",
+  between: "the pair",
+  history: "history setting",
+  "auto-context": "auto-context",
+};
+
+const contextSettings = computed(() => ({ enabled: contextEnabled.value, triggers: triggers.value, include: include.value }));
+
+const contextChanged = computed(() => {
+  const current = readAutoContext(props.page.frontmatter);
+  return (
+    current.enabled !== contextEnabled.value ||
+    current.include !== include.value ||
+    current.triggers.length !== triggers.value.length ||
+    current.triggers.some((trigger, index) => trigger !== triggers.value[index])
+  );
+});
 
 const changes = computed(() => {
   const same = (a: string[], b: string[]) => a.length === b.length && a.every((name, index) => name === b[index]);
@@ -106,13 +132,15 @@ const blocked = computed(
 const aliasInput = useTemplateRef("aliasInput");
 const categoryInput = useTemplateRef("categoryInput");
 const pairInput = useTemplateRef("pairInput");
+const triggerInput = useTemplateRef("triggerInput");
 
 async function save() {
   aliasInput.value?.commit();
   categoryInput.value?.commit();
   pairInput.value?.commit();
+  triggerInput.value?.commit();
   const historyChanged = keepHistory.value !== keepsHistory();
-  const keys = [...Object.keys(changes.value), ...(historyChanged ? ["history"] : [])];
+  const keys = [...Object.keys(changes.value), ...(historyChanged ? ["history"] : []), ...(contextChanged.value ? ["auto-context"] : [])];
   if (blocked.value || saving.value) return;
   if (keys.length === 0) return void (open.value = false);
 
@@ -125,6 +153,7 @@ async function save() {
     const latest = (await pageService.get(props.page.id))!;
     let body = updateFrontmatter(latest.body, changes.value);
     if (historyChanged) body = editFrontmatter(body, (doc) => (keepHistory.value ? doc.set("history", "keep") : doc.delete("history")));
+    if (contextChanged.value) body = editFrontmatter(body, (doc) => writeAutoContext(doc, contextSettings.value));
     await pageService.save(latest.id, body, { summary: `Edited ${keys.map((key) => LABELS[key]).join(" and ")}`, minor: minor.value });
     open.value = false;
   } catch (cause) {
@@ -148,6 +177,22 @@ async function save() {
       </template>
       <label class="keep"><input v-model="keepHistory" type="checkbox" /> Keep all history</label>
       <p class="note">Old changes to this page are never removed, whatever the wiki's settings say.</p>
+      <details class="auto-context">
+        <summary>Auto-context</summary>
+        <label class="keep"><input v-model="contextEnabled" type="checkbox" /> Give this page to the Assistant when it's mentioned</label>
+        <p class="note">The Assistant reads a page when your notes or the page it's writing use its title or an alias.</p>
+        <template v-if="contextEnabled">
+          <ListInput ref="triggerInput" v-model="triggers" label="Triggers" />
+          <p class="note">More words that bring this page in, such as a signature item or place.</p>
+          <label class="label" for="auto-context-include">Include</label>
+          <select id="auto-context-include" v-model="include" class="text-input include">
+            <option value="lead">Lead (with the infobox)</option>
+            <option value="infobox">Infobox only</option>
+            <option value="full">Full page</option>
+          </select>
+          <p class="note">Idea text is always left out.</p>
+        </template>
+      </details>
       <p v-if="error" class="form-error" role="alert">{{ error }}</p>
       <div class="dialog-actions">
         <label class="minor"><input v-model="minor" type="checkbox" /> Minor edit</label>
@@ -174,6 +219,26 @@ async function save() {
   margin: 0.35rem 0 1rem;
   color: var(--color-muted);
   font-size: 0.85rem;
+}
+
+.auto-context {
+  margin-bottom: 1rem;
+}
+
+.auto-context summary {
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.include {
+  width: auto;
 }
 
 .minor {

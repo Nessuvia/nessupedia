@@ -9,6 +9,7 @@ import ImportZip from "@/components/ImportZip.vue";
 import ModelSettingsForm from "@/components/ModelSettingsForm.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Continuity } from "@/db/types";
+import { DEFAULT_AUTO_CONTEXT_DEPTH } from "@/markdown/autoContext";
 import { archiveService, changeLog, continuityService, pageService, storageService, wikiService } from "@/services";
 import { fileSafeName } from "@/services/ArchiveService";
 import { useWikiStore } from "@/stores/wiki";
@@ -110,6 +111,18 @@ async function changeHistoryDays(event: Event) {
     const removed = await changeLog.prune(props.wikiId, days);
     pruneNote.value = removed ? `Removed ${removed} old ${removed === 1 ? "change" : "changes"}.` : "Nothing was old enough to remove.";
   }
+}
+
+const FOLLOW_OPTIONS = [
+  { label: "Off", depth: 0 },
+  { label: "1 link away", depth: 1 },
+  { label: "2 links away", depth: 2 },
+  { label: "3 links away", depth: 3 },
+];
+
+function changeFollowDepth(event: Event) {
+  const depth = Number((event.target as HTMLSelectElement).value);
+  return wikiService.setAutoContextDepth(props.wikiId, depth === DEFAULT_AUTO_CONTEXT_DEPTH ? undefined : depth);
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -249,6 +262,18 @@ watchEffect(() => {
       <p v-if="pruneNote" class="saved" role="status">{{ pruneNote }}</p>
     </section>
 
+    <section aria-labelledby="settings-assistant">
+      <h2 id="settings-assistant">Assistant</h2>
+      <label class="label" for="follow-depth">Follow connections</label>
+      <select id="follow-depth" class="text-input follow-depth" :value="currentWiki?.autoContextDepth ?? DEFAULT_AUTO_CONTEXT_DEPTH" @change="changeFollowDepth">
+        <option v-for="option in FOLLOW_OPTIONS" :key="option.depth" :value="option.depth">{{ option.label }}</option>
+      </select>
+      <p class="hint">
+        Auto-context gives the Assistant the pages your notes mention. Following connections adds the pages those link to,
+        this many links away.
+      </p>
+    </section>
+
     <section aria-labelledby="settings-model">
       <h2 id="settings-model">Model</h2>
       <p class="hint">The model the Assistant writes with. These settings are shared by all wikis.</p>
@@ -382,7 +407,8 @@ h2 {
   margin: 0 0 0.5rem;
 }
 
-.history-days {
+.history-days,
+.follow-depth {
   width: auto;
 }
 

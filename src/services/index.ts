@@ -1,4 +1,5 @@
 import { db } from "@/db/database";
+import { AutoContext } from "@/llm/AutoContext";
 import { LlmClient } from "@/llm/LlmClient";
 import { TokenCounter } from "@/llm/TokenCounter";
 import { ArchiveService } from "./ArchiveService";
@@ -20,6 +21,7 @@ import { WikiService } from "./WikiService";
 import { workerZipper } from "./zipper";
 
 export const assetService = new AssetService(db, encodeImage);
+export const autoContext = new AutoContext(db);
 export const categoryService = new CategoryService(db);
 export const changeLog = new ChangeLog(db);
 export const linkIndexer = new LinkIndexer(db);

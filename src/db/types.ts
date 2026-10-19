@@ -9,6 +9,8 @@ export interface Wiki {
   // Changes older than this many days are pruned when the wiki opens; unset keeps them all.
   historyDays?: number;
   continuities?: Continuity[];
+  // How many links auto-context follows from mentioned pages; unset means 1, and 0 turns following off.
+  autoContextDepth?: number;
   createdAt: number;
 }
 

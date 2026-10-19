@@ -449,7 +449,7 @@ For each request:
 1. `MentionFinder` scans the input (notes, rules, the current page) for titles, aliases, and triggers of enabled pages: case-insensitive whole words, longest match first.
 2. Follow wikilinks from matched pages up to `autoContextDepth`.
 3. Order direct matches before followed ones, then by mention count, and fill up to the budget.
-4. Each page's chosen part goes in with Idea-tier text removed and Canon and Likely text labeled with its tier. Versions go in merged, with inherited sections marked as main canon.
+4. Each page's chosen part goes in under a `# Title` line with its aliases, without frontmatter, hints, or Idea-tier text. Canon and Likely text is labeled with its tier: `[Likely] … [/Likely]` around blocks, `[Likely: …]` around phrases. Versions go in merged, with inherited parts marked "(From main canon)". Pages that don't fit are reported as left out.
 
 ### Tools
 ```ts
