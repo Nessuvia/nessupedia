@@ -68,7 +68,7 @@ async function restore(entry: ChangeEntry, version: string) {
     const when = new Date(entry.at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
     const summary = entry.kind === "delete" ? "Restored the page as it was when deleted" : `Restored the version from ${when}`;
     const restored = await pageService.restore(history.value!.pageId!, version, { summary });
-    await router.push({ name: "page", params: { wikiId: props.wikiId, title: titleParam(restored.title) } });
+    await router.push({ name: "page", params: { title: titleParam(restored.title) } });
   } catch (cause) {
     restoreError.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -100,7 +100,7 @@ watchEffect(() => {
       History
       <template v-if="page">
         ·
-        <RouterLink :to="{ name: 'page', params: { wikiId, title: titleParam(page.title) } }">Back to the page</RouterLink>
+        <RouterLink :to="{ name: 'page', params: { title: titleParam(page.title) } }">Back to the page</RouterLink>
       </template>
     </p>
 

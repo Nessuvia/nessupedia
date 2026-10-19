@@ -47,7 +47,7 @@ function move(step: number) {
 
 function openHit(hit: SearchHit) {
   open.value = false;
-  void router.push({ name: "page", params: { wikiId: props.wikiId, title: titleParam(hit.title) } });
+  void router.push({ name: "page", params: { title: titleParam(hit.title) } });
 }
 
 function submit() {
@@ -56,7 +56,7 @@ function submit() {
   const text = query.value.trim();
   if (!text) return;
   open.value = false;
-  void router.push({ name: "search", params: { wikiId: props.wikiId }, query: { q: text } });
+  void router.push({ name: "search", query: { q: text } });
 }
 </script>
 

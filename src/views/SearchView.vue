@@ -31,7 +31,7 @@ const results = useLiveQuery(
 );
 
 function submit() {
-  void router.push({ name: "search", params: { wikiId: props.wikiId }, query: { q: draft.value.trim() } });
+  void router.push({ name: "search", query: { q: draft.value.trim() } });
 }
 
 watchEffect(() => {
@@ -51,7 +51,7 @@ watchEffect(() => {
     <template v-if="results && query.trim()">
       <p v-if="!results.exact" class="create">
         There is no page titled "{{ query.trim() }}".
-        <RouterLink :to="{ name: 'new-page', params: { wikiId }, query: { title: query.trim() } }">
+        <RouterLink :to="{ name: 'new-page', query: { title: query.trim() } }">
           Create page "{{ query.trim() }}"
         </RouterLink>
       </p>
@@ -61,7 +61,7 @@ watchEffect(() => {
       </p>
       <ol class="results">
         <li v-for="hit in results.hits" :key="hit.pageId">
-          <RouterLink class="result-title" :to="{ name: 'page', params: { wikiId, title: titleParam(hit.title) } }">
+          <RouterLink class="result-title" :to="{ name: 'page', params: { title: titleParam(hit.title) } }">
             <template v-for="(part, index) in highlightParts(hit.title, query)" :key="index">
               <mark v-if="part.match">{{ part.text }}</mark>
               <template v-else>{{ part.text }}</template>

@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 import { categoryKeys } from "@/markdown/categories";
+import { freeSlug, slugify } from "@/utils/slug";
 import type { AgentRun, Asset, ChangeEntry, Link, ModelSettings, Page, Template, Tokenizer, Wiki } from "./types";
 
 export class WikiDatabase extends Dexie {
@@ -44,6 +45,19 @@ export class WikiDatabase extends Dexie {
       settings: "id",
       tokenizers: "id",
     });
+    this.version(5)
+      .stores({
+        wikis: "id, name, &slug",
+      })
+      .upgrade(async (tx) => {
+        const taken = new Set<string>();
+        await tx
+          .table<Wiki>("wikis")
+          .orderBy("name")
+          .modify((wiki) => {
+            wiki.slug = freeSlug(slugify(wiki.name), taken);
+          });
+      });
   }
 }
 

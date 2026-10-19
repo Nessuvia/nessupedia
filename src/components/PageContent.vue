@@ -66,8 +66,8 @@ const rendered = computed(() => {
     pageHref: (title, heading) =>
       router.resolve(
         exists(title)
-          ? { name: "page", params: { wikiId: props.wikiId, title: titleParam(target(title)) }, hash: heading && `#${headingId(heading)}` }
-          : { name: "new-page", params: { wikiId: props.wikiId }, query: { title } },
+          ? { name: "page", params: { title: titleParam(target(title)) }, hash: heading && `#${headingId(heading)}` }
+          : { name: "new-page", query: { title } },
       ).href,
     ...(props.marks && !merged.value && { marks: props.marks }),
   };

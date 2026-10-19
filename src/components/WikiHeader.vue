@@ -30,7 +30,7 @@ const icon = useAssetUrl(() => [props.wiki.id, images.value.icon]);
     :style="banner && { backgroundImage: `linear-gradient(transparent 35%, rgb(0 0 0 / 55%)), url(&quot;${banner}&quot;)` }"
   >
     <div class="identity">
-      <RouterLink class="wiki-name" :to="{ name: 'page', params: { wikiId: wiki.id, title: titleParam(MAIN_PAGE_TITLE) } }">
+      <RouterLink class="wiki-name" :to="{ name: 'page', params: { title: titleParam(MAIN_PAGE_TITLE) } }">
         <img v-if="wordmark" class="wordmark" :src="wordmark" :alt="wiki.name" />
         <template v-else>
           <img v-if="icon" class="wiki-icon" :src="icon" alt="" />
@@ -44,20 +44,20 @@ const icon = useAssetUrl(() => [props.wiki.id, images.value.icon]);
           </button>
           <ul v-if="exploreOpen" id="explore-menu" class="menu">
             <li>
-              <RouterLink :to="{ name: 'page', params: { wikiId: wiki.id, title: titleParam(MAIN_PAGE_TITLE) } }">Main Page</RouterLink>
+              <RouterLink :to="{ name: 'page', params: { title: titleParam(MAIN_PAGE_TITLE) } }">Main Page</RouterLink>
             </li>
-            <li><RouterLink :to="{ name: 'all-pages', params: { wikiId: wiki.id } }">All pages</RouterLink></li>
-            <li><RouterLink :to="{ name: 'categories', params: { wikiId: wiki.id } }">Categories</RouterLink></li>
-            <li><RouterLink :to="{ name: 'recent-changes', params: { wikiId: wiki.id } }">Recent changes</RouterLink></li>
-            <li><RouterLink :to="{ name: 'templates', params: { wikiId: wiki.id } }">Templates</RouterLink></li>
-            <li><RouterLink :to="{ name: 'new-page', params: { wikiId: wiki.id } }">New page</RouterLink></li>
-            <li><RouterLink :to="{ name: 'wiki-settings', params: { wikiId: wiki.id } }">Wiki settings</RouterLink></li>
+            <li><RouterLink :to="{ name: 'all-pages' }">All pages</RouterLink></li>
+            <li><RouterLink :to="{ name: 'categories' }">Categories</RouterLink></li>
+            <li><RouterLink :to="{ name: 'recent-changes' }">Recent changes</RouterLink></li>
+            <li><RouterLink :to="{ name: 'templates' }">Templates</RouterLink></li>
+            <li><RouterLink :to="{ name: 'new-page' }">New page</RouterLink></li>
+            <li><RouterLink :to="{ name: 'wiki-settings' }">Wiki settings</RouterLink></li>
           </ul>
         </div>
       </nav>
     </div>
     <div class="tools">
-      <RouterLink v-if="pageCount !== undefined" class="page-count" :to="{ name: 'all-pages', params: { wikiId: wiki.id } }">
+      <RouterLink v-if="pageCount !== undefined" class="page-count" :to="{ name: 'all-pages' }">
         <strong>{{ pageCount.toLocaleString() }}</strong> {{ pageCount === 1 ? "page" : "pages" }}
       </RouterLink>
       <button

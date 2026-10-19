@@ -31,7 +31,7 @@ const current = computed(() => options.value?.find((option) => titleKey(option.t
 
 function go(title: string) {
   const target = onRelationships.value ? `${title}/${RELATIONSHIPS_TAB}` : title;
-  void router.push({ name: "page", params: { wikiId: props.wikiId, title: titleParam(target) } });
+  void router.push({ name: "page", params: { title: titleParam(target) } });
 }
 </script>
 

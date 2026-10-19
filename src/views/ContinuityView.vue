@@ -23,7 +23,7 @@ watchEffect(() => {
 
 <template>
   <article class="content-card">
-    <p class="kind"><RouterLink :to="{ name: 'wiki-settings', params: { wikiId } }">Continuity</RouterLink></p>
+    <p class="kind"><RouterLink :to="{ name: 'wiki-settings' }">Continuity</RouterLink></p>
     <h1>{{ continuity?.name ?? name }}</h1>
     <p v-if="continuity === null" class="empty">There's no continuity by this name. Add one in wiki settings.</p>
     <template v-else-if="continuity">
@@ -32,7 +32,7 @@ watchEffect(() => {
       <p v-if="versions?.length === 0" class="empty">No pages have a version in {{ continuity.name }} yet.</p>
       <ul v-else>
         <li v-for="version in versions" :key="version.id">
-          <RouterLink :to="{ name: 'page', params: { wikiId, title: titleParam(version.title) } }">{{ titleSegments(version.title)[0] }}</RouterLink>
+          <RouterLink :to="{ name: 'page', params: { title: titleParam(version.title) } }">{{ titleSegments(version.title)[0] }}</RouterLink>
         </li>
       </ul>
     </template>

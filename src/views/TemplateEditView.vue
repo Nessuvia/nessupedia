@@ -46,7 +46,7 @@ async function save() {
   try {
     const saved = await templateService.save(template.value.id, draft.value);
     base.value = saved.body;
-    await router.push({ name: "templates", params: { wikiId: props.wikiId } });
+    await router.push({ name: "templates" });
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -65,7 +65,7 @@ watchEffect(() => {
 
     <div v-if="template === null">
       <p class="note">This template doesn't exist, or it's bundled with the app. Duplicate a bundled template to change it.</p>
-      <RouterLink :to="{ name: 'templates', params: { wikiId } }">Back to templates</RouterLink>
+      <RouterLink :to="{ name: 'templates' }">Back to templates</RouterLink>
     </div>
 
     <template v-else-if="loadedId">
@@ -77,7 +77,7 @@ watchEffect(() => {
       <form class="save-bar" @submit.prevent="save">
         <div class="actions">
           <p v-if="error" class="form-error" role="alert">{{ error }}</p>
-          <RouterLink :to="{ name: 'templates', params: { wikiId } }">Cancel</RouterLink>
+          <RouterLink :to="{ name: 'templates' }">Cancel</RouterLink>
           <button class="button" type="submit" :disabled="!dirty || saving">{{ saving ? "Saving…" : "Save" }}</button>
         </div>
       </form>

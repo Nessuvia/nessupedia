@@ -93,7 +93,7 @@ const ROLE_LABELS = { system: "Instructions", user: "Request", assistant: "Reply
 
     <section v-if="run" class="current" aria-label="Current run">
       <p class="run-title">
-        <RouterLink :to="{ name: 'review', params: { wikiId, runId: run.id } }">{{ run.pageTitle }}</RouterLink>
+        <RouterLink :to="{ name: 'review', params: { runId: run.id } }">{{ run.pageTitle }}</RouterLink>
         <span class="muted"> · {{ run.kind === "fill-template" ? "Fill template" : "Draft" }}</span>
       </p>
       <p class="status-line" role="status">{{ statusLine }}</p>
@@ -113,7 +113,7 @@ const ROLE_LABELS = { system: "Instructions", user: "Request", assistant: "Reply
       <div class="controls">
         <button v-if="run.status === 'running'" class="button secondary" type="button" @click="runOrchestrator.interrupt(run.id)">Interrupt</button>
         <button v-if="canContinue" class="button" type="button" @click="runOrchestrator.resume(run.id)">Continue</button>
-        <RouterLink class="button secondary" :to="{ name: 'review', params: { wikiId, runId: run.id } }">Review</RouterLink>
+        <RouterLink class="button secondary" :to="{ name: 'review', params: { runId: run.id } }">Review</RouterLink>
       </div>
       <form v-if="run.status === 'running' || canContinue" class="message" @submit.prevent="sendMessage">
         <input

@@ -29,7 +29,7 @@ export const useRunsStore = defineStore("runs", () => {
   async function start(input: Omit<StartRunInput, "stepwise">) {
     const run = await runOrchestrator.start({ ...input, stepwise: approveEach.value });
     show(run.id);
-    await router.push({ name: "review", params: { wikiId: input.wikiId, runId: run.id } });
+    await router.push({ name: "review", params: { runId: run.id } });
     return run;
   }
 

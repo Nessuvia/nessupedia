@@ -69,7 +69,7 @@ watchEffect(() => {
         <p class="kicker">{{ run.kind === "fill-template" ? "Fill template" : "Draft from notes" }} · {{ run.mode[0]!.toUpperCase() + run.mode.slice(1) }}</p>
         <h1>
           Review:
-          <RouterLink v-if="page" :to="{ name: 'page', params: { wikiId, title: titleParam(page.title) } }">{{ page.title }}</RouterLink>
+          <RouterLink v-if="page" :to="{ name: 'page', params: { title: titleParam(page.title) } }">{{ page.title }}</RouterLink>
           <template v-else>{{ run.pageTitle }}</template>
         </h1>
         <p class="status-line" role="status">{{ statusLine }}</p>

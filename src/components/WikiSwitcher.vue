@@ -21,7 +21,7 @@ useDismiss(open, useTemplateRef("root"));
       <ul>
         <li v-for="wiki in wikis" :key="wiki.id">
           <RouterLink
-            :to="{ name: 'wiki', params: { wikiId: wiki.id } }"
+            :to="{ name: 'wiki', params: { wiki: wiki.slug } }"
             :aria-current="wiki.id === currentWiki?.id ? 'true' : undefined"
           >
             <WikiIcon :wiki="wiki" />

@@ -51,7 +51,7 @@ async function runImport() {
     });
     open.value = false;
     scan.value = undefined;
-    await router.push({ name: "wiki", params: { wikiId: wiki.id } });
+    await router.push({ name: "wiki", params: { wiki: wiki.slug } });
   } catch (cause) {
     importError.value = cause instanceof Error ? cause.message : String(cause);
   } finally {

@@ -10,9 +10,9 @@ defineProps<{ wikiId: string; continuity: Continuity; mainTitle: string; mainExi
   <aside class="version-banner" aria-label="Version">
     <p class="lead">
       This is the
-      <RouterLink :to="{ name: 'continuity', params: { wikiId, name: continuity.name } }">{{ continuity.name }}</RouterLink>
+      <RouterLink :to="{ name: 'continuity', params: { name: continuity.name } }">{{ continuity.name }}</RouterLink>
       version of
-      <RouterLink v-if="mainExists" :to="{ name: 'page', params: { wikiId, title: titleParam(mainTitle) } }">{{ mainTitle }}</RouterLink>
+      <RouterLink v-if="mainExists" :to="{ name: 'page', params: { title: titleParam(mainTitle) } }">{{ mainTitle }}</RouterLink>
       <template v-else>{{ mainTitle }}</template>.
     </p>
     <p v-if="continuity.description" class="description">{{ continuity.description }}</p>

@@ -8,11 +8,11 @@ import AppIcon, { type IconName } from "./AppIcon.vue";
 const props = defineProps<{ wikiId: string }>();
 
 const items = computed((): { label: string; icon: IconName; to: RouteLocationRaw; bottom?: boolean }[] => [
-  { label: "Home", icon: "home", to: { name: "page", params: { wikiId: props.wikiId, title: titleParam(MAIN_PAGE_TITLE) } } },
-  { label: "All pages", icon: "pages", to: { name: "all-pages", params: { wikiId: props.wikiId } } },
-  { label: "Changes", icon: "history", to: { name: "recent-changes", params: { wikiId: props.wikiId } } },
-  { label: "New page", icon: "add", to: { name: "new-page", params: { wikiId: props.wikiId } } },
-  { label: "Settings", icon: "settings", to: { name: "wiki-settings", params: { wikiId: props.wikiId } }, bottom: true },
+  { label: "Home", icon: "home", to: { name: "page", params: { title: titleParam(MAIN_PAGE_TITLE) } } },
+  { label: "All pages", icon: "pages", to: { name: "all-pages" } },
+  { label: "Changes", icon: "history", to: { name: "recent-changes" } },
+  { label: "New page", icon: "add", to: { name: "new-page" } },
+  { label: "Settings", icon: "settings", to: { name: "wiki-settings" }, bottom: true },
 ]);
 </script>
 

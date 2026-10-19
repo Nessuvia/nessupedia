@@ -119,7 +119,7 @@ const retag = (event: Event) => act(() => reviewService.retag(props.run.id, prop
         Links to pages that don't exist:
         <template v-for="(link, linkIndex) in section.unknownLinks" :key="link.title">
           <template v-if="linkIndex > 0">; </template>
-          <RouterLink class="wikilink new" :to="{ name: 'page', params: { wikiId: run.wikiId, title: titleParam(link.title) } }">{{ link.title }}</RouterLink>
+          <RouterLink class="wikilink new" :to="{ name: 'page', params: { title: titleParam(link.title) } }">{{ link.title }}</RouterLink>
           <template v-if="link.closest.length"> (did you mean {{ link.closest.join(" or ") }}?)</template>
         </template>
       </p>

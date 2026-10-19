@@ -19,7 +19,7 @@ async function importFile() {
   imported.value = [];
   try {
     const wikis = await archiveService.importZip(new Uint8Array(await file.arrayBuffer()));
-    if (wikis.length === 1) await router.push({ name: "wiki", params: { wikiId: wikis[0]!.id } });
+    if (wikis.length === 1) await router.push({ name: "wiki", params: { wiki: wikis[0]!.slug } });
     else imported.value = wikis;
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
@@ -40,7 +40,7 @@ async function importFile() {
     <p v-else-if="imported.length" role="status">
       Imported
       <template v-for="(wiki, index) in imported" :key="wiki.id">
-        <RouterLink :to="{ name: 'wiki', params: { wikiId: wiki.id } }">{{ wiki.name }}</RouterLink
+        <RouterLink :to="{ name: 'wiki', params: { wiki: wiki.slug } }">{{ wiki.name }}</RouterLink
         >{{ index < imported.length - 2 ? ", " : index === imported.length - 2 ? " and " : "." }}
       </template>
     </p>

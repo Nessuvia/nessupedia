@@ -25,24 +25,24 @@ const relationships = useLiveQuery(
         <RouterLink
           v-if="other.exists"
           class="wikilink"
-          :to="{ name: 'page', params: { wikiId, title: titleParam(other.target) } }"
+          :to="{ name: 'page', params: { title: titleParam(other.target) } }"
         >
           {{ other.title }}
         </RouterLink>
-        <RouterLink v-else class="wikilink new" :to="{ name: 'new-page', params: { wikiId }, query: { title: other.title } }">
+        <RouterLink v-else class="wikilink new" :to="{ name: 'new-page', query: { title: other.title } }">
           {{ other.title }}
         </RouterLink>
       </h2>
       <PageContent v-if="lead" :wiki-id="wikiId" :markdown="lead" :continuity="continuity" />
       <p v-else class="empty">{{ pair.title }} has no summary yet.</p>
-      <RouterLink class="read-more" :to="{ name: 'page', params: { wikiId, title: titleParam(pairTarget) } }">
+      <RouterLink class="read-more" :to="{ name: 'page', params: { title: titleParam(pairTarget) } }">
         Read more: {{ pair.title }}
       </RouterLink>
     </section>
     <RouterLink
       v-if="!continuity"
       class="button add"
-      :to="{ name: 'new-page', params: { wikiId }, query: { template: RELATIONSHIP_TEMPLATE_ID, with: character.title } }"
+      :to="{ name: 'new-page', query: { template: RELATIONSHIP_TEMPLATE_ID, with: character.title } }"
     >
       Add relationship
     </RouterLink>

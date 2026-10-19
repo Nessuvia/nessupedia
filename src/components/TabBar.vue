@@ -65,7 +65,7 @@ const current = computed(() => titleKey(bar.value?.current ?? ""));
       class="tab"
       :class="{ selected: titleKey(tab.title) === current, new: !tab.exists }"
       :aria-current="titleKey(tab.title) === current ? 'page' : undefined"
-      :to="{ name: 'page', params: { wikiId, title: titleParam(tab.title) } }"
+      :to="{ name: 'page', params: { title: titleParam(tab.title) } }"
     >
       {{ tab.label }}
     </RouterLink>

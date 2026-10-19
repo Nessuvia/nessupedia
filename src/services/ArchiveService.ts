@@ -5,9 +5,11 @@ import type { Asset, ChangeEntry, Page, Template, Wiki } from "@/db/types";
 import { parseMarkdown } from "@/markdown/pipeline";
 import { titleKey } from "@/markdown/wikilinks";
 import { isBundled } from "@/templates";
+import { freeSlug, slugify } from "@/utils/slug";
 import { extensionFor } from "./AssetService";
 import type { LinkIndexer } from "./LinkIndexer";
 import { frontmatterFields, pathForTitle, requireTitle } from "./PageService";
+import { takenSlugs } from "./WikiService";
 import { syncZipper, type ZipEntries, type Zipper } from "./zipper";
 
 export const ARCHIVE_FORMAT = "oc-wiki";
@@ -263,15 +265,20 @@ export class ArchiveService {
     const tables = [this.db.wikis, this.db.pages, this.db.links, this.db.changes, this.db.assets, this.db.templates];
     return this.db.transaction("rw", tables, async () => {
       const taken = new Set((await this.db.wikis.toArray()).map(({ name }) => name.toLowerCase()));
+      const slugs = await takenSlugs(this.db);
       const wikis: Wiki[] = [];
-      for (const archive of archives) wikis.push(await this.restore(archive, freeName(archive.manifest.wiki.name, taken)));
+      for (const archive of archives) {
+        const name = freeName(archive.manifest.wiki.name, taken);
+        // Archives from before slugs have none, so the wiki gets one from its name.
+        wikis.push(await this.restore(archive, name, freeSlug(slugify(archive.manifest.wiki.slug || name), slugs)));
+      }
       return wikis;
     });
   }
 
-  private async restore({ manifest, changes, files }: ReadArchive, name: string): Promise<Wiki> {
+  private async restore({ manifest, changes, files }: ReadArchive, name: string, slug: string): Promise<Wiki> {
     // The imported ZIP is itself a backup, so the export reminder starts counting from now.
-    const wiki: Wiki = { ...manifest.wiki, id: crypto.randomUUID(), name, lastExportedAt: Date.now() };
+    const wiki: Wiki = { ...manifest.wiki, id: crypto.randomUUID(), name, slug, lastExportedAt: Date.now() };
     await this.db.wikis.add(wiki);
     const wikiId = wiki.id;
 

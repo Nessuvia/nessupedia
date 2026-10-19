@@ -18,7 +18,7 @@ watchEffect(() => {
 
 <template>
   <article class="content-card">
-    <p class="kind"><RouterLink :to="{ name: 'categories', params: { wikiId } }">Category</RouterLink></p>
+    <p class="kind"><RouterLink :to="{ name: 'categories' }">Category</RouterLink></p>
     <h1>{{ name }}</h1>
     <template v-if="pages">
       <p class="count">

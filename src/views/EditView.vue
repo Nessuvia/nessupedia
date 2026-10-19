@@ -54,7 +54,7 @@ async function save() {
   try {
     const saved = await pageService.save(page.value.id, draft.value, { minor: minor.value, summary: summary.value.trim() });
     base.value = saved.body;
-    await router.push({ name: "page", params: { wikiId: props.wikiId, title: titleParam(saved.title) } });
+    await router.push({ name: "page", params: { title: titleParam(saved.title) } });
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -75,7 +75,7 @@ watchEffect(() => {
 
     <div v-if="page === null" class="missing">
       <p>This page doesn't exist yet.</p>
-      <RouterLink :to="{ name: 'new-page', params: { wikiId }, query: { title } }">Create this page</RouterLink>
+      <RouterLink :to="{ name: 'new-page', query: { title } }">Create this page</RouterLink>
     </div>
 
     <template v-else-if="loadedId">
@@ -99,7 +99,7 @@ watchEffect(() => {
         </label>
         <div class="actions">
           <p v-if="error" class="form-error" role="alert">{{ error }}</p>
-          <RouterLink :to="{ name: 'page', params: { wikiId, title: titleParam(page?.title ?? title) } }">Cancel</RouterLink>
+          <RouterLink :to="{ name: 'page', params: { title: titleParam(page?.title ?? title) } }">Cancel</RouterLink>
           <button class="button" type="submit" :disabled="!dirty || saving">{{ saving ? "Saving…" : "Save" }}</button>
         </div>
       </form>

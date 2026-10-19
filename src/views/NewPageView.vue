@@ -157,7 +157,7 @@ async function create() {
       ...(template.value && { templateId: template.value.id }),
     });
     // A new version already shows its main page's content, so it opens where sections can be changed one by one.
-    await router.push({ name: makingVersion.value ? "page" : "edit-page", params: { wikiId: props.wikiId, title: titleParam(page.title) } });
+    await router.push({ name: makingVersion.value ? "page" : "edit-page", params: { title: titleParam(page.title) } });
   } catch (cause) {
     saveError.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -188,11 +188,11 @@ watchEffect(() => {
       <p v-if="formatError" class="problem" role="alert">{{ formatError }}</p>
       <p v-else-if="existing" class="problem" role="alert">
         {{ viaAlias ? `"${title.trim()}" is another name for` : "A page with this title already exists:" }}
-        <RouterLink :to="{ name: 'page', params: { wikiId, title: titleParam(existing.title) } }">{{ existing.title }}</RouterLink>.
+        <RouterLink :to="{ name: 'page', params: { title: titleParam(existing.title) } }">{{ existing.title }}</RouterLink>.
       </p>
       <p v-else-if="deletion" class="warning" role="status">
         A deleted page named {{ deletion.pageTitle }} has
-        <RouterLink :to="{ name: 'page-history', params: { wikiId, title: titleParam(deletion.pageTitle) } }">history</RouterLink>.
+        <RouterLink :to="{ name: 'page-history', params: { title: titleParam(deletion.pageTitle) } }">history</RouterLink>.
         Creating this page removes it.
       </p>
 
@@ -230,7 +230,7 @@ watchEffect(() => {
           <option v-for="continuity in continuities" :key="continuity.id" :value="continuity.name">{{ continuity.name }}</option>
         </select>
         <p v-else class="note">
-          No continuities yet. <RouterLink :to="{ name: 'wiki-settings', params: { wikiId } }">Add one in wiki settings</RouterLink>.
+          No continuities yet. <RouterLink :to="{ name: 'wiki-settings' }">Add one in wiki settings</RouterLink>.
         </p>
 
         <ListInput v-model="versionChanges" class="changes" label="What changes" />
@@ -267,7 +267,7 @@ watchEffect(() => {
         <template v-if="drafting">
           <p v-if="configured === false" class="problem" role="alert">
             The Assistant needs a model first.
-            <RouterLink :to="{ name: 'wiki-settings', params: { wikiId }, hash: '#settings-model' }">Set one up in settings</RouterLink>.
+            <RouterLink :to="{ name: 'wiki-settings', hash: '#settings-model' }">Set one up in settings</RouterLink>.
           </p>
           <p class="note">
             {{ template ? "Each included section" : "Each section the Assistant plans" }} is proposed for review. The page is created when you

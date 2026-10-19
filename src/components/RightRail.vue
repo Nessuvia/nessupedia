@@ -18,7 +18,7 @@ const recent = useLiveQuery((wikiId) => changeLog.list(wikiId, { limit: RECENT_L
       <h2 id="rail-recent">Recent changes</h2>
       <ChangeList v-if="recent?.length" :wiki-id="wikiId" :entries="recent" />
       <p v-else-if="recent" class="empty">No changes yet.</p>
-      <RouterLink class="more" :to="{ name: 'recent-changes', params: { wikiId } }">See all changes</RouterLink>
+      <RouterLink class="more" :to="{ name: 'recent-changes' }">See all changes</RouterLink>
     </section>
   </aside>
 </template>

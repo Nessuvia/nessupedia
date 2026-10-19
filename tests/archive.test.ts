@@ -174,7 +174,7 @@ describe("ArchiveService.importZip", () => {
     const keyOf = (key: string) => keys.get(key) ?? keys.set(key, `#${keys.size}`).get(key)!;
     return {
       files: Object.fromEntries(Object.entries(files).filter(([path]) => !path.endsWith(".json"))),
-      wiki: { ...manifest.wiki, name: undefined },
+      wiki: { ...manifest.wiki, name: undefined, slug: undefined },
       templates: manifest.templates.map((template) => ({ ...template, key: keyOf(template.key) })),
       pages: manifest.pages.map((page) => ({ ...page, key: keyOf(page.key), templateId: page.templateId && keyOf(page.templateId) })),
       assets: manifest.assets,
@@ -185,7 +185,7 @@ describe("ArchiveService.importZip", () => {
   it("round-trips a wiki with no loss", async () => {
     await fullWiki();
     const [copy] = await archive.importZip(await archive.exportZip([wikiId]));
-    expect(copy).toMatchObject({ name: "Ashfall (2)", keepOriginalImages: true, continuities: [{ name: "Noir AU", description: "Rain" }] });
+    expect(copy).toMatchObject({ name: "Ashfall (2)", slug: "ashfall-2", keepOriginalImages: true, continuities: [{ name: "Noir AU", description: "Rain" }] });
     expect(copy!.appearance?.fonts?.heading?.family).toBe("Rubik");
     expect((await db.assets.where("wikiId").equals(copy!.id).toArray()).map((asset) => asset.path)).toContain(
       "assets/fonts/rubik-latin-400-normal.woff2",

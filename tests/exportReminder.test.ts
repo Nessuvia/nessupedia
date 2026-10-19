@@ -4,7 +4,7 @@ import type { Wiki } from "@/db/types";
 
 const DAY = 24 * 60 * 60 * 1000;
 const now = 100 * DAY;
-const wiki = (fields: Partial<Wiki>): Wiki => ({ id: "w", name: "Ashfall", themeId: "fandom", voice: "fandom", createdAt: now - 30 * DAY, ...fields });
+const wiki = (fields: Partial<Wiki>): Wiki => ({ id: "w", name: "Ashfall", slug: "ashfall", themeId: "fandom", voice: "fandom", createdAt: now - 30 * DAY, ...fields });
 
 describe("exportReminderDue", () => {
   it("is due a week after the last export when the wiki changed since", () => {

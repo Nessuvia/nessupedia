@@ -43,6 +43,7 @@ Client-only PWA. All data lives in IndexedDB. Markdown is the content format. An
 interface Wiki {
   id: string;
   name: string;
+  slug: string; // the wiki's URL segment, unique across wikis
   themeId: string;
   voice: "fandom" | "in-universe";
   keepOriginalImages?: boolean;
@@ -219,8 +220,11 @@ this.version(4).stores({
   settings: "id",
   tokenizers: "id",
 });
+this.version(5).stores({
+  wikis: "id, name, &slug",
+});
 ```
-Version 3 fills `categoryKeys` from each page's frontmatter.
+Version 3 fills `categoryKeys` from each page's frontmatter. Version 5 gives each wiki a slug from its name.
 
 ### Page titles
 Titles are trimmed, must not be blank, and must not contain `[`, `]`, `|`, or `#`, which wikilink syntax reserves. Creation and rename enforce this; a title can't match another page's title or alias.
@@ -289,26 +293,28 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 |---|---|
 | `/` | Redirects to the last opened wiki, or to `/new-wiki` when none exist |
 | `/new-wiki` | Create a wiki; doubles as first run |
-| `/w/:wikiId` | Redirects to the wiki's Main Page |
-| `/w/:wikiId/wiki/:title` | Page view |
-| `/w/:wikiId/edit/:title` | Split view editor, loaded on demand; hides the right rail |
-| `/w/:wikiId/history/:title` | A page's history, diffs, and restore; also serves deleted pages |
-| `/w/:wikiId/new?title=` | Create a page, title prefilled from red links |
-| `/w/:wikiId/special/search?q=` | Full-text results with snippets, plus "Create page" when no title or alias matches |
-| `/w/:wikiId/special/settings` | Wiki settings: rename, delete with typed confirmation |
-| `/w/:wikiId/special/appearance` | The wiki's accent, fonts, images, and Wiki Assets Pack |
-| `/w/:wikiId/special/all-pages` | All pages, grouped by first letter |
-| `/w/:wikiId/special/recent-changes` | Recent changes feed |
-| `/w/:wikiId/special/categories` | Every category with its page count |
-| `/w/:wikiId/special/category/:name` | A category's pages, grouped by first letter |
-| `/w/:wikiId/special/templates` | Bundled and user templates |
-| `/w/:wikiId/special/templates/:templateId/edit` | Split view editor for a user template |
-| `/w/:wikiId/special/continuity/:name` | A continuity's description and versions |
-| `/w/:wikiId/special/review/:runId` | Review an Assistant run's proposals section by section |
+| `/w/:wiki` | Redirects to the wiki's Main Page |
+| `/w/:wiki/wiki/:title` | Page view |
+| `/w/:wiki/edit/:title` | Split view editor, loaded on demand; hides the right rail |
+| `/w/:wiki/history/:title` | A page's history, diffs, and restore; also serves deleted pages |
+| `/w/:wiki/new?title=` | Create a page, title prefilled from red links |
+| `/w/:wiki/special/search?q=` | Full-text results with snippets, plus "Create page" when no title or alias matches |
+| `/w/:wiki/special/settings` | Wiki settings: rename, change the URL, delete with typed confirmation |
+| `/w/:wiki/special/appearance` | The wiki's accent, fonts, images, and Wiki Assets Pack |
+| `/w/:wiki/special/all-pages` | All pages, grouped by first letter |
+| `/w/:wiki/special/recent-changes` | Recent changes feed |
+| `/w/:wiki/special/categories` | Every category with its page count |
+| `/w/:wiki/special/category/:name` | A category's pages, grouped by first letter |
+| `/w/:wiki/special/templates` | Bundled and user templates |
+| `/w/:wiki/special/templates/:templateId/edit` | Split view editor for a user template |
+| `/w/:wiki/special/continuity/:name` | A continuity's description and versions |
+| `/w/:wiki/special/review/:runId` | Review an Assistant run's proposals section by section |
 
-`/w/:wikiId/wiki/Mira/Relationships` and `/w/:wikiId/wiki/Mira/Noir AU/Relationships` render the generated Relationships tab; no page holds them.
+`/w/:wiki/wiki/Mira/Relationships` and `/w/:wiki/wiki/Mira/Noir AU/Relationships` render the generated Relationships tab; no page holds them.
 
-Routes under `/w/:wikiId` render inside the wiki layout. A route can add right rail modules through a named `rail` view. History mode. The service worker serves the app shell for every navigation, so deep links work offline. Views read Dexie through `useLiveQuery`, so lists and pages update after any write.
+`:wiki` is the wiki's slug: its name lowercased with hyphens, numbered when taken, and editable in settings. A guard looks the slug up and passes views the wiki's ID; a link that names the wiki by ID, as URLs did before slugs, is redirected to the slug. Links inside a wiki leave the slug out and inherit the current one.
+
+Routes under `/w/:wiki` render inside the wiki layout. A route can add right rail modules through a named `rail` view. History mode. The service worker serves the app shell for every navigation, so deep links work offline. Views read Dexie through `useLiveQuery`, so lists and pages update after any write.
 
 ## Page view
 - Links render red when no page title or alias matches, case-insensitively; existence updates live. Red links open page creation with the title filled in, and a missing page offers "Create this page".
@@ -423,7 +429,7 @@ wiki-name/
 - Original images go under `assets/originals/` when the wiki keeps them.
 - One serializer serves ZIP export and later Dropbox sync.
 - Zipping and unzipping run in one worker, with file buffers transferred rather than copied, so large wikis don't freeze the page.
-- Import always creates a new wiki, adding " (2)" (or the next free number) to a taken name. It accepts a ZIP of wiki folders or one with `wiki.json` at the top, checks every wiki in it before writing any, rebuilds IDs, keeps history as it was, and re-indexes links. It's offered in wiki settings and on the first-run screen.
+- Import always creates a new wiki, adding " (2)" (or the next free number) to a taken name and "-2" to a taken slug. It accepts a ZIP of wiki folders or one with `wiki.json` at the top, checks every wiki in it before writing any, rebuilds IDs, keeps history as it was, and re-indexes links. It's offered in wiki settings and on the first-run screen.
 
 ### Obsidian import
 - Reads `.md` files and images from a ZIP of the vault into a new wiki, named after the folder the ZIP wraps the vault in, or the ZIP itself. Dot folders such as `.obsidian` and other files are left out.

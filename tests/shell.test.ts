@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { effectScope, ref } from "vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { db, WikiDatabase } from "@/db/database";
-import { homeLocation } from "@/router";
+import { createAppRouter, homeLocation } from "@/router";
 import { changeLog, linkIndexer, pageService, wikiService } from "@/services";
 import { MAIN_PAGE_TITLE, useWikiStore } from "@/stores/wiki";
 import { highlightParts } from "@/utils/highlight";
@@ -20,8 +20,8 @@ describe("useLiveQuery", () => {
   it("follows writes and resets when its source changes", async () => {
     const local = new WikiDatabase(`test-${crypto.randomUUID()}`);
     await local.wikis.bulkAdd([
-      { id: "a", name: "Ashfall", themeId: "fandom", voice: "fandom", createdAt: 0 },
-      { id: "b", name: "Brightwater", themeId: "fandom", voice: "fandom", createdAt: 0 },
+      { id: "a", name: "Ashfall", slug: "ashfall", themeId: "fandom", voice: "fandom", createdAt: 0 },
+      { id: "b", name: "Brightwater", slug: "brightwater", themeId: "fandom", voice: "fandom", createdAt: 0 },
     ]);
     const selected = ref("a");
     const scope = effectScope();
@@ -48,8 +48,21 @@ describe("homeLocation", () => {
     const brightwater = await wikiService.create("Brightwater");
     const ashfall = await wikiService.create("Ashfall");
 
-    expect(await homeLocation(brightwater.id)).toEqual({ name: "wiki", params: { wikiId: brightwater.id } });
-    expect(await homeLocation("deleted")).toEqual({ name: "wiki", params: { wikiId: ashfall.id } });
+    expect(await homeLocation(brightwater.id)).toEqual({ name: "wiki", params: { wiki: brightwater.slug } });
+    expect(await homeLocation("deleted")).toEqual({ name: "wiki", params: { wiki: ashfall.slug } });
+  });
+});
+
+describe("wiki URLs", () => {
+  it("sends an ID link to the wiki's slug and keeps the slug for links inside the wiki", async () => {
+    const wiki = await wikiService.create("Ashfall Saga");
+    const router = createAppRouter(createPinia());
+
+    await router.push(`/w/${wiki.id}/special/all-pages?sort=new`);
+    expect(router.currentRoute.value.fullPath).toBe("/w/ashfall-saga/special/all-pages?sort=new");
+
+    await router.push({ name: "categories" });
+    expect(router.currentRoute.value.path).toBe("/w/ashfall-saga/special/categories");
   });
 });
 

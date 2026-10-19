@@ -49,6 +49,33 @@ async function rename() {
 }
 watch(name, () => (renamed.value = false));
 
+const slug = ref("");
+const slugSaving = ref(false);
+const slugError = ref("");
+const slugSaved = ref(false);
+watch(
+  () => currentWiki.value?.slug,
+  (current) => (slug.value = current ?? ""),
+  { immediate: true },
+);
+const canSaveSlug = computed(() => !!slug.value.trim() && slug.value.trim() !== currentWiki.value?.slug && !slugSaving.value);
+
+async function saveSlug() {
+  if (!canSaveSlug.value) return;
+  slugSaving.value = true;
+  slugError.value = "";
+  try {
+    const wiki = await wikiService.setSlug(props.wikiId, slug.value);
+    await router.replace({ params: { wiki: wiki.slug } });
+    slugSaved.value = true;
+  } catch (cause) {
+    slugError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    slugSaving.value = false;
+  }
+}
+watch(slug, () => (slugSaved.value = false));
+
 const continuities = useLiveQuery((wikiId) => continuityService.list(wikiId), () => props.wikiId);
 const versionCounts = useLiveQuery(
   async ([wikiId, list]) => {
@@ -217,13 +244,23 @@ watchEffect(() => {
         <p v-if="renameError" class="form-error" role="alert">{{ renameError }}</p>
         <p v-else-if="renamed" class="saved" role="status">Saved.</p>
       </form>
+      <form class="rename" @submit.prevent="saveSlug">
+        <label class="label" for="wiki-slug">URL</label>
+        <div class="row">
+          <input id="wiki-slug" v-model="slug" class="text-input" type="text" autocomplete="off" spellcheck="false" />
+          <button class="button" type="submit" :disabled="!canSaveSlug">{{ slugSaving ? "Saving…" : "Save" }}</button>
+        </div>
+        <p class="hint">This wiki's pages live under /w/{{ currentWiki?.slug }}/. Links that use the old URL stop working.</p>
+        <p v-if="slugError" class="form-error" role="alert">{{ slugError }}</p>
+        <p v-else-if="slugSaved" class="saved" role="status">Saved.</p>
+      </form>
     </section>
 
     <section aria-labelledby="settings-appearance">
       <h2 id="settings-appearance">Appearance</h2>
       <p class="hint">
         Set this wiki's accent color, fonts, and images on the
-        <RouterLink :to="{ name: 'appearance', params: { wikiId } }">Appearance page</RouterLink>.
+        <RouterLink :to="{ name: 'appearance' }">Appearance page</RouterLink>.
       </p>
     </section>
 
@@ -252,7 +289,7 @@ watchEffect(() => {
       <ul v-if="continuities?.length" class="continuities">
         <li v-for="continuity in continuities" :key="continuity.id">
           <div class="about">
-            <RouterLink :to="{ name: 'continuity', params: { wikiId, name: continuity.name } }">{{ continuity.name }}</RouterLink>
+            <RouterLink :to="{ name: 'continuity', params: { name: continuity.name } }">{{ continuity.name }}</RouterLink>
             <span class="count">
               {{ versionCounts?.get(continuity.id) ?? 0 }} {{ versionCounts?.get(continuity.id) === 1 ? "version" : "versions" }}
             </span>
@@ -423,6 +460,10 @@ h2 {
   display: flex;
   gap: 0.5rem;
   max-width: 32rem;
+}
+
+.rename + .rename {
+  margin-top: 1rem;
 }
 
 .saved {

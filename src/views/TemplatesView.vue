@@ -34,7 +34,7 @@ function open(kind: "duplicate" | "rename" | "delete", template: Template) {
 
 async function duplicate(name: string) {
   const copy = await templateService.duplicate(target.value!.id, props.wikiId, name);
-  await router.push({ name: "edit-template", params: { wikiId: props.wikiId, templateId: copy.id } });
+  await router.push({ name: "edit-template", params: { templateId: copy.id } });
 }
 
 async function rename(name: string) {
@@ -72,7 +72,7 @@ watchEffect(() => {
             <span v-if="templateDescription(template)">{{ templateDescription(template) }}</span>
           </div>
           <div class="actions">
-            <RouterLink class="action" :to="{ name: 'edit-template', params: { wikiId, templateId: template.id } }">Edit</RouterLink>
+            <RouterLink class="action" :to="{ name: 'edit-template', params: { templateId: template.id } }">Edit</RouterLink>
             <button class="action" type="button" @click="open('rename', template)">Rename</button>
             <button class="action" type="button" @click="open('duplicate', template)">Duplicate</button>
             <button class="action" type="button" @click="open('delete', template)">Delete</button>

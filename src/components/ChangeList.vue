@@ -29,7 +29,7 @@ const titlesById = computed(() => new Map(pages.value?.map((page) => [page.id, p
       <RouterLink
         v-if="titlesById.has(entry.pageId)"
         class="title"
-        :to="{ name: 'page', params: { wikiId, title: titleParam(titlesById.get(entry.pageId)!) } }"
+        :to="{ name: 'page', params: { title: titleParam(titlesById.get(entry.pageId)!) } }"
       >
         {{ entry.pageTitle }}
       </RouterLink>
@@ -44,7 +44,7 @@ const titlesById = computed(() => new Map(pages.value?.map((page) => [page.id, p
           <RouterLink
             :to="{
               name: 'page-history',
-              params: { wikiId, title: titleParam(titlesById.get(entry.pageId)!) },
+              params: { title: titleParam(titlesById.get(entry.pageId)!) },
               hash: `#change-${entry.id}`,
             }"
           >
@@ -53,7 +53,7 @@ const titlesById = computed(() => new Map(pages.value?.map((page) => [page.id, p
         </template>
         <template v-else-if="detailed && entry.kind === 'delete' && !titlesById.has(entry.pageId)">
           ·
-          <RouterLink :to="{ name: 'page-history', params: { wikiId, title: titleParam(entry.pageTitle) } }">History</RouterLink>
+          <RouterLink :to="{ name: 'page-history', params: { title: titleParam(entry.pageTitle) } }">History</RouterLink>
         </template>
       </span>
       <span v-if="detailed && entry.summary && SUMMARIZED.has(entry.kind)" class="summary">{{ entry.summary }}</span>

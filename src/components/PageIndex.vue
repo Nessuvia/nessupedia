@@ -21,7 +21,7 @@ const groups = computed(() => {
     <h2 :id="`letter-${letter}`">{{ letter }}</h2>
     <ul>
       <li v-for="page in group" :key="page.id">
-        <RouterLink :to="{ name: 'page', params: { wikiId, title: titleParam(page.title) } }">{{ page.title }}</RouterLink>
+        <RouterLink :to="{ name: 'page', params: { title: titleParam(page.title) } }">{{ page.title }}</RouterLink>
       </li>
     </ul>
   </section>

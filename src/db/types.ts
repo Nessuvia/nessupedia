@@ -3,6 +3,8 @@ export type CanonTier = "hard" | "soft" | "maybe";
 export interface Wiki {
   id: string;
   name: string;
+  // The wiki's segment in URLs, unique across wikis.
+  slug: string;
   themeId: string;
   voice: "fandom" | "in-universe";
   keepOriginalImages?: boolean;

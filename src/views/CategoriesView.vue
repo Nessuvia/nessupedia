@@ -23,7 +23,7 @@ watchEffect(() => {
     </p>
     <ul v-else-if="categories">
       <li v-for="category in categories" :key="category.key">
-        <RouterLink :to="{ name: 'category', params: { wikiId, name: category.name } }">{{ category.name }}</RouterLink>
+        <RouterLink :to="{ name: 'category', params: { name: category.name } }">{{ category.name }}</RouterLink>
         <span class="count">({{ category.count }})</span>
       </li>
     </ul>

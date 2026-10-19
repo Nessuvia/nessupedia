@@ -62,7 +62,7 @@ async function start() {
     <form @submit.prevent="start">
       <p v-if="configured === false" class="form-error" role="alert">
         The Assistant needs a model first.
-        <RouterLink :to="{ name: 'wiki-settings', params: { wikiId: page.wikiId }, hash: '#settings-model' }" @click="open = false">
+        <RouterLink :to="{ name: 'wiki-settings', hash: '#settings-model' }" @click="open = false">
           Set one up in settings
         </RouterLink>.
       </p>

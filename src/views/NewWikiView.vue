@@ -20,7 +20,7 @@ async function create() {
   error.value = "";
   try {
     const wiki = await store.createWiki(name.value);
-    await router.push({ name: "wiki", params: { wikiId: wiki.id } });
+    await router.push({ name: "wiki", params: { wiki: wiki.slug } });
   } catch (cause) {
     error.value = cause instanceof Error ? cause.message : String(cause);
   } finally {

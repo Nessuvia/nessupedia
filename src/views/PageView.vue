@@ -56,7 +56,7 @@ watch(page, (found) => {
   const viaAlias = found.titleKey !== titleKey(props.title);
   void router.replace({
     name: "page",
-    params: { wikiId: props.wikiId, title: titleParam(found.title) },
+    params: { title: titleParam(found.title) },
     hash: route.hash,
     ...(viaAlias && { state: { redirectedFrom: props.title } }),
   });
@@ -135,7 +135,7 @@ const { check: checkTemplateName } = useTemplateNameCheck(() => props.wikiId);
 
 async function saveAsTemplate(name: string) {
   const template = await templateService.fromPage((await pageService.get(dialogPage.value!.id))!, name);
-  await router.push({ name: "edit-template", params: { wikiId: props.wikiId, templateId: template.id } });
+  await router.push({ name: "edit-template", params: { templateId: template.id } });
 }
 
 async function saveBody(body: string, summary: string, minor: boolean) {
@@ -143,7 +143,7 @@ async function saveBody(body: string, summary: string, minor: boolean) {
 }
 
 function showRenamed(title: string) {
-  void router.replace({ name: "page", params: { wikiId: props.wikiId, title: titleParam(title) } });
+  void router.replace({ name: "page", params: { title: titleParam(title) } });
 }
 
 watchEffect(() => {
@@ -158,7 +158,7 @@ watchEffect(() => {
         <p v-if="categories.length" class="page-categories">
           in:
           <template v-for="(category, index) in categories" :key="category">
-            <RouterLink :to="{ name: 'category', params: { wikiId, name: category } }">{{ category }}</RouterLink>
+            <RouterLink :to="{ name: 'category', params: { name: category } }">{{ category }}</RouterLink>
             <template v-if="index < categories.length - 1">, </template>
           </template>
         </p>
@@ -168,19 +168,19 @@ watchEffect(() => {
           <RouterLink
             v-if="page && continuities.length && segments.length === 1"
             class="new-version"
-            :to="{ name: 'new-page', params: { wikiId }, query: { template: 'version', with: page.title } }"
+            :to="{ name: 'new-page', query: { template: 'version', with: page.title } }"
           >
             New version
           </RouterLink>
         </div>
       </div>
       <div v-if="page" class="page-actions">
-        <RouterLink class="page-action" :to="{ name: 'edit-page', params: { wikiId, title: titleParam(page.title) } }">
+        <RouterLink class="page-action" :to="{ name: 'edit-page', params: { title: titleParam(page.title) } }">
           <AppIcon name="edit" />
           Edit
         </RouterLink>
         <button class="page-action" type="button" @click="openDialog('details')">Details</button>
-        <RouterLink class="page-action" :to="{ name: 'page-history', params: { wikiId, title: titleParam(page.title) } }">
+        <RouterLink class="page-action" :to="{ name: 'page-history', params: { title: titleParam(page.title) } }">
           <AppIcon name="history" />
           History
         </RouterLink>
@@ -253,12 +253,12 @@ watchEffect(() => {
       <template v-if="deletion">
         <p>
           This page was deleted. Its
-          <RouterLink :to="{ name: 'page-history', params: { wikiId, title: titleParam(deletion.pageTitle) } }">history</RouterLink>
+          <RouterLink :to="{ name: 'page-history', params: { title: titleParam(deletion.pageTitle) } }">history</RouterLink>
           can bring it back.
         </p>
       </template>
       <p v-else>This page doesn't exist yet.</p>
-      <RouterLink class="create-button" :to="{ name: 'new-page', params: { wikiId }, query: { title } }">
+      <RouterLink class="create-button" :to="{ name: 'new-page', query: { title } }">
         Create this page
       </RouterLink>
     </div>
