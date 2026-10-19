@@ -5,3 +5,5 @@ dev-dist
 .DS_Store
 *.local
 coverage
+package-lock.json
+docs/refs

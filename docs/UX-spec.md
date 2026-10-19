@@ -8,7 +8,7 @@
 
 ## Visual identity
 - Classic fandom wiki: header with wiki name and search, categories above the page title, tabs for subpages, right-floating infobox, table of contents, sectioned body.
-- Clean yet fun, with generous spacing, in the spirit of the Houseki no Kuni and RWBY wikis (`docs/refs/`).
+- Clean yet fun, with generous spacing, in the spirit of the Houseki no Kuni and RWBY wikis.
 - One built-in theme on CSS variables, in nessuvia's reds, pinks, black and white, with light and dark modes. Each wiki sets its own appearance (see Settings); the theme editor ships post-MVP.
 - Light or dark follows the system until the toggle in the wiki header is used, then sticks on that device.
 

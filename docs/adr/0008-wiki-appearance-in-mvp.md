@@ -4,7 +4,7 @@
 Accepted. Moves part of Theme customization from post-MVP into M6.
 
 ## Context
-The PRD put all theme customization after the MVP, leaving one fixed look. On Fandom, what makes a wiki feel like a fan's own place is its art, wordmark, accent color and fonts, as on the Houseki no Kuni and RWBY wikis (screenshots in `docs/refs/`). With every wiki looking the same, the app doesn't feel like a fandom wiki, so the MVP isn't viable without per-wiki appearance.
+The PRD put all theme customization after the MVP, leaving one fixed look. On Fandom, what makes a wiki feel like a fan's own place is its art, wordmark, accent color and fonts, as on the Houseki no Kuni and RWBY wikis. With every wiki looking the same, the app doesn't feel like a fandom wiki, so the MVP isn't viable without per-wiki appearance.
 
 ## Options
 - One fixed look for every wiki, with all customization post-MVP
