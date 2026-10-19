@@ -94,3 +94,4 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 5. In-universe wiki voice
 6. Character messaging app, with in-character interviews
 7. OC social media spinoff
+8. Open questions board
