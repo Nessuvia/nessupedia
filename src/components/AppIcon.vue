@@ -6,6 +6,8 @@ const PATHS = {
   add: "M12 5v14M5 12h14",
   edit: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
   settings: "M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4",
+  sun: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
+  moon: "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
 } as const;
 
 export type IconName = keyof typeof PATHS;

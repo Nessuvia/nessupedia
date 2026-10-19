@@ -7,6 +7,12 @@
   --infobox-width: 18rem;
 }
 
+:root[data-mode="dark"] .page-body {
+  --canon-hard: #5cc394;
+  --canon-soft: #e0a647;
+  --canon-maybe: #b39ddb;
+}
+
 /* Template hints only show where clicking them opens an editor. */
 .page-body .template-hint {
   display: none;

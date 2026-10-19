@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { watch } from "vue";
+import { onBeforeUnmount, watch, watchEffect } from "vue";
 import { useRoute } from "vue-router";
 import GlobalBar from "@/components/GlobalBar.vue";
 import InstallBanner from "@/components/InstallBanner.vue";
@@ -9,6 +9,7 @@ import RightRail from "@/components/RightRail.vue";
 import RunPanel from "@/components/RunPanel.vue";
 import WikiHeader from "@/components/WikiHeader.vue";
 import { useWikiStore } from "@/stores/wiki";
+import { DEFAULT_ACCENT, isHexColor, textOn } from "@/utils/color";
 
 const props = defineProps<{ wikiId: string }>();
 
@@ -21,6 +22,19 @@ watch(
   (id) => (store.currentWikiId = id),
   { immediate: true },
 );
+
+// The accent goes on the root so the theme's derived colors, and dialogs outside the layout, follow it.
+const root = document.documentElement.style;
+watchEffect(() => {
+  const chosen = currentWiki.value?.appearance?.accent;
+  const accent = isHexColor(chosen) ? chosen : DEFAULT_ACCENT;
+  root.setProperty("--accent", accent);
+  root.setProperty("--accent-text", textOn(accent));
+});
+onBeforeUnmount(() => {
+  root.removeProperty("--accent");
+  root.removeProperty("--accent-text");
+});
 </script>
 
 <template>
@@ -30,7 +44,7 @@ watch(
     <div class="wiki-content">
       <InstallBanner />
       <WikiHeader :wiki="currentWiki" />
-      <div class="columns" :class="{ wide: route.meta.wide }">
+      <div class="columns wiki-card" :class="{ wide: route.meta.wide }">
         <main class="main">
           <RouterView />
         </main>
@@ -64,7 +78,11 @@ watch(
   display: grid;
   grid-template-columns: minmax(0, 1fr) 18rem;
   align-items: start;
-  gap: 1.5rem;
+  gap: 2rem;
+  padding: 1.5rem 2rem 2.5rem;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--color-surface);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 8%);
 }
 
 .columns.wide {
@@ -93,6 +111,10 @@ watch(
 
   .wiki-content {
     padding: 1rem 0.75rem;
+  }
+
+  .columns {
+    padding: 1rem 1rem 1.5rem;
   }
 }
 </style>

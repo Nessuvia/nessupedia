@@ -33,7 +33,8 @@ const running = computed(() => recent.value?.some((run) => run.status === "runni
   gap: 1rem;
   height: var(--global-bar-height);
   padding: 0 1rem;
-  background: var(--color-header);
+  --color-header-text: #ffffff;
+  background: var(--color-bar);
   color: var(--color-header-text);
   font-size: 0.9rem;
 }

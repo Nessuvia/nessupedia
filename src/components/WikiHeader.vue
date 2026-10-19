@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { ref, useTemplateRef } from "vue";
+import { useColorMode } from "@/composables/useColorMode";
 import { useDismiss } from "@/composables/useDismiss";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Wiki } from "@/db/types";
 import { pageService } from "@/services";
 import { titleParam } from "@/router/params";
 import { MAIN_PAGE_TITLE } from "@/stores/wiki";
+import AppIcon from "./AppIcon.vue";
 
 const props = defineProps<{ wiki: Wiki }>();
 
 const pageCount = useLiveQuery((wikiId) => pageService.countForWiki(wikiId), () => props.wiki.id);
 const exploreOpen = ref(false);
 useDismiss(exploreOpen, useTemplateRef("explore"));
+const { mode, toggle } = useColorMode();
 </script>
 
 <template>
@@ -39,9 +42,20 @@ useDismiss(exploreOpen, useTemplateRef("explore"));
         </div>
       </nav>
     </div>
-    <RouterLink v-if="pageCount !== undefined" class="page-count" :to="{ name: 'all-pages', params: { wikiId: wiki.id } }">
-      <strong>{{ pageCount.toLocaleString() }}</strong> {{ pageCount === 1 ? "page" : "pages" }}
-    </RouterLink>
+    <div class="tools">
+      <RouterLink v-if="pageCount !== undefined" class="page-count" :to="{ name: 'all-pages', params: { wikiId: wiki.id } }">
+        <strong>{{ pageCount.toLocaleString() }}</strong> {{ pageCount === 1 ? "page" : "pages" }}
+      </RouterLink>
+      <button
+        type="button"
+        class="mode-toggle"
+        :aria-label="mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        :title="mode === 'dark' ? 'Light mode' : 'Dark mode'"
+        @click="toggle"
+      >
+        <AppIcon :name="mode === 'dark' ? 'sun' : 'moon'" />
+      </button>
+    </div>
   </div>
 </template>
 
@@ -51,7 +65,11 @@ useDismiss(exploreOpen, useTemplateRef("explore"));
   align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
+  min-height: 9rem;
+  padding: 2rem 2rem 0.75rem;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #000000));
+  color: var(--accent-text);
 }
 
 .identity {
@@ -60,9 +78,10 @@ useDismiss(exploreOpen, useTemplateRef("explore"));
 
 .wiki-name {
   display: block;
-  color: var(--color-text);
+  color: inherit;
   font-family: var(--font-heading);
   font-size: 2rem;
+  font-weight: 600;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -79,7 +98,7 @@ useDismiss(exploreOpen, useTemplateRef("explore"));
   padding: 0.2rem 0;
   border: 0;
   background: none;
-  color: var(--color-link);
+  color: inherit;
   font: inherit;
   font-size: 0.8rem;
   font-weight: 700;
@@ -118,15 +137,46 @@ useDismiss(exploreOpen, useTemplateRef("explore"));
   text-decoration: none;
 }
 
-.page-count {
+.tools {
+  display: flex;
   flex-shrink: 0;
-  color: var(--color-muted);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-count {
+  color: inherit;
   font-size: 0.8rem;
   text-transform: uppercase;
 }
 
 .page-count strong {
-  color: var(--color-text);
   font-size: 1.1rem;
+}
+
+.mode-toggle {
+  display: flex;
+  padding: 0.3rem;
+  border: 1px solid currentcolor;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mode-toggle .icon {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+@media (max-width: 48rem) {
+  .wiki-header {
+    min-height: 6rem;
+    padding: 1.25rem 1rem 0.5rem;
+  }
+
+  .wiki-name {
+    font-size: 1.5rem;
+  }
 }
 </style>

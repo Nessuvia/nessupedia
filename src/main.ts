@@ -4,6 +4,7 @@ import App from "./App.vue";
 import { createAppRouter } from "./router";
 import "./styles/theme.css";
 import "./styles/content.css";
+import "./composables/useColorMode";
 
 // A new deploy's service worker deletes the old build's chunks, so an open tab reloads onto the new build
 // when a lazy import fails. Once per 10 seconds, so a chunk that's really missing doesn't loop.

@@ -1,25 +1,49 @@
+/* The wiki layout sets --accent and --accent-text on the root, so every color derived from them follows the wiki. */
 :root {
-  --color-page: #f5efe0;
+  color-scheme: light;
+  --accent: #c41e3a;
+  --accent-text: #ffffff;
+  --color-page: color-mix(in srgb, var(--accent) 9%, #f7f5f6);
   --color-surface: #ffffff;
-  --color-text: #202122;
-  --color-muted: #54595d;
-  --color-header: #2b4a6f;
-  --color-header-text: #ffffff;
+  --color-text: #1b191a;
+  --color-muted: #5f5a5c;
+  --color-header: var(--accent);
+  --color-header-text: var(--accent-text);
   --color-header-hover: rgb(255 255 255 / 15%);
-  --color-link: #3366cc;
-  --color-link-new: #d73333;
+  --color-bar: #161415;
+  --color-link: #2b62c9;
+  --color-link-new: #d3302f;
   --color-danger: #b32424;
   --color-success: #2e7d32;
   --color-diff-removed: #fbe9eb;
   --color-diff-removed-word: #f5b8bf;
   --color-diff-added: #e6f4ea;
   --color-diff-added-word: #a8dbb6;
-  --color-border: #c8ccd1;
+  --color-border: #e2dadd;
   --color-highlight: #fce9a9;
-  --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-heading: Georgia, "Times New Roman", serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-body);
+  --radius: 8px;
   --global-bar-height: 2.75rem;
   --rail-width: 4.5rem;
+}
+
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --color-page: color-mix(in srgb, var(--accent) 12%, #0f0e0f);
+  --color-surface: #1d1b1c;
+  --color-text: #eeeaec;
+  --color-muted: #aba3a7;
+  --color-link: #7fb0ff;
+  --color-link-new: #ff7b72;
+  --color-danger: #e5534b;
+  --color-success: #6fcf86;
+  --color-diff-removed: #4a1f25;
+  --color-diff-removed-word: #7d2b36;
+  --color-diff-added: #1d3b27;
+  --color-diff-added-word: #2d6a3f;
+  --color-border: #3a3437;
+  --color-highlight: #5c4a12;
 }
 
 * {
@@ -58,7 +82,16 @@ a:hover {
 .content-card {
   padding: 1rem 2rem 2rem;
   border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   background: var(--color-surface);
+}
+
+/* Inside the wiki layout, the card around the page and rail is the only card. */
+.wiki-card .content-card {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
 }
 
 @media (max-width: 48rem) {
@@ -68,16 +101,22 @@ a:hover {
 }
 
 .rail-module {
-  padding: 1rem 1.25rem;
+  overflow: hidden;
+  padding: 0 1.25rem 1rem;
   border: 1px solid var(--color-border);
+  border-radius: var(--radius);
   background: var(--color-surface);
 }
 
 .rail-module h2 {
-  margin: 0 0 0.75rem;
+  margin: 0 -1.25rem 0.75rem;
+  padding: 0.4rem 1.25rem;
   border: 0;
-  font-size: 1rem;
+  background: var(--color-header);
+  color: var(--color-header-text);
+  font-size: 0.95rem;
   font-weight: 600;
+  text-align: center;
 }
 
 .button {

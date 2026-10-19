@@ -13,7 +13,26 @@ export interface Wiki {
   autoContextDepth?: number;
   // Rules the Assistant follows in every run, in every mode.
   assistantRules?: string;
+  appearance?: Appearance;
   createdAt: number;
+}
+
+export type ImageSlot = "banner" | "background" | "wordmark" | "icon";
+
+export interface Appearance {
+  // A #rrggbb color; unset uses the theme's default red.
+  accent?: string;
+  fonts?: { heading?: WikiFont; body?: WikiFont };
+  // Asset paths of the wiki's images.
+  images?: Partial<Record<ImageSlot, string>>;
+}
+
+// A Fontsource font whose files are stored as the wiki's assets.
+export interface WikiFont {
+  id: string;
+  family: string;
+  category: string;
+  files: { path: string; weight: number; style: "normal" | "italic"; unicodeRange?: string }[];
 }
 
 // An alternate universe or spinoff. Pages join it through versions titled "<page>/<name>".
