@@ -51,6 +51,7 @@ interface Wiki {
   assistantRules?: string;
   autoContextDepth?: number;
   appearance?: Appearance;
+  lastExportedAt?: number; // set by ZIP export and import; left out of wiki.json
   createdAt: number;
 }
 

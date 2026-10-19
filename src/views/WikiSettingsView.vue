@@ -7,6 +7,7 @@ import ContinuityDialog from "@/components/ContinuityDialog.vue";
 import ImportVault from "@/components/ImportVault.vue";
 import ImportZip from "@/components/ImportZip.vue";
 import ModelSettingsForm from "@/components/ModelSettingsForm.vue";
+import { EXPORT_REMINDER_DAYS, useExportReminder } from "@/composables/useExportReminder";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { Continuity } from "@/db/types";
 import { DEFAULT_AUTO_CONTEXT_DEPTH } from "@/markdown/autoContext";
@@ -14,6 +15,7 @@ import { archiveService, changeLog, continuityService, pageService, storageServi
 import { fileSafeName } from "@/services/ArchiveService";
 import { useWikiStore } from "@/stores/wiki";
 import { downloadFile } from "@/utils/download";
+import { relativeTime } from "@/utils/relativeTime";
 
 const props = defineProps<{ wikiId: string }>();
 
@@ -149,6 +151,7 @@ const HISTORY_SPANS = [
   { label: "All of it", days: undefined },
 ];
 
+const { overdue: exportOverdue } = useExportReminder(currentWiki);
 const exportScope = ref<"wiki" | "all">("wiki");
 const includeHistory = ref(true);
 const historySpan = ref(HISTORY_SPANS.length - 1);
@@ -332,6 +335,11 @@ watchEffect(() => {
 
       <h3 class="label subsection">Export</h3>
       <p class="hint">Download a ZIP of markdown pages, images, and settings, to keep as a backup or import on another device.</p>
+      <p class="hint" :class="{ overdue: exportOverdue }">
+        {{ currentWiki?.lastExportedAt ? `Last exported ${relativeTime(currentWiki.lastExportedAt)}.` : "Never exported." }}
+        <template v-if="exportOverdue">It's time for a new backup.</template>
+        A reminder shows when the wiki has changed and its last export is {{ EXPORT_REMINDER_DAYS }} days old.
+      </p>
       <form class="export" @submit.prevent="exportZip">
         <fieldset v-if="(wikis?.length ?? 0) > 1" class="choices">
           <legend>What to export</legend>
@@ -434,6 +442,10 @@ h2 {
   margin: 0.35rem 0 0;
   color: var(--color-muted);
   font-size: 0.9rem;
+}
+
+.hint.overdue {
+  color: var(--color-danger);
 }
 
 .status {

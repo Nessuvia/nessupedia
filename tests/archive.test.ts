@@ -194,6 +194,15 @@ describe("ArchiveService.importZip", () => {
     expect(withoutKeys(await archive.serialize(copy!.id))).toEqual(withoutKeys(await archive.serialize(wikiId)));
   });
 
+  it("marks exported and imported wikis as backed up, without writing that into the ZIP", async () => {
+    const before = Date.now();
+    const zip = await archive.exportZip([wikiId]);
+    expect((await db.wikis.get(wikiId))?.lastExportedAt).toBeGreaterThanOrEqual(before);
+    const [copy] = await archive.importZip(zip);
+    expect(copy!.lastExportedAt).toBeGreaterThanOrEqual(before);
+    expect(manifestOf(await archive.serialize(wikiId)).wiki).not.toHaveProperty("lastExportedAt");
+  });
+
   it("rebuilds the link index and maps templates to their new IDs", async () => {
     await fullWiki();
     const [copy] = await archive.importZip(await archive.exportZip([wikiId]));

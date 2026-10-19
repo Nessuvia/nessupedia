@@ -181,7 +181,7 @@ export class ArchiveService {
     const paths = new PathClaims();
     for (const reserved of ["wiki.json", "changes.json"]) paths.claim(reserved);
 
-    const { id: _id, ...settings } = wiki;
+    const { id: _id, lastExportedAt: _exported, ...settings } = wiki;
     const manifest: ArchiveManifest = { format: ARCHIVE_FORMAT, version: ARCHIVE_VERSION, wiki: settings, pages: [], templates: [], assets: [] };
 
     for (const page of pages) {
@@ -244,7 +244,9 @@ export class ArchiveService {
         entries[`${folder}/${path}`] = [data, { level: /\.(md|json)$/.test(path) ? 6 : 0 }];
       }
     }
-    return this.zipper.zip(entries);
+    const zip = await this.zipper.zip(entries);
+    await this.db.wikis.where("id").anyOf(wikiIds).modify({ lastExportedAt: Date.now() });
+    return zip;
   }
 
   // Every wiki in the ZIP becomes a new wiki; a name already in use gets a number.
@@ -268,7 +270,8 @@ export class ArchiveService {
   }
 
   private async restore({ manifest, changes, files }: ReadArchive, name: string): Promise<Wiki> {
-    const wiki: Wiki = { ...manifest.wiki, id: crypto.randomUUID(), name };
+    // The imported ZIP is itself a backup, so the export reminder starts counting from now.
+    const wiki: Wiki = { ...manifest.wiki, id: crypto.randomUUID(), name, lastExportedAt: Date.now() };
     await this.db.wikis.add(wiki);
     const wikiId = wiki.id;
 

@@ -181,7 +181,11 @@ Assistant rules saved in wiki settings apply to every run in every mode; the one
   - **Fonts**: a heading font and a body font, searched from Fontsource, or System fonts (default). A note says fonts are small and download once, then work offline. A small credit links to Fontsource.
   - **Images**: banner (1920 × 300), background (1920 × 1080), wordmark (500 × 130, shown at half size), and icon (256 × 256). Each slot takes a dropped file or an upload, shows a preview, and has Remove.
   - **Wiki Assets Pack**: Download gives `Wiki_Assets_Pack.zip`, with `BANNER.png`, `BACKGROUND.png`, `WORDMARK.png`, and `ICON.png` as placeholder grids at the exact sizes and a short README. Import pack fills each slot whose file is in the ZIP, matching names without regard to case or image type.
-- **Data**: storage status, export ZIP, import ZIP, import Obsidian vault.
+- **Data**: storage status, export ZIP, import ZIP, import Obsidian vault. Under Export, "Last exported N days ago" (or "Never exported"), in red when a backup is due.
+
+## Export reminder
+- A banner above the wiki header when the wiki has changed since its last export and that export (or, if none, the wiki's creation) is 7 days old: "Export now" downloads this wiki's ZIP with history, "Later" hides it for 7 days on this device.
+- Importing a ZIP counts as an export, since the ZIP is a backup.
 
 ## Terminology map
 | UI label | Internal term |

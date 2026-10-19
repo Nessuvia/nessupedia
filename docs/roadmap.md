@@ -44,6 +44,7 @@
 - Fandom wiki theme with light and dark modes
 - Wiki appearance: accent color, Fontsource fonts, banner / background / wordmark / icon images, and the Wiki Assets Pack (ADR 0008)
 - Install prompt
+- Export reminders
 - One month of personal use
 
 ## Post-MVP

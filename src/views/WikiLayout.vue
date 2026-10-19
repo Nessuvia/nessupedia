@@ -2,6 +2,7 @@
 import { storeToRefs } from "pinia";
 import { watch } from "vue";
 import { useRoute } from "vue-router";
+import ExportReminder from "@/components/ExportReminder.vue";
 import GlobalBar from "@/components/GlobalBar.vue";
 import InstallBanner from "@/components/InstallBanner.vue";
 import LeftRail from "@/components/LeftRail.vue";
@@ -34,6 +35,7 @@ const background = useAssetUrl(() => [currentWiki.value?.id, currentWiki.value?.
     <LeftRail class="left" :wiki-id="wikiId" />
     <div class="wiki-content">
       <InstallBanner />
+      <ExportReminder :wiki="currentWiki" />
       <WikiHeader :wiki="currentWiki" />
       <div class="columns wiki-card" :class="{ wide: route.meta.wide }">
         <main class="main">

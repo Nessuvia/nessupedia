@@ -14,6 +14,8 @@ export interface Wiki {
   // Rules the Assistant follows in every run, in every mode.
   assistantRules?: string;
   appearance?: Appearance;
+  // When a ZIP export or import last held this wiki; drives the export reminder and isn't exported.
+  lastExportedAt?: number;
   createdAt: number;
 }
 
