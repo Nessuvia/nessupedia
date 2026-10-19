@@ -154,6 +154,17 @@ describe("ArchiveService.importZip", () => {
     const gone = await pages.create({ wikiId, title: "Gone", body: "Bye\n" });
     await pages.delete(gone.id);
     await db.assets.add(asset({ original: new Blob([new Uint8Array([9, 9])], { type: "image/png" }) }));
+    const fontPath = "assets/fonts/rubik-latin-400-normal.woff2";
+    const bannerPath = "assets/appearance-banner-abcdef0123.webp";
+    await db.assets.add(asset({ path: bannerPath, hash: "abcdef0123" }));
+    await db.assets.add(asset({ path: fontPath, mime: "font/woff2", blob: new Blob([new Uint8Array([7])], { type: "font/woff2" }), width: undefined, height: undefined }));
+    await db.wikis.update(wikiId, {
+      appearance: {
+        accent: "#e63462",
+        images: { banner: bannerPath },
+        fonts: { heading: { id: "rubik", family: "Rubik", category: "sans-serif", files: [{ path: fontPath, weight: 400, style: "normal", unicodeRange: "U+0000-00FF" }] } },
+      },
+    });
   }
 
   // Keys are export-time IDs, so they differ between exports; everything else must match.
@@ -175,6 +186,10 @@ describe("ArchiveService.importZip", () => {
     await fullWiki();
     const [copy] = await archive.importZip(await archive.exportZip([wikiId]));
     expect(copy).toMatchObject({ name: "Ashfall (2)", keepOriginalImages: true, continuities: [{ name: "Noir AU", description: "Rain" }] });
+    expect(copy!.appearance?.fonts?.heading?.family).toBe("Rubik");
+    expect((await db.assets.where("wikiId").equals(copy!.id).toArray()).map((asset) => asset.path)).toContain(
+      "assets/fonts/rubik-latin-400-normal.woff2",
+    );
     expect(copy!.id).not.toBe(wikiId);
     expect(withoutKeys(await archive.serialize(copy!.id))).toEqual(withoutKeys(await archive.serialize(wikiId)));
   });
