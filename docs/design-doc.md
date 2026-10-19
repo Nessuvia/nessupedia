@@ -442,7 +442,6 @@ wiki-name/
 - Exporting all wikis puts one such folder per wiki in the ZIP.
 - `changes.json` is optional and can be cut to entries newer than a chosen age. Entries name their page by an archive-local key, so deleted pages' histories survive.
 - Original images go under `assets/originals/` when the wiki keeps them.
-- One serializer serves ZIP export and later Dropbox sync.
 - Zipping and unzipping run in one worker, with file buffers transferred rather than copied, so large wikis don't freeze the page.
 - Import always creates a new wiki, adding " (2)" (or the next free number) to a taken name and "-2" to a taken slug. It accepts a ZIP of wiki folders or one with `wiki.json` at the top, checks every wiki in it before writing any, rebuilds IDs, keeps history as it was, and re-indexes links. It's offered in wiki settings and on the first-run screen.
 
@@ -456,6 +455,55 @@ wiki-name/
 - Each page gets a creation entry "Imported from Obsidian". A Main Page is added when the vault has none, pointing at a Readme, Home, or Index note if there is one.
 - Unknown syntax, such as block references, note embeds, and plugin blocks, passes through as text.
 - If the import fails partway, the new wiki is deleted.
+
+## Dropbox sync
+### Sign-in
+- OAuth with PKCE in a popup (ADR 0010), `token_access_type=offline` for a refresh token. The redirect lands on `public/dropbox.html`, a page without the app that posts the code back to the opener and closes. The service worker's navigation fallback excludes `/dropbox(.html)?` with or without a query, or the popup boots the whole app and the sign-in silently does nothing.
+- The refresh token, account email, and device name live in the app-wide `settings` record, unencrypted like the model key. Access tokens are minted on demand and held in memory only. A rejected refresh clears the token, and the badge shows Reconnect Dropbox.
+- The app is registered for App folder access, so every path is inside `Apps/nessupedia/`. The app key is a build-time `VITE_DROPBOX_APP_KEY`; dev and deployed origins are both registered as redirect URIs.
+
+### Layout
+One file per item, named by ID, so each item compares and moves on its own and a rename is an ordinary edit (ADR 0013).
+```
+<wikiId>/
+  wiki.json            the wiki record: name, settings, continuities
+  pages/<id>.json      page row, its card, and its change entries
+  templates/<id>.json
+  assets/<id>.json     asset row without the blob
+  blobs/<hash>         image bytes, named by content
+  sync.json            who wrote each file
+```
+- A page file is the page as one unit: `{ page, card, changes }`. A deleted page keeps its file with `page: null`, so its history and "Restore" survive; dropping that history removes the file.
+- Change entries leave out their autoincrement `id`, which two devices hand out the same; a pull gives them fresh ones.
+- Card images and original images go in `blobs/` too, originals only when the wiki keeps them. Blobs are never overwritten, and orphans stay behind.
+- Not synced: `links` (re-indexed after a pull), `runs`, `tokenizers`, model settings, and appearance choices that are per device (light or dark).
+- `sync.json` maps each path to `{ hash, device, savedAt }`, written after every push. It gives the clash dialog its device and time, and a file whose Dropbox hash isn't the one recorded there was changed outside the app.
+- The ZIP archive stays as it is for export and import.
+
+### State on the device
+- A `syncState` record per wiki, never synced: `enabled`, `mode` (`auto` | `manual`), `synced` (path → `{ hash, rev }` at the last sync), `dirty` (paths changed here since), `pending` (an unfinished clash list), `lastSyncedAt`, and the sync log for Sync details (last 50 runs).
+- Service writes mark the item's path dirty. A pull writes with marking off.
+- "N changes not sent" is the size of `dirty`, with no network call.
+
+### Compare
+- One recursive `list_folder` of `<wikiId>/` gives every file's `content_hash`. The device hashes its own files the same way (SHA-256 per 4 MB block, then of the digests), so a compare downloads nothing. Only dirty items are rebuilt; clean ones stand in with their `synced` hash.
+- Per path, with `mine`, `theirs`, and `synced`:
+  - `mine == theirs`: in sync, even if both changed. The record is updated.
+  - only `theirs` changed: pull. Only `mine` changed: push. A missing side is a deletion to copy.
+  - both changed: a clash.
+- Clashes go to `pending` and the dialog. Nothing in that wiki moves, in either direction, until every clash is decided; then the whole run applies at once.
+
+### Run order
+- Pull before push, every run.
+- Pull: blobs, then the item, written with dirty marking off, then links re-indexed for pulled pages. Dexie live queries refresh open views, so no reload.
+- Push: blobs first, so a file never names a blob that isn't there; then the item, uploaded with `mode: update` and the `rev` from `synced`. Dropbox refuses that upload if another device wrote the file since, which turns a race into a clash instead of an overwrite. Then `sync.json`, merged per path by `savedAt` if it moved.
+- Auto mode pushes the saved item right after each save, and runs a full sync on open, on `visibilitychange` to visible, and on `online`. Manual mode only syncs on Sync now.
+- Opening the editor on Auto checks that page's file with `get_metadata` and pulls it if it changed. An incoming version for a page with unsaved edits is held for the banner instead of written.
+- A failed push stays dirty and retries with backoff (and on `online`); 429s wait for `Retry-After`.
+- A file over 90 MB is refused before upload with its size. No chunked uploads.
+
+### History pruning
+- On a synced wiki, pruning runs as part of a page's save instead of on open, so two devices pruning at different times don't clash on pages nobody edited.
 
 ## LLM integration
 
@@ -589,8 +637,9 @@ A section that still fails is marked `failed` with its raw reply kept, and the r
 | Local models handle tools poorly | App-driven runs, reply repair, tool call caps, auto-context-only mode |
 | Context overflow on small models | Exact server counts, 10% margin when estimating, retry with less context |
 | Large assets bloat storage | Size warnings, image compression on import |
+| Sync overwrites an edit made on another device | Three-way compare per page, rev-checked uploads, a choice for every clash |
 
 ## Future
-- Dropbox sync on the archive layout, with OAuth PKCE from the browser (ADR 0010).
+- Dropbox sync, specified above (ADR 0010, ADR 0013).
 - Theme editor: full color sets, custom CSS, layout options.
 - Director's Desk reading from auto-context and tools.
