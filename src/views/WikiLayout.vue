@@ -78,7 +78,7 @@ const background = useAssetUrl(() => [currentWiki.value?.id, currentWiki.value?.
 
 .columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 18rem;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: 2rem;
   padding: 1.5rem 2rem 2.5rem;
