@@ -12,6 +12,7 @@ const { currentWiki } = storeToRefs(useWikiStore());
 const { panelOpen } = storeToRefs(useRunsStore());
 const recent = useLiveQuery(async (wikiId) => (wikiId ? reviewService.list(wikiId) : []), () => currentWiki.value?.id ?? "");
 const running = computed(() => recent.value?.some((run) => run.status === "running") ?? false);
+const version = __APP_VERSION__;
 </script>
 
 <template>
@@ -19,6 +20,7 @@ const running = computed(() => recent.value?.some((run) => run.status === "runni
     <RouterLink class="brand" :to="{ name: 'home' }">OC Wiki</RouterLink>
     <WikiSwitcher />
     <SearchBox v-if="currentWiki" :wiki-id="currentWiki.id" />
+    <span class="version">Last updated: {{ version }}</span>
     <button v-if="currentWiki" class="assistant-toggle" type="button" :aria-pressed="panelOpen" @click="panelOpen = !panelOpen">
       Assistant
       <span v-if="running" class="running-dot" aria-label="(running)" />
@@ -50,11 +52,17 @@ const running = computed(() => recent.value?.some((run) => run.status === "runni
   text-decoration: none;
 }
 
+.version {
+  margin-left: auto;
+  opacity: 0.7;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 .assistant-toggle {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin-left: auto;
   padding: 0.3rem 0.75rem;
   border: 1px solid currentcolor;
   border-radius: 4px;
@@ -81,8 +89,13 @@ const running = computed(() => recent.value?.some((run) => run.status === "runni
     padding: 0 0.5rem;
   }
 
-  .brand {
+  .brand,
+  .version {
     display: none;
+  }
+
+  .assistant-toggle {
+    margin-left: auto;
   }
 }
 </style>
