@@ -47,10 +47,11 @@
 
 ## Post-MVP
 1. Dropbox sync (Rails for OAuth)
-2. Theme customization
-3. Director's Desk
-4. In-universe voice
-5. Character messaging app, with in-character interviews
-6. OC social media spinoff
-7. Open questions board
-8. Ollama and LM Studio support
+2. Character cards (V2 and V3): import cards as character pages for the Assistant to draw on, and download a page as a card. Needs a spec first: new page or attach to an existing one, where `character_book` entries go, and whether export builds from canon or returns the imported card.
+3. Theme customization
+4. Director's Desk
+5. In-universe voice
+6. Character messaging app, with in-character interviews
+7. OC social media spinoff
+8. Open questions board
+9. Ollama and LM Studio support

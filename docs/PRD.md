@@ -88,8 +88,9 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 
 ## Future modules
 1. Dropbox sync
-2. Theme customization
-3. Director's Desk (scene cards, prose, notes-driven revision, self-insert seat)
-4. In-universe wiki voice
-5. Character messaging app, with in-character interviews
-6. OC social media spinoff
+2. Character cards (V2 and V3) import and export
+3. Theme customization
+4. Director's Desk (scene cards, prose, notes-driven revision, self-insert seat)
+5. In-universe wiki voice
+6. Character messaging app, with in-character interviews
+7. OC social media spinoff
