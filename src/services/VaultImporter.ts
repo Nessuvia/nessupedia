@@ -62,7 +62,7 @@ const MIME_TYPES: Record<string, string> = {
   bmp: "image/bmp",
 };
 
-const mimeFor = (path: string) => MIME_TYPES[path.split(".").at(-1)!.toLowerCase()] ?? "application/octet-stream";
+export const mimeFor = (path: string) => MIME_TYPES[path.split(".").at(-1)!.toLowerCase()] ?? "application/octet-stream";
 const fileName = (path: string) => path.split("/").at(-1)!;
 const withoutExtension = (path: string) => path.replace(/\.[^./]+$/, "");
 

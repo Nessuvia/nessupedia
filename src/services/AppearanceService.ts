@@ -1,9 +1,19 @@
 import type { WikiDatabase } from "@/db/database";
-import type { Appearance, Wiki, WikiFont } from "@/db/types";
+import type { Appearance, ImageSlot, Wiki, WikiFont } from "@/db/types";
 import { isHexColor } from "@/utils/color";
-import { sha256 } from "./AssetService";
+import { isSupportedImage, sha256, type AssetService } from "./AssetService";
+import { mimeFor } from "./VaultImporter";
+import { syncZipper, type Zipper } from "./zipper";
 
 type Fetch = typeof globalThis.fetch;
+
+export const IMAGE_SLOTS: Record<ImageSlot, { label: string; file: string; width: number; height: number }> = {
+  banner: { label: "Banner", file: "BANNER", width: 1920, height: 300 },
+  background: { label: "Background", file: "BACKGROUND", width: 1920, height: 1080 },
+  wordmark: { label: "Wordmark", file: "WORDMARK", width: 500, height: 130 },
+  icon: { label: "Icon", file: "ICON", width: 256, height: 256 },
+};
+const IMAGE_PREFIX = "assets/appearance-";
 
 export type FontRole = "heading" | "body";
 
@@ -35,8 +45,42 @@ export class AppearanceService {
 
   constructor(
     private readonly db: WikiDatabase,
+    private readonly assets: AssetService,
     private readonly fetch: Fetch = (...args) => globalThis.fetch(...args),
+    private readonly zipper: Zipper = syncZipper,
   ) {}
+
+  // Stores the image like any other, named for its slot; unset clears the slot. The old image goes unless
+  // it's a page's image that happened to be reused.
+  async setImage(wikiId: string, slot: ImageSlot, file: Blob | undefined): Promise<void> {
+    const path = file && (await this.assets.addImage(wikiId, file, `appearance-${slot}`)).path;
+    const before = await this.update(wikiId, (appearance) => ({ ...appearance, images: { ...appearance.images, [slot]: path } }));
+    const old = before.appearance?.images?.[slot];
+    if (!old?.startsWith(IMAGE_PREFIX) || old === path) return;
+    const images = (await this.db.wikis.get(wikiId))?.appearance?.images ?? {};
+    if (!Object.values(images).includes(old)) await this.db.assets.where("[wikiId+path]").equals([wikiId, old]).delete();
+  }
+
+  // Fills each slot whose file is in a Wiki Assets Pack, matching BANNER.png, banner.jpg, and so on.
+  async importPack(wikiId: string, zip: Uint8Array): Promise<ImageSlot[]> {
+    let files: Record<string, Uint8Array>;
+    try {
+      files = await this.zipper.unzip(zip);
+    } catch {
+      throw new Error("This file isn't a ZIP");
+    }
+    const filled: ImageSlot[] = [];
+    for (const [path, data] of Object.entries(files)) {
+      const name = path.split("/").at(-1)!;
+      const slot = (Object.keys(IMAGE_SLOTS) as ImageSlot[]).find((key) => name.replace(/\.[^.]*$/, "").toLowerCase() === key);
+      const image = new Blob([data as Uint8Array<ArrayBuffer>], { type: mimeFor(name) });
+      if (!slot || path.startsWith("__MACOSX/") || !isSupportedImage(image) || filled.includes(slot)) continue;
+      await this.setImage(wikiId, slot, image);
+      filled.push(slot);
+    }
+    if (!filled.length) throw new Error("No BANNER, BACKGROUND, WORDMARK, or ICON image was found in this ZIP");
+    return filled;
+  }
 
   async setAccent(wikiId: string, accent: string | undefined): Promise<void> {
     if (accent !== undefined && !isHexColor(accent)) throw new Error(`${accent} isn't a #rrggbb color`);
@@ -102,13 +146,13 @@ export class AppearanceService {
       .delete();
   }
 
+  // Returns the wiki as it was before the change.
   private async update(wikiId: string, change: (appearance: Appearance) => Appearance): Promise<Wiki> {
     return this.db.transaction("rw", this.db.wikis, async () => {
       const wiki = await this.db.wikis.get(wikiId);
       if (!wiki) throw new Error("This wiki no longer exists");
-      const updated = { ...wiki, appearance: change(wiki.appearance ?? {}) };
-      await this.db.wikis.put(updated);
-      return updated;
+      await this.db.wikis.put({ ...wiki, appearance: change(wiki.appearance ?? {}) });
+      return wiki;
     });
   }
 

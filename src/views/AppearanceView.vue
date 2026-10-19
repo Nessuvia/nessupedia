@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { computed, ref, watchEffect } from "vue";
+import { computed, ref, useTemplateRef, watchEffect } from "vue";
 import FontPicker from "@/components/FontPicker.vue";
+import ImageSlotInput from "@/components/ImageSlotInput.vue";
+import type { ImageSlot } from "@/db/types";
 import { appearanceService } from "@/services";
+import { IMAGE_SLOTS } from "@/services/AppearanceService";
 import { useWikiStore } from "@/stores/wiki";
+import { buildAssetsPack } from "@/utils/assetsPack";
 import { ACCENT_PALETTE, DEFAULT_ACCENT } from "@/utils/color";
+import { downloadFile } from "@/utils/download";
 
 const props = defineProps<{ wikiId: string }>();
 
@@ -19,6 +24,46 @@ async function setAccent(color: string) {
     await appearanceService.setAccent(props.wikiId, color);
   } catch (cause) {
     accentError.value = cause instanceof Error ? cause.message : String(cause);
+  }
+}
+
+const IMAGE_HINTS: Record<ImageSlot, string> = {
+  banner: "The band behind the wiki's name at the top of every page.",
+  background: "Fixed behind the whole wiki while pages scroll.",
+  wordmark: "A logo shown in place of the wiki's name, at half size. Use a transparent background.",
+  icon: "Shown beside the wiki's name and in the wiki switcher.",
+};
+
+const packInput = useTemplateRef("packInput");
+const packBusy = ref(false);
+const packError = ref("");
+const packFilled = ref("");
+
+async function downloadPack() {
+  packBusy.value = true;
+  packError.value = "";
+  try {
+    downloadFile(await buildAssetsPack(), "Wiki_Assets_Pack.zip", "application/zip");
+  } finally {
+    packBusy.value = false;
+  }
+}
+
+async function importPack(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  packBusy.value = true;
+  packError.value = "";
+  packFilled.value = "";
+  try {
+    const filled = await appearanceService.importPack(props.wikiId, new Uint8Array(await file.arrayBuffer()));
+    packFilled.value = `Set the ${filled.map((slot) => IMAGE_SLOTS[slot].label.toLowerCase()).join(", ")}.`;
+  } catch (cause) {
+    packError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    packBusy.value = false;
   }
 }
 
@@ -62,6 +107,30 @@ watchEffect(() => {
       <FontPicker :wiki-id="wikiId" role="heading" label="Headings" :current="appearance?.fonts?.heading" />
       <FontPicker :wiki-id="wikiId" role="body" label="Body text" :current="appearance?.fonts?.body" />
       <p class="credit">Fonts by <a href="https://fontsource.org" target="_blank" rel="noopener">Fontsource</a>.</p>
+    </section>
+
+    <section aria-labelledby="appearance-images">
+      <h2 id="appearance-images">Images</h2>
+      <p class="hint">
+        Drop or upload each image, or download the Wiki Assets Pack, replace its placeholders with your art, and import it
+        back. Images are scaled and stored like page images.
+      </p>
+      <div class="pack">
+        <button type="button" class="button secondary" :disabled="packBusy" @click="downloadPack">Download Wiki Assets Pack</button>
+        <button type="button" class="button secondary" :disabled="packBusy" @click="packInput?.click()">Import pack</button>
+        <input ref="packInput" type="file" accept=".zip,application/zip" hidden @change="importPack" />
+        <span v-if="packBusy" role="status">Working…</span>
+      </div>
+      <p v-if="packError" class="form-error" role="alert">{{ packError }}</p>
+      <p v-else-if="packFilled" class="saved" role="status">{{ packFilled }}</p>
+      <ImageSlotInput
+        v-for="(hint, slot) in IMAGE_HINTS"
+        :key="slot"
+        :wiki-id="wikiId"
+        :slot="slot"
+        :path="appearance?.images?.[slot]"
+        :hint="hint"
+      />
     </section>
   </article>
 </template>
@@ -118,6 +187,23 @@ h2 {
   border: 0;
   background: none;
   cursor: pointer;
+}
+
+.pack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.pack + .form-error,
+.saved {
+  margin: -0.75rem 0 1.25rem;
+}
+
+.saved {
+  color: var(--color-success);
 }
 
 .credit {

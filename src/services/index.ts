@@ -25,8 +25,8 @@ import { VaultImporter } from "./VaultImporter";
 import { WikiService } from "./WikiService";
 import { workerZipper } from "./zipper";
 
-export const appearanceService = new AppearanceService(db);
 export const assetService = new AssetService(db, encodeImage);
+export const appearanceService = new AppearanceService(db, assetService);
 export const autoContext = new AutoContext(db);
 export const categoryService = new CategoryService(db);
 export const changeLog = new ChangeLog(db);

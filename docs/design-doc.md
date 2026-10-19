@@ -352,7 +352,7 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - Rendered images carry `data-asset`; the page view resolves them to object URLs through a cache keyed by wiki and path.
 
 ## Appearance
-- `AppearanceService` keeps a wiki's appearance. Images and font files are assets under `assets/appearance/`, named with their hash like other assets, and the wiki record points at them. Replacing or removing one deletes the old asset. Export and import carry them with no change to the archive format.
+- `AppearanceService` keeps a wiki's appearance. Images are assets named `assets/appearance-<slot>-<hash>`, and font files `assets/fonts/<font>-<subset>-<weight>-<style>.woff2`; the wiki record points at them. Replacing or removing one deletes the old asset, unless it's a page's image that was reused. Export and import carry them with no change to the archive format.
 - Images go through the same encoder as page images. Slots and their sizes: banner 1920 × 300, background 1920 × 1080, wordmark 500 × 130, icon 256 × 256.
 - Fonts come from Fontsource: the font list from `api.fontsource.org/v1/fonts`, and the chosen font's `woff2` files from its CDN for weights 400 and 700, normal and italic where they exist, in the `latin` and `latin-ext` subsets with their unicode ranges. Characters outside those fall back to the system font. Fonts register through `FontFace` when the wiki opens.
 - The layout sets `--accent`, `--accent-text` (black or white by contrast), the font stacks, and the image URLs as CSS variables on the wiki layout. Light and dark are two sets of theme variables under `[data-mode]` on the root, chosen from `prefers-color-scheme` until the toggle stores a choice in local storage.

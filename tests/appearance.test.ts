@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WikiDatabase } from "@/db/database";
+import { zipSync } from "fflate";
 import { AppearanceService } from "@/services/AppearanceService";
+import { AssetService } from "@/services/AssetService";
 import { WikiService } from "@/services/WikiService";
 
 const cdn = (id: string, subset: string, weight: number, style: string) =>
@@ -34,8 +36,13 @@ beforeEach(async () => {
     if (url.endsWith("/fonts")) return Response.json(Object.values(FONTS));
     return new Response(new Uint8Array([1, 2, 3]));
   });
-  appearance = new AppearanceService(db, fetch as unknown as typeof globalThis.fetch);
+  // Encoding returns nothing, so images are stored as given.
+  const assets = new AssetService(db, async () => undefined);
+  appearance = new AppearanceService(db, assets, fetch as unknown as typeof globalThis.fetch);
 });
+
+const png = (byte: number) => new Blob([new Uint8Array([137, 80, byte])], { type: "image/png" });
+const images = async () => (await db.wikis.get(wikiId))?.appearance?.images ?? {};
 
 const fontPaths = async () => (await db.assets.where("wikiId").equals(wikiId).toArray()).map((asset) => asset.path).sort();
 
@@ -69,6 +76,34 @@ describe("AppearanceService", () => {
     await appearance.setFont(wikiId, "body", undefined);
     expect(await fontPaths()).toEqual(["assets/fonts/lobster-latin-400-normal.woff2"]);
     expect((await db.wikis.get(wikiId))?.appearance?.fonts?.body).toBeUndefined();
+  });
+
+  it("replaces a slot's image and deletes the old one, but never a page's image reused there", async () => {
+    await appearance.setImage(wikiId, "banner", png(1));
+    const first = (await images()).banner!;
+    expect(first).toMatch(/^assets\/appearance-banner-/);
+    await appearance.setImage(wikiId, "banner", png(2));
+    expect(await db.assets.where("[wikiId+path]").equals([wikiId, first]).count()).toBe(0);
+
+    const pageImage = await new AssetService(db, async () => undefined).addImage(wikiId, png(3), "mira");
+    await appearance.setImage(wikiId, "icon", png(3));
+    expect((await images()).icon).toBe(pageImage.path);
+    await appearance.setImage(wikiId, "icon", undefined);
+    expect((await images()).icon).toBeUndefined();
+    expect(await db.assets.get(pageImage.id)).toBeDefined();
+  });
+
+  it("fills the slots a pack holds, by name in any case or image type", async () => {
+    const zip = zipSync({
+      "pack/Banner.PNG": new Uint8Array([137, 80, 1]),
+      "pack/icon.jpg": new Uint8Array([255, 216, 2]),
+      "pack/README.txt": new TextEncoder().encode("hi"),
+      "__MACOSX/pack/._ICON.png": new Uint8Array([0]),
+    });
+    expect((await appearance.importPack(wikiId, zip)).sort()).toEqual(["banner", "icon"]);
+    expect(Object.keys(await images()).sort()).toEqual(["banner", "icon"]);
+    await expect(appearance.importPack(wikiId, zipSync({ "notes.txt": new Uint8Array([1]) }))).rejects.toThrow("No BANNER");
+    await expect(appearance.importPack(wikiId, new Uint8Array([1, 2, 3]))).rejects.toThrow("isn't a ZIP");
   });
 
   it("keeps the old font when a download fails", async () => {

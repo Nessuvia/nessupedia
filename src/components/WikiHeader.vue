@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, useTemplateRef } from "vue";
+import { computed, ref, useTemplateRef } from "vue";
+import { useAssetUrl } from "@/composables/useAssetUrl";
 import { useColorMode } from "@/composables/useColorMode";
 import { useDismiss } from "@/composables/useDismiss";
 import { useLiveQuery } from "@/composables/useLiveQuery";
@@ -15,13 +16,26 @@ const pageCount = useLiveQuery((wikiId) => pageService.countForWiki(wikiId), () 
 const exploreOpen = ref(false);
 useDismiss(exploreOpen, useTemplateRef("explore"));
 const { mode, toggle } = useColorMode();
+
+const images = computed(() => props.wiki.appearance?.images ?? {});
+const banner = useAssetUrl(() => [props.wiki.id, images.value.banner]);
+const wordmark = useAssetUrl(() => [props.wiki.id, images.value.wordmark]);
+const icon = useAssetUrl(() => [props.wiki.id, images.value.icon]);
 </script>
 
 <template>
-  <div class="wiki-header">
+  <div
+    class="wiki-header"
+    :class="{ 'has-banner': banner }"
+    :style="banner && { backgroundImage: `linear-gradient(transparent 35%, rgb(0 0 0 / 55%)), url(&quot;${banner}&quot;)` }"
+  >
     <div class="identity">
       <RouterLink class="wiki-name" :to="{ name: 'page', params: { wikiId: wiki.id, title: titleParam(MAIN_PAGE_TITLE) } }">
-        {{ wiki.name }}
+        <img v-if="wordmark" class="wordmark" :src="wordmark" :alt="wiki.name" />
+        <template v-else>
+          <img v-if="icon" class="wiki-icon" :src="icon" alt="" />
+          {{ wiki.name }}
+        </template>
       </RouterLink>
       <nav aria-label="Wiki navigation">
         <div ref="explore" class="explore">
@@ -72,12 +86,34 @@ const { mode, toggle } = useColorMode();
   color: var(--accent-text);
 }
 
+.wiki-header.has-banner {
+  background-position: center;
+  background-size: cover;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 60%);
+}
+
 .identity {
   min-width: 0;
 }
 
-.wiki-name {
+.wordmark {
   display: block;
+  max-width: 250px;
+  max-height: 65px;
+}
+
+.wiki-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.wiki-name {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   color: inherit;
   font-family: var(--font-heading);
   font-size: 2rem;

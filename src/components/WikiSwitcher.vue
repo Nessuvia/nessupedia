@@ -3,6 +3,7 @@ import { storeToRefs } from "pinia";
 import { ref, useTemplateRef } from "vue";
 import { useDismiss } from "@/composables/useDismiss";
 import { useWikiStore } from "@/stores/wiki";
+import WikiIcon from "./WikiIcon.vue";
 
 const { wikis, currentWiki } = storeToRefs(useWikiStore());
 const open = ref(false);
@@ -12,6 +13,7 @@ useDismiss(open, useTemplateRef("root"));
 <template>
   <div ref="root" class="wiki-switcher">
     <button class="current" type="button" :aria-expanded="open" aria-controls="wiki-list" @click="open = !open">
+      <WikiIcon v-if="currentWiki" :wiki="currentWiki" />
       {{ currentWiki?.name ?? "OC Wiki" }}
       <span class="caret" aria-hidden="true">▾</span>
     </button>
@@ -22,6 +24,7 @@ useDismiss(open, useTemplateRef("root"));
             :to="{ name: 'wiki', params: { wikiId: wiki.id } }"
             :aria-current="wiki.id === currentWiki?.id ? 'true' : undefined"
           >
+            <WikiIcon :wiki="wiki" />
             {{ wiki.name }}
           </RouterLink>
         </li>

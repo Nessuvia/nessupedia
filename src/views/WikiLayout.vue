@@ -8,6 +8,7 @@ import LeftRail from "@/components/LeftRail.vue";
 import RightRail from "@/components/RightRail.vue";
 import RunPanel from "@/components/RunPanel.vue";
 import WikiHeader from "@/components/WikiHeader.vue";
+import { useAssetUrl } from "@/composables/useAssetUrl";
 import { useWikiAppearance } from "@/composables/useWikiAppearance";
 import { useWikiStore } from "@/stores/wiki";
 
@@ -23,10 +24,12 @@ watch(
   { immediate: true },
 );
 useWikiAppearance(currentWiki);
+const background = useAssetUrl(() => [currentWiki.value?.id, currentWiki.value?.appearance?.images?.background]);
 </script>
 
 <template>
   <GlobalBar />
+  <div v-if="background" class="backdrop" :style="{ backgroundImage: `url(&quot;${background}&quot;)` }" />
   <div v-if="currentWiki" class="wiki-layout">
     <LeftRail class="left" :wiki-id="wikiId" />
     <div class="wiki-content">
@@ -50,6 +53,15 @@ useWikiAppearance(currentWiki);
 </template>
 
 <style scoped>
+/* A fixed layer rather than background-attachment: fixed, which iOS Safari ignores. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-position: center;
+  background-size: cover;
+}
+
 .wiki-layout {
   display: grid;
   grid-template-columns: var(--rail-width) minmax(0, 1fr);
