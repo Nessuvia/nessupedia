@@ -474,7 +474,7 @@ type WikiTool =
 
 ### Run flow
 `RunOrchestrator` drives every run; the model only answers narrow requests.
-1. **Plan**: the template's `##` headings with their hints, with no model call. From the New page screen, the run keeps the page's starting text (the template with the chosen parts) and plans from its sections; the page is created from that text on the first accept. On a page, the form starts with the page's template. Fill template plans the page's sections that hold nothing but hints. Draft from notes without a template asks for headings one per line, falling back to the Character template's after two failures.
+1. **Plan**: the template's `##` headings with their hints, with no model call. From the New page screen, the run keeps the page's starting text (the template with the chosen parts) and plans from its sections; the page is created from that text on the first accept. On a page, the form starts with the page's template. Fill template plans the page's sections that hold nothing but hints, an infobox, or a pressure profile. Draft from notes without a template asks for headings one per line, falling back to the Character template's after two failures.
 2. **Sections**: each section is a fresh conversation:
    - Instructions, mode, the wiki's Assistant rules, and the run's one-off rules.
    - Auto-context, the notes, the page title, and the page as it stands when it exists.
@@ -484,7 +484,7 @@ type WikiTool =
 
    A short tool loop follows, then the plain-text reply. With tools on, auto-context takes at most 60% of what the fixed parts leave, so lookups have room; tool results are cut to the room left.
 3. **Review**: proposals fill the review view as they arrive, each as a diff against the page's section of that heading. With "Approve each proposal" on (`input.stepwise`), the run waits for each proposal to be accepted, discarded, or sent back before writing the next. A retry asked for while the run is going is written after the current section.
-4. **Commit**: accepted sections replace the content under the heading with the same key, hints included, or are added in plan order. A run is done once every section is accepted or discarded. A draft of a new page creates the page on its first accept. Each accepted batch is one change entry with `author: "llm"`, merged by the usual 10-minute rule.
+4. **Commit**: accepted sections replace the content under the heading with the same key, hints included, keeping any infobox or pressure profile after the new text; other sections are added in plan order. A run is done once every section is accepted or discarded. A draft of a new page creates the page on its first accept. Each accepted batch is one change entry with `author: "llm"`, merged by the usual 10-minute rule.
 
 Modes:
 - **Strict**: gaps become `QUESTION:` lines, which the app turns into `> [!question]` callouts.

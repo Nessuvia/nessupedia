@@ -3,6 +3,7 @@ import { storeToRefs } from "pinia";
 import { computed, ref, shallowRef, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
+import AssistantMenu, { type AssistantAction } from "@/components/AssistantMenu.vue";
 import DeletePageDialog from "@/components/DeletePageDialog.vue";
 import DraftDialog from "@/components/DraftDialog.vue";
 import NameDialog from "@/components/NameDialog.vue";
@@ -96,8 +97,17 @@ const subtitle = computed(() => {
 
 // Dialogs work on a snapshot, so they stay mounted while the live page they changed reloads.
 const dialogPage = shallowRef<Page>();
-const dialogs = { details: ref(false), rename: ref(false), template: ref(false), delete: ref(false), draft: ref(false) };
-const { details: detailsOpen, rename: renameOpen, template: templateOpen, delete: deleteOpen, draft: draftOpen } = dialogs;
+const dialogs = { details: ref(false), rename: ref(false), template: ref(false), delete: ref(false), draft: ref(false), fill: ref(false) };
+const { details: detailsOpen, rename: renameOpen, template: templateOpen, delete: deleteOpen, draft: draftOpen, fill: fillOpen } = dialogs;
+
+const ASSISTANT_ACTIONS: { action: AssistantAction; label: string }[] = [
+  { action: "draft", label: "Draft from notes" },
+  { action: "fill", label: "Fill template" },
+];
+
+function chooseAssistant(action: AssistantAction) {
+  if (action === "draft" || action === "fill") openDialog(action);
+}
 
 function openDialog(kind: keyof typeof dialogs) {
   dialogPage.value = page.value ?? undefined;
@@ -160,7 +170,7 @@ watchEffect(() => {
         <button class="page-action" type="button" @click="openDialog('rename')">Rename</button>
         <button class="page-action" type="button" @click="openDialog('template')">Save as template</button>
         <button class="page-action" type="button" @click="openDialog('delete')">Delete</button>
-        <button class="page-action" type="button" @click="openDialog('draft')">Draft from notes</button>
+        <AssistantMenu :actions="ASSISTANT_ACTIONS" @choose="chooseAssistant" />
       </div>
     </header>
     <TabBar :wiki-id="wikiId" :title="shownTitle" />
@@ -180,7 +190,8 @@ watchEffect(() => {
         <p class="dialog-note">The template copies this page as it is. You can trim it to a starting shape next.</p>
       </NameDialog>
       <DeletePageDialog v-model:open="deleteOpen" :page="dialogPage" />
-      <DraftDialog v-model:open="draftOpen" :page="dialogPage" />
+      <DraftDialog v-model:open="draftOpen" :page="dialogPage" kind="draft" />
+      <DraftDialog v-model:open="fillOpen" :page="dialogPage" kind="fill-template" />
     </template>
     <p v-if="redirectedFrom && page" class="redirect-note">(Redirected from {{ redirectedFrom }})</p>
     <VersionBanner

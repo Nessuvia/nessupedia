@@ -13,7 +13,7 @@ import { LinkIndexer } from "@/services/LinkIndexer";
 import { PageService } from "@/services/PageService";
 import { RelationshipService } from "@/services/RelationshipService";
 import { retagSection, ReviewService, sectionTag } from "@/services/ReviewService";
-import { applySections } from "@/markdown/sections";
+import { applySections, bodySections } from "@/markdown/sections";
 import { SearchService } from "@/services/SearchService";
 import { TemplateService } from "@/services/TemplateService";
 import { TokenizerService } from "@/services/TokenizerService";
@@ -351,6 +351,17 @@ describe("applying sections", () => {
     );
     expect(applySections(body, [{ heading: "Skills", markdown: "Knives.\n" }], plan)).toBe(
       "---\ntitle: Mira\n---\n\nLead.\n\n## Background\n\n<!-- Where? -->\n\n## Skills\n\nKnives.\n",
+    );
+  });
+
+  it("counts a section holding only hints and a pressure profile as empty, and keeps the profile when writing it", () => {
+    const character = "## Personality\n\n<!-- How do they act? -->\n\n:::pressure\nTriggers:\n:::\n\n## Skills\n\nKnives.\n";
+    expect(bodySections(character)).toEqual([
+      { heading: "Personality", hints: ["How do they act?"], empty: true },
+      { heading: "Skills", hints: [], empty: false },
+    ]);
+    expect(applySections(character, [{ heading: "Personality", markdown: "Blunt." }], [])).toBe(
+      "## Personality\n\nBlunt.\n\n:::pressure\nTriggers:\n:::\n\n## Skills\n\nKnives.\n",
     );
   });
 

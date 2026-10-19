@@ -44,6 +44,8 @@ export interface SectionPromptInput {
   pageTitle: string;
   autoContext: string[];
   notes?: string;
+  // Fill template's box holds instructions rather than notes.
+  instructions?: boolean;
   // The page as it stands, when it exists.
   pageText?: string;
   written: string[];
@@ -56,7 +58,7 @@ export interface SectionPromptInput {
 export function sectionUserPrompt(input: SectionPromptInput): string {
   const parts: string[] = [];
   if (input.autoContext.length > 0) parts.push(`## Wiki pages\n\n${input.autoContext.join("\n\n")}`);
-  if (input.notes?.trim()) parts.push(`## The author's notes\n\n${input.notes.trim()}`);
+  if (input.notes?.trim()) parts.push(`## The author's ${input.instructions ? "instructions" : "notes"}\n\n${input.notes.trim()}`);
   parts.push(`## The page\n\nTitle: ${input.pageTitle}`);
   if (input.pageText?.trim()) parts.push(`## The page so far\n\n${input.pageText.trim()}`);
   else if (input.pageText === undefined) parts.push("This page is new: the wiki has nothing under its title yet, so don't look it up.");

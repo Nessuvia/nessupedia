@@ -2,6 +2,7 @@
 import { createPatch } from "diff";
 import { computed, defineAsyncComponent, ref, useId } from "vue";
 import type { AgentRun } from "@/db/types";
+import { applySections, sectionContent } from "@/markdown/sections";
 import { titleParam } from "@/router/params";
 import { reviewService, runOrchestrator } from "@/services";
 import { sectionTag, type SectionTag } from "@/services/ReviewService";
@@ -13,8 +14,8 @@ const MarkdownEditor = defineAsyncComponent(() => import("./MarkdownEditor.vue")
 const props = defineProps<{
   run: AgentRun;
   index: number;
-  // The section's text in the page as it stands; undefined when the page doesn't have it yet.
-  current?: string;
+  // The page as it stands, or the text a new page will start from.
+  body: string;
   reply?: string;
 }>();
 
@@ -37,7 +38,13 @@ const STATUS_LABELS = {
   failed: "Couldn't be used",
 } as const;
 
-const diff = computed(() => createPatch(section.value.heading, withNewline(props.current ?? ""), withNewline(section.value.markdown ?? "")));
+// The diff shows the section as accepting would write it, so blocks the section keeps show as unchanged.
+const diff = computed(() => {
+  const { heading, markdown = "" } = section.value;
+  const plan = props.run.sections.map((other) => other.heading);
+  const after = sectionContent(applySections(props.body, [{ heading, markdown }], plan), heading) ?? markdown;
+  return createPatch(heading, withNewline(sectionContent(props.body, heading) ?? ""), withNewline(after));
+});
 const tag = computed(() => sectionTag(section.value.markdown ?? ""));
 const showTag = computed(() => props.run.mode === "liberal" || tag.value !== "none");
 const TAGS: { value: SectionTag; label: string }[] = [

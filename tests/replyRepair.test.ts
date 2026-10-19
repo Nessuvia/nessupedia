@@ -57,6 +57,7 @@ describe("repairReply", () => {
     );
     expect(parseMarkdown(result.markdown).tree.children.map((node) => node.type)).toEqual(["canonBlock"]);
     expect(result.fixes).toEqual(["Closed 2 blocks the reply left open."]);
+    expect(repair("Skilled at metalwork. QUESTION: Anything else?").markdown).toBe("Skilled at metalwork.\n\n> [!question]\n> Anything else?");
     expect(repair(":::canon\nText.\n:::").fixes).toEqual([]);
   });
 

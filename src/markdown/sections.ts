@@ -7,11 +7,14 @@ import { titleKey } from "./wikilinks";
 export interface BodySection {
   heading: string;
   hints: string[];
-  // True when the section holds nothing but hints.
+  // True when the section holds nothing but hints, an infobox, or a pressure profile.
   empty: boolean;
 }
 
-// A body's `##` sections with their hints, noting which hold nothing else.
+// Blocks the Assistant never writes, so a section holding them still counts as empty and keeps them when written.
+const KEPT_BLOCKS = new Set(["infobox", "pressure"]);
+
+// A body's `##` sections with their hints, noting which hold no text of their own.
 export function bodySections(body: string): BodySection[] {
   const sections: BodySection[] = [];
   let section: BodySection | undefined;
@@ -24,7 +27,7 @@ export function bodySections(body: string): BodySection[] {
     if (!section) continue;
     const hint = node.type === "html" ? hintText(node.value) : undefined;
     if (hint) section.hints.push(hint);
-    else section.empty = false;
+    else if (!KEPT_BLOCKS.has(node.type)) section.empty = false;
   }
   return sections;
 }
@@ -34,8 +37,9 @@ export interface NewSection {
   markdown: string;
 }
 
-// Writes sections into a body: each replaces the content under a `##` heading with the same key, or is added in plan
-// order, after the nearest earlier planned section the body has, or before the nearest later one, or at the end.
+// Writes sections into a body: each replaces the content under a `##` heading with the same key, keeping any infobox or
+// pressure profile after the new text, or is added in plan order, after the nearest earlier planned section the body
+// has, or before the nearest later one, or at the end.
 export function applySections(body: string, sections: readonly NewSection[], plan: readonly string[]): string {
   const planKeys = plan.map(titleKey);
   let text = body;
@@ -47,7 +51,11 @@ export function applySections(body: string, sections: readonly NewSection[], pla
       const lineEnd = text.indexOf("\n", match.start);
       const headingEnd = lineEnd === -1 || lineEnd > match.end ? match.end : lineEnd;
       const contentEnd = match.empty ? headingEnd : match.end;
-      text = `${text.slice(0, headingEnd)}\n\n${markdown.trim()}${text.slice(contentEnd)}`;
+      const content = text.slice(headingEnd, contentEnd);
+      const kept = parseMarkdown(content)
+        .tree.children.filter((node) => KEPT_BLOCKS.has(node.type))
+        .map((node) => content.slice(node.position!.start.offset!, node.position!.end.offset!));
+      text = `${text.slice(0, headingEnd)}\n\n${[markdown.trim(), ...kept].join("\n\n")}${text.slice(contentEnd)}`;
       continue;
     }
 

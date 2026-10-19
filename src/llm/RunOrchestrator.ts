@@ -504,6 +504,7 @@ export class RunOrchestrator {
       heading: section.heading,
       pageTitle: run.pageTitle,
       notes: run.input.notes,
+      ...(run.kind === "fill-template" && { instructions: true }),
       ...(pageText !== undefined && { pageText }),
       written: run.sections.filter((other, at) => at !== index && (other.status === "proposed" || other.status === "accepted")).map((other) => other.heading),
       hints: section.hints ?? [],

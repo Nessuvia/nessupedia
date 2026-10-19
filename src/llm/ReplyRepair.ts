@@ -64,6 +64,8 @@ export function repairReply(raw: string, { heading, names }: RepairOptions): Rep
     fixes.push("Took the section out of a code block.");
   }
 
+  // A question written at the end of a sentence moves to its own line, so it becomes a callout too.
+  text = text.replace(/([.!?])[ \t]+QUESTION:/g, "$1\nQUESTION:");
   let lines = text.split("\n");
   if (lines.length > 0 && /^(?:-{3,}|\*{3,})$/.test(lines[0]!.trim())) lines.shift();
 

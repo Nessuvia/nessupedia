@@ -3,7 +3,6 @@ import { storeToRefs } from "pinia";
 import { computed, ref, watchEffect } from "vue";
 import ProposalCard from "@/components/ProposalCard.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
-import { sectionContent } from "@/markdown/sections";
 import { titleParam } from "@/router/params";
 import { pageService, reviewService, runOrchestrator } from "@/services";
 import { useRunsStore } from "@/stores/runs";
@@ -99,7 +98,7 @@ watchEffect(() => {
         :key="`${index}-${section.heading}`"
         :run="run"
         :index="index"
-        :current="page ? sectionContent(page.body, section.heading) : undefined"
+        :body="page?.body ?? run.input.body ?? ''"
         :reply="activity?.section === index ? activity.reply : undefined"
       />
 
