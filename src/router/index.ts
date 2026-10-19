@@ -4,6 +4,7 @@ import { wikiService } from "@/services";
 import { titleFromRoute, titleParam } from "./params";
 import { MAIN_PAGE_TITLE, useWikiStore } from "@/stores/wiki";
 import AllPagesView from "@/views/AllPagesView.vue";
+import AppearanceView from "@/views/AppearanceView.vue";
 import CategoriesView from "@/views/CategoriesView.vue";
 import CategoryView from "@/views/CategoryView.vue";
 import ContinuityView from "@/views/ContinuityView.vue";
@@ -98,6 +99,7 @@ export function createAppRouter(pinia: Pinia): Router {
             }),
           },
           { path: "special/settings", name: "wiki-settings", component: WikiSettingsView, props: true },
+          { path: "special/appearance", name: "appearance", component: AppearanceView, props: true },
           { path: "special/all-pages", name: "all-pages", component: AllPagesView, props: true },
           { path: "special/recent-changes", name: "recent-changes", component: RecentChangesView, props: true },
           { path: "special/categories", name: "categories", component: CategoriesView, props: true },

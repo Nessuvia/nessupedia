@@ -216,6 +216,14 @@ watchEffect(() => {
       </form>
     </section>
 
+    <section aria-labelledby="settings-appearance">
+      <h2 id="settings-appearance">Appearance</h2>
+      <p class="hint">
+        Set this wiki's accent color, fonts, and images on the
+        <RouterLink :to="{ name: 'appearance', params: { wikiId } }">Appearance page</RouterLink>.
+      </p>
+    </section>
+
     <section aria-labelledby="settings-images">
       <h2 id="settings-images">Images</h2>
       <label class="check">

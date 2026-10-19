@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { onBeforeUnmount, watch, watchEffect } from "vue";
+import { watch } from "vue";
 import { useRoute } from "vue-router";
 import GlobalBar from "@/components/GlobalBar.vue";
 import InstallBanner from "@/components/InstallBanner.vue";
@@ -8,8 +8,8 @@ import LeftRail from "@/components/LeftRail.vue";
 import RightRail from "@/components/RightRail.vue";
 import RunPanel from "@/components/RunPanel.vue";
 import WikiHeader from "@/components/WikiHeader.vue";
+import { useWikiAppearance } from "@/composables/useWikiAppearance";
 import { useWikiStore } from "@/stores/wiki";
-import { DEFAULT_ACCENT, isHexColor, textOn } from "@/utils/color";
 
 const props = defineProps<{ wikiId: string }>();
 
@@ -22,19 +22,7 @@ watch(
   (id) => (store.currentWikiId = id),
   { immediate: true },
 );
-
-// The accent goes on the root so the theme's derived colors, and dialogs outside the layout, follow it.
-const root = document.documentElement.style;
-watchEffect(() => {
-  const chosen = currentWiki.value?.appearance?.accent;
-  const accent = isHexColor(chosen) ? chosen : DEFAULT_ACCENT;
-  root.setProperty("--accent", accent);
-  root.setProperty("--accent-text", textOn(accent));
-});
-onBeforeUnmount(() => {
-  root.removeProperty("--accent");
-  root.removeProperty("--accent-text");
-});
+useWikiAppearance(currentWiki);
 </script>
 
 <template>

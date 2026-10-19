@@ -4,6 +4,7 @@ import { LlmClient } from "@/llm/LlmClient";
 import { RunOrchestrator } from "@/llm/RunOrchestrator";
 import { TokenCounter } from "@/llm/TokenCounter";
 import { WikiTools } from "@/llm/tools";
+import { AppearanceService } from "./AppearanceService";
 import { ArchiveService } from "./ArchiveService";
 import { AssetService } from "./AssetService";
 import { CategoryService } from "./CategoryService";
@@ -24,6 +25,7 @@ import { VaultImporter } from "./VaultImporter";
 import { WikiService } from "./WikiService";
 import { workerZipper } from "./zipper";
 
+export const appearanceService = new AppearanceService(db);
 export const assetService = new AssetService(db, encodeImage);
 export const autoContext = new AutoContext(db);
 export const categoryService = new CategoryService(db);
