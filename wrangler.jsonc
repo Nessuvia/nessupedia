@@ -4,5 +4,10 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
-  }
+  },
+  "routes": [
+    { "pattern": "wiki.nessuvia.com", "custom_domain": true },
+    // The zone's *.nessuvia.com/* route points at nessuvia-com, so this more specific route keeps wiki here.
+    { "pattern": "wiki.nessuvia.com/*", "zone_name": "nessuvia.com" }
+  ]
 }
