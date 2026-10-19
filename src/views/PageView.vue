@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { computed, ref, shallowRef, watch, watchEffect } from "vue";
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import AssistantMenu, { type AssistantAction } from "@/components/AssistantMenu.vue";
@@ -17,6 +17,7 @@ import VersionSwitcher from "@/components/VersionSwitcher.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { useTemplateNameCheck } from "@/composables/useTemplateNameCheck";
 import type { Page } from "@/db/types";
+import { handleAssistantActions } from "@/editor/assistantActions";
 import { pageCategories } from "@/markdown/categories";
 import { stringList } from "@/markdown/frontmatter";
 import { titleSegments, topTitle } from "@/markdown/subpages";
@@ -120,6 +121,10 @@ function chooseAssistant(action: AssistantAction) {
   if (action === "links") void links.start();
   else openDialog(action);
 }
+
+// Click-to-edit's slash menu offers Draft from notes and Fill template while this page is shown.
+onMounted(() => handleAssistantActions((action) => page.value && chooseAssistant(action)));
+onUnmounted(() => handleAssistantActions(undefined));
 
 function openDialog(kind: keyof typeof dialogs) {
   dialogPage.value = page.value ?? undefined;

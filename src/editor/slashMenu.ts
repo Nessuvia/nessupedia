@@ -3,6 +3,7 @@ import type { EditorView } from "@codemirror/view";
 import { PRESSURE_FIELDS } from "@/markdown/fields";
 import { templateParts } from "@/markdown/templates";
 import { templateService } from "@/services";
+import { assistantActionHandler, type SlashAssistantAction } from "./assistantActions";
 import { insertImages, type ImageInsertOptions } from "./images";
 
 export interface SlashMenuOptions extends ImageInsertOptions {
@@ -62,6 +63,23 @@ function pickImages(view: EditorView, from: number, to: number, options: ImageIn
 
 const PRESSURE_TEMPLATE = `:::pressure\n${PRESSURE_FIELDS.map((label, index) => `${label}: ${index === 0 ? "${}" : ""}`.trimEnd()).join("\n")}\n:::\n`;
 
+const ASSISTANT = { name: "Assistant", rank: 2 };
+
+function assistantCommands(): Completion[] {
+  const handle = assistantActionHandler();
+  if (!handle) return [];
+  const command = (label: string, detail: string, action: SlashAssistantAction): Completion => ({
+    label,
+    detail,
+    section: ASSISTANT,
+    apply: (view, _completion, from, to) => {
+      view.dispatch({ changes: { from, to } });
+      handle(action);
+    },
+  });
+  return [command("Draft from notes", "Assistant", "draft"), command("Fill template", "Assistant", "fill")];
+}
+
 export function slashMenu(options: SlashMenuOptions): CompletionSource {
   const commands = (hasPressure: boolean): Completion[] => [
     { label: "Infobox", detail: "Title, image, and facts", apply: blockSnippet(":::infobox\ntitle: ${Title}\n## ${Biographical}\n${Label}: ${Value}\n:::\n") },
@@ -80,6 +98,7 @@ export function slashMenu(options: SlashMenuOptions): CompletionSource {
         startCompletion(view);
       },
     },
+    ...assistantCommands(),
   ];
 
   return async (context) => {
