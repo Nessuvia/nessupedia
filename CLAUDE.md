@@ -2,7 +2,7 @@
 
 A fandom-style wiki for original character (OC) universes. Writers keep canon, histories, relationships, and spinoffs in one place, and an LLM agent reads the wiki to draft and fill gaps on request. Authoring is human-first: the LLM proposes section by section, the human approves. Everything lives on the user's device as markdown.
 
-MVP is a client-only installable PWA for a single user. Data sits in IndexedDB through Dexie. LLM calls go from the browser to a user-supplied OpenAI-compatible endpoint. Dropbox sync, sharing, and a Rails backend come after MVP.
+MVP is a client-only installable PWA for a single user. Data sits in IndexedDB through Dexie. LLM calls go from the browser to a user-supplied OpenAI-compatible endpoint. Dropbox sync (from the browser, no backend) and sharing come after MVP.
 
 ## Docs
 
@@ -12,7 +12,7 @@ The docs define the project. Read the relevant one before starting a feature.
 - `docs/UX-spec.md`: layout, editing, canon tiers, agent run panel, terminology map
 - `docs/design-doc.md`: architecture, data model, Dexie schema, markdown format, agent tools
 - `docs/roadmap.md`: milestones M0 to M6, then post-MVP
-- `docs/adr/`: decision records (client-only PWA, Vue stack, hybrid storage, markdown pipeline, agent with auto-context, supported LLM providers, app-driven runs, wiki appearance in the MVP, Ollama and LM Studio)
+- `docs/adr/`: decision records (client-only PWA, Vue stack, hybrid storage, markdown pipeline, agent with auto-context, supported LLM providers, app-driven runs, wiki appearance in the MVP, Ollama and LM Studio, Dropbox sync without a backend)
 
 ## Stack
 

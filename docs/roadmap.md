@@ -48,7 +48,7 @@
 - One month of personal use
 
 ## Post-MVP
-1. Dropbox sync (Rails for OAuth)
+1. Dropbox sync, with OAuth PKCE from the browser (ADR 0010)
 2. Character cards (V2 and V3): import cards as character pages for the Assistant to draw on, and download a page as a card. Needs a spec first: new page or attach to an existing one, where `character_book` entries go, and whether export builds from canon or returns the imported card.
 3. Theme editor: full color sets, custom CSS, layout options
 4. Director's Desk

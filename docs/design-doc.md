@@ -13,7 +13,7 @@ Client-only PWA. All data lives in IndexedDB. Markdown is the content format. An
 | Editor | CodeMirror 6 |
 | PWA | vite-plugin-pwa |
 | ZIP | fflate |
-| Future backend | Rails (Dropbox OAuth, sharing) |
+| Future backend | None planned; sharing may need one (ADR 0010) |
 
 ## Architecture
 ```
@@ -574,6 +574,6 @@ A section that still fails is marked `failed` with its raw reply kept, and the r
 | Large assets bloat storage | Size warnings, image compression on import |
 
 ## Future
-- Dropbox sync on the archive layout, Rails for OAuth.
+- Dropbox sync on the archive layout, with OAuth PKCE from the browser (ADR 0010).
 - Theme editor: full color sets, custom CSS, layout options.
 - Director's Desk reading from auto-context and tools.
