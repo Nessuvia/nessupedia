@@ -460,7 +460,7 @@ wiki-name/
 ### Sign-in
 - OAuth with PKCE in a popup (ADR 0010), `token_access_type=offline` for a refresh token. The redirect lands on `public/dropbox.html`, a page without the app that posts the code back to the opener and closes. The service worker's navigation fallback excludes `/dropbox(.html)?` with or without a query, or the popup boots the whole app and the sign-in silently does nothing.
 - The refresh token, account email, and device name live in the app-wide `settings` record, unencrypted like the model key. Access tokens are minted on demand and held in memory only. A rejected refresh clears the token, and the badge shows Reconnect Dropbox.
-- The app is registered for App folder access, so every path is inside `Apps/OC Wiki/`. The app key is a build-time `VITE_DROPBOX_APP_KEY`; dev and deployed origins are both registered as redirect URIs.
+- The app is registered for App folder access, so every path is inside `Apps/nessupedia/`. The app key is a build-time `VITE_DROPBOX_APP_KEY`; dev and deployed origins are both registered as redirect URIs.
 
 ### Layout
 One file per item, named by ID, so each item compares and moves on its own and a rename is an ordinary edit (ADR 0013).

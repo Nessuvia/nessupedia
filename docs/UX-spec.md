@@ -155,7 +155,7 @@ For the same wikis on several devices, used one at a time. The page is the unit:
 
 ### Connecting
 - **Settings > Dropbox** (app-wide): Connect opens Dropbox's sign-in in a popup. Once connected it shows "Connected as <email>", Disconnect, and the device name ("Firefox on Windows" by default, editable).
-- A note says files are kept in `Apps/OC Wiki/` in your Dropbox and the app can't see the rest of it.
+- A note says files are kept in `Apps/nessupedia/` in your Dropbox and the app can't see the rest of it.
 - **In Dropbox, not on this device**: wikis found in the folder, each with Download. Download brings the whole wiki, under the same ID, with sync on in Auto.
 - Disconnect stops sync for every wiki and leaves the Dropbox copies.
 
