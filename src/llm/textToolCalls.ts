@@ -41,21 +41,82 @@ function jsonCandidates(text: string): unknown[] {
 }
 
 export function parseJson(source: string): unknown {
-  const trimmed = source.trim();
-  for (const attempt of [trimmed, trimmed.replace(/,\s*([}\]])/g, "$1")]) {
-    try {
-      return JSON.parse(attempt);
-    } catch {
-      // Try the next repair.
-    }
-  }
-  return undefined;
+  return parseLooseJson(source)?.value;
 }
 
+// JSON as models write it, with trailing commas, single quotes, bare keys, or raw line breaks inside strings.
+export function parseLooseJson(source: string): { value: unknown; repaired: boolean } | undefined {
+  const trimmed = source.trim();
+  try {
+    return { value: JSON.parse(trimmed), repaired: false };
+  } catch {
+    try {
+      return { value: JSON.parse(repairJson(trimmed)), repaired: true };
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+const IDENTIFIER_START = /[A-Za-z_$]/;
+const IDENTIFIER = /[\w$-]/;
+
+function repairJson(text: string): string {
+  let out = "";
+  let at = 0;
+  const nextVisible = (from: number) => {
+    while (from < text.length && /\s/.test(text[from]!)) from++;
+    return text[from];
+  };
+  const readString = (quote: string) => {
+    let value = "";
+    at++;
+    while (at < text.length && text[at] !== quote) {
+      const char = text[at]!;
+      if (char === "\\" && at + 1 < text.length) {
+        const escaped = text[at + 1]!;
+        value += escaped === "'" ? "'" : char + escaped;
+        at += 2;
+        continue;
+      }
+      if (char === '"') value += '\\"';
+      else if (char === "\n") value += "\\n";
+      else if (char === "\r") value += "\\r";
+      else if (char === "\t") value += "\\t";
+      else value += char;
+      at++;
+    }
+    at++;
+    return `"${value}"`;
+  };
+
+  while (at < text.length) {
+    const char = text[at]!;
+    if (char === '"' || char === "'") {
+      out += readString(char);
+    } else if (char === "," && /[}\]]/.test(nextVisible(at + 1) ?? "")) {
+      at++;
+    } else if (IDENTIFIER_START.test(char) && /[{,]\s*$/.test(out)) {
+      let end = at;
+      while (end < text.length && IDENTIFIER.test(text[end]!)) end++;
+      const word = text.slice(at, end);
+      out += nextVisible(end) === ":" ? `"${word}"` : word;
+      at = end;
+    } else {
+      out += char;
+      at++;
+    }
+  }
+  return out;
+}
+
+// Keyword arguments by name; positional ones under "0", "1", … for the tool to place.
 function keywordArguments(source: string): Record<string, unknown> {
   const args: Record<string, unknown> = {};
-  for (const match of source.matchAll(/(\w+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(-?\d+(?:\.\d+)?))/g)) {
-    args[match[1]!] = match[4] !== undefined ? Number(match[4]) : (match[2] ?? match[3]!).replace(/\\(.)/g, "$1");
+  let position = 0;
+  for (const match of source.matchAll(/(?:(\w+)\s*=\s*)?(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(-?\d+(?:\.\d+)?))/g)) {
+    const value = match[4] !== undefined ? Number(match[4]) : (match[2] ?? match[3]!).replace(/\\(.)/g, "$1");
+    args[match[1] ?? String(position++)] = value;
   }
   return args;
 }

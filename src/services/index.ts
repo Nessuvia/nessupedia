@@ -2,6 +2,7 @@ import { db } from "@/db/database";
 import { AutoContext } from "@/llm/AutoContext";
 import { LlmClient } from "@/llm/LlmClient";
 import { TokenCounter } from "@/llm/TokenCounter";
+import { WikiTools } from "@/llm/tools";
 import { ArchiveService } from "./ArchiveService";
 import { AssetService } from "./AssetService";
 import { CategoryService } from "./CategoryService";
@@ -38,6 +39,7 @@ export const storageService = new StorageService(globalThis.navigator?.storage);
 export const templateService = new TemplateService(db);
 export const wikiService = new WikiService(db);
 export const vaultImporter = new VaultImporter(db, linkIndexer, assetService, wikiService, workerZipper);
+export const wikiTools = new WikiTools(db, linkIndexer, searchService, relationshipService);
 
 // Every save records a change, so the first one asks the browser to keep the data. The timeout runs it outside the transaction.
 db.changes.hook("creating", () => {

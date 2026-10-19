@@ -31,7 +31,7 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 - `src/db/`: data model types and the Dexie schema
 - `src/markdown/`: parse and render pipeline, wikilinks, frontmatter, directives (canon, infobox, pressure), callouts, image embeds, field line grammar
 - `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, CategoryService, TemplateService, RelationshipService, ContinuityService, WikiService, AssetService (with a worker that encodes images), ModelSettingsService, TokenizerService (downloaded tokenizers); `index.ts` wires singletons to the app database
-- `src/llm/`: OpenAI-compatible client, provider presets, Test connection, reading tool calls written as text, token counting, and the tokenizer catalog
+- `src/llm/`: OpenAI-compatible client, provider presets, Test connection, reading tool calls written as text, token counting, the tokenizer catalog, and the read-only agent tools
 - `src/editor/`: CodeMirror extensions shared by every editor
 - `src/templates/`: bundled page templates as markdown files
 - `src/router/`: routes and the home redirect

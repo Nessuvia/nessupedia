@@ -1,11 +1,12 @@
 import type { RootContent } from "mdast";
 import { SKIP, visit } from "unist-util-visit";
 import type { Document } from "yaml";
+import type { CanonTier } from "@/db/types";
 import { TIER_LABELS } from "./canon";
 import { stringList } from "./frontmatter";
 import { hintText } from "./hints";
 import { parseMarkdown } from "./pipeline";
-import { mergeVersion } from "./versions";
+import { mergeVersion, splitSections } from "./versions";
 
 export type AutoContextInclude = "lead" | "infobox" | "full";
 
@@ -118,6 +119,44 @@ export function labelTiers(markdown: string): string {
 }
 
 export const MAIN_CANON_LABEL = "(From main canon)";
+
+export interface ContextSection {
+  key: string;
+  label: string;
+  text: string;
+}
+
+// A page's `##` sections, each with its heading, tiers labelled. A version's come merged, inherited ones labelled.
+export function contextSections(body: string, mainBody?: string): ContextSection[] {
+  if (mainBody === undefined) {
+    return splitSections(body).sections.map(({ key, label, start, end }) => ({ key, label, text: labelTiers(body.slice(start, end)) }));
+  }
+  const merged = mergeVersion(mainBody, body);
+  return merged.segments.flatMap((segment) => {
+    if (segment.kind !== "section") return [];
+    const text = labelTiers(merged.markdown.slice(segment.mergedStart, segment.mergedEnd));
+    return [{ key: segment.key!, label: segment.label!, text: segment.origin === "main" ? `${MAIN_CANON_LABEL}\n${text}` : text }];
+  });
+}
+
+export interface CanonMark {
+  tier: CanonTier;
+  text: string;
+}
+
+// Every Canon, Likely, and Idea mark in a body, blocks and phrases alike, in reading order.
+export function canonMarks(markdown: string): CanonMark[] {
+  const marks: CanonMark[] = [];
+  visit(parseMarkdown(markdown).tree, (node) => {
+    if (node.type !== "canonBlock" && node.type !== "canonInline") return;
+    const first = node.children[0]?.position?.start.offset;
+    const last = node.children.at(-1)?.position?.end.offset;
+    if (first === undefined || last === undefined) return SKIP;
+    marks.push({ tier: node.tier, text: markdown.slice(first, last).trim() });
+    return SKIP;
+  });
+  return marks;
+}
 
 // A page's text for auto-context. A version goes in merged with its main page, inherited parts labelled.
 export function contextText(body: string, include: AutoContextInclude, mainBody?: string): string {

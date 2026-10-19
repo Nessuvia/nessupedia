@@ -459,9 +459,11 @@ type WikiTool =
   | { name: "read_section"; args: { title: string; heading: string } }
   | { name: "list_backlinks"; args: { title: string } }
   | { name: "get_relationships"; args: { title: string } }
-  | { name: "get_canon"; args: { title: string; tier?: "hard" | "soft" | "maybe" } };
+  | { name: "get_canon"; args: { title: string; tier?: "canon" | "likely" | "idea" } };
 ```
-- All tools only read; `get_canon` is how Idea-tier text is reached.
+- All tools only read; `get_canon` is how Idea-tier text is reached. Pages read like auto-context, tiers labelled and Idea text left out, and search only matches and quotes what the model may see.
+- Titles match aliases too, and a run in a continuity reads each page's version there when it has one.
+- Long results are cut to fit what's left of the prompt budget.
 - A section ends when a reply has no tool call: that reply is the proposal (ADR 0007). Sources are the pages auto-context and tools served.
 - Models without tool support follow the same flow on auto-context alone.
 

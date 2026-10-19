@@ -45,7 +45,7 @@ function countOccurrences(text: string, term: string): number {
   return count;
 }
 
-function snippetAt(text: string, index: number): string {
+export function snippetAt(text: string, index: number): string {
   const spaceBefore = text.indexOf(" ", index - SNIPPET_BEFORE);
   const start = index <= SNIPPET_BEFORE ? 0 : spaceBefore === -1 ? index : Math.min(spaceBefore + 1, index);
   const limit = start + SNIPPET_LENGTH;
