@@ -8,15 +8,19 @@
 
 ## Visual identity
 - Classic fandom wiki: header with wiki name and search, categories above the page title, tabs for subpages, right-floating infobox, table of contents, sectioned body.
-- Theme built on CSS variables; full customization ships post-MVP.
+- Clean yet fun, with generous spacing, in the spirit of the Houseki no Kuni and RWBY wikis (`docs/refs/`).
+- One built-in theme on CSS variables, in nessuvia's reds, pinks, black and white, with light and dark modes. Each wiki sets its own appearance (see Settings); the theme editor ships post-MVP.
+- Light or dark follows the system until the toggle in the wiki header is used, then sticks on that device.
 
 ## Layout
-Follows the Fandom page structure; colors, fonts, and background art arrive with the theme in M6.
-- **Global bar** (thin, full width): wiki switcher, search, run panel toggle, settings.
+Follows the Fandom page structure.
+- **Global bar** (thin, full width, dark in both modes): wiki switcher, search, run panel toggle, settings.
+- **Background**: the wiki's background image, fixed in place while the page scrolls. Without one, the page color tinted by the accent.
 - **Left rail** (icons with small labels): Home, All pages, Recent changes, New page, Settings. Hidden on narrow screens, where the wiki header's Explore menu covers navigation.
-- **Wiki header**: wiki name, page count, Explore menu (Main Page, All pages, Categories, Recent changes, Templates).
+- **Wiki header**: a band showing the wiki's banner image (or an accent gradient), with the wordmark or the icon and wiki name, page count, Explore menu (Main Page, All pages, Categories, Recent changes, Templates), and the light / dark toggle.
+- **Content card**: one rounded card under the header holding the main column and the right rail.
 - **Main**: page header ("in:" line of categories, title, version switcher, page actions), the tab bar when the page has tabs, then the rendered page.
-- **Right rail**: modules such as What links here and Recent changes. Moves below the page on medium and narrow screens.
+- **Right rail**: modules such as What links here and Recent changes, with headers in the accent color. Moves below the page on medium and narrow screens.
 - **Right drawer**: agent run panel.
 
 ## Editing
@@ -172,6 +176,11 @@ Assistant rules saved in wiki settings apply to every run in every mode; the one
   - Test connection checks the server, fills in the context size and tool support, and explains failures, including blocked browser access.
   - When the server can't count tokens, a Tokenizer row suggests one for the model with a Download button. Without one, counts are estimated with a 10% margin.
 - **Wiki**: name, voice (fandom only in MVP), keep original images, keep history for, continuities, Assistant rules, and Follow connections depth (default 1). Deleting a wiki requires typing its name.
+- **Appearance** (its own page per wiki, linked from wiki settings):
+  - **Accent color**: swatches from the brand palette, plus any color. Used for the header gradient, buttons, tabs, and box headers; text on it is black or white, whichever reads better.
+  - **Fonts**: a heading font and a body font, searched from Fontsource, or System fonts (default). A note says fonts are small and download once, then work offline. A small credit links to Fontsource.
+  - **Images**: banner (1920 × 300), background (1920 × 1080), wordmark (500 × 130, shown at half size), and icon (256 × 256). Each slot takes a dropped file or an upload, shows a preview, and has Remove.
+  - **Wiki Assets Pack**: Download gives `Wiki_Assets_Pack.zip`, with `BANNER.png`, `BACKGROUND.png`, `WORDMARK.png`, and `ICON.png` as placeholder grids at the exact sizes and a short README. Import pack fills each slot whose file is in the ZIP, matching names without regard to case or image type.
 - **Data**: storage status, export ZIP, import ZIP, import Obsidian vault.
 
 ## Terminology map

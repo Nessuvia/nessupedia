@@ -41,14 +41,15 @@
 - Run panel: simple and details views, growing alongside the steps above
 
 ## M6: MVP polish
-- Fandom wiki theme
+- Fandom wiki theme with light and dark modes
+- Wiki appearance: accent color, Fontsource fonts, banner / background / wordmark / icon images, and the Wiki Assets Pack (ADR 0008)
 - Install prompt
 - One month of personal use
 
 ## Post-MVP
 1. Dropbox sync (Rails for OAuth)
 2. Character cards (V2 and V3): import cards as character pages for the Assistant to draw on, and download a page as a card. Needs a spec first: new page or attach to an existing one, where `character_book` entries go, and whether export builds from canon or returns the imported card.
-3. Theme customization
+3. Theme editor: full color sets, custom CSS, layout options
 4. Director's Desk
 5. In-universe voice
 6. Character messaging app, with in-character interviews

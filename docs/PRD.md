@@ -19,6 +19,7 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 - Create, rename, delete, switch wikis.
 - Universe-agnostic; no assumptions about genre or setting.
 - Voice setting: fandom (default). In-universe voice reserved for later.
+- Per-wiki appearance: accent color, heading and body fonts, banner, background, wordmark, and icon, with light and dark modes.
 
 ### Pages
 - Create pages from templates or blank.
@@ -65,7 +66,7 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 - Sharing wiki content with other users.
 - Accounts and server storage.
 - Dropbox sync (first post-MVP item).
-- Full theme customization.
+- Theme editor (full color sets, custom CSS, layout options).
 - In-universe voice mode.
 - Director's Desk roleplay module.
 - Character messaging app, OC social media.
@@ -89,7 +90,7 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 ## Future modules
 1. Dropbox sync
 2. Character cards (V2 and V3) import and export
-3. Theme customization
+3. Theme editor
 4. Director's Desk (scene cards, prose, notes-driven revision, self-insert seat)
 5. In-universe wiki voice
 6. Character messaging app, with in-character interviews

@@ -50,7 +50,21 @@ interface Wiki {
   continuities?: Continuity[];
   assistantRules?: string;
   autoContextDepth?: number;
+  appearance?: Appearance;
   createdAt: number;
+}
+
+interface Appearance {
+  accent?: string; // hex; unset uses the theme's default red
+  fonts?: { heading?: WikiFont; body?: WikiFont };
+  images?: Partial<Record<"banner" | "background" | "wordmark" | "icon", string>>; // asset paths
+}
+
+interface WikiFont {
+  id: string; // Fontsource ID, e.g. "rubik"
+  family: string;
+  category: string; // serif, sans-serif, display… for the fallback stack
+  files: { path: string; weight: number; style: "normal" | "italic"; unicodeRange?: string }[];
 }
 
 interface Continuity {
@@ -281,6 +295,7 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/w/:wikiId/new?title=` | Create a page, title prefilled from red links |
 | `/w/:wikiId/special/search?q=` | Full-text results with snippets, plus "Create page" when no title or alias matches |
 | `/w/:wikiId/special/settings` | Wiki settings: rename, delete with typed confirmation |
+| `/w/:wikiId/special/appearance` | The wiki's accent, fonts, images, and Wiki Assets Pack |
 | `/w/:wikiId/special/all-pages` | All pages, grouped by first letter |
 | `/w/:wikiId/special/recent-changes` | Recent changes feed |
 | `/w/:wikiId/special/categories` | Every category with its page count |
@@ -335,6 +350,13 @@ Routes under `/w/:wikiId` render inside the wiki layout. A route can add right r
 - `AssetService` stores images: GIFs and SVGs as they are, everything else scaled to 2048 px on the long edge and encoded as WebP, unless the result is no smaller and needs no scaling.
 - Paths are `assets/<name>-<hash>.<ext>`, so they never change once written; adding identical bytes returns the existing asset.
 - Rendered images carry `data-asset`; the page view resolves them to object URLs through a cache keyed by wiki and path.
+
+## Appearance
+- `AppearanceService` keeps a wiki's appearance. Images and font files are assets under `assets/appearance/`, named with their hash like other assets, and the wiki record points at them. Replacing or removing one deletes the old asset. Export and import carry them with no change to the archive format.
+- Images go through the same encoder as page images. Slots and their sizes: banner 1920 × 300, background 1920 × 1080, wordmark 500 × 130, icon 256 × 256.
+- Fonts come from Fontsource: the font list from `api.fontsource.org/v1/fonts`, and the chosen font's `woff2` files from its CDN for weights 400 and 700, normal and italic where they exist, in the `latin` and `latin-ext` subsets with their unicode ranges. Characters outside those fall back to the system font. Fonts register through `FontFace` when the wiki opens.
+- The layout sets `--accent`, `--accent-text` (black or white by contrast), the font stacks, and the image URLs as CSS variables on the wiki layout. Light and dark are two sets of theme variables under `[data-mode]` on the root, chosen from `prefers-color-scheme` until the toggle stores a choice in local storage.
+- The Wiki Assets Pack is built in the browser: each placeholder is drawn on a canvas at its exact size as a labelled grid, zipped with a README. Importing a pack matches `banner`, `background`, `wordmark`, and `icon` by file name, ignoring case and extension.
 
 ## Change log
 - Every save computes a unified diff of the page source, frontmatter included, against the prior source.
@@ -544,5 +566,5 @@ A section that still fails is marked `failed` with its raw reply kept, and the r
 
 ## Future
 - Dropbox sync on the archive layout, Rails for OAuth.
-- Theme editor.
+- Theme editor: full color sets, custom CSS, layout options.
 - Director's Desk reading from auto-context and tools.
