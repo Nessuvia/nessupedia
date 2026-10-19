@@ -30,13 +30,13 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 
 - `src/db/`: data model types and the Dexie schema
 - `src/markdown/`: parse and render pipeline, wikilinks, frontmatter, directives (canon, infobox, pressure), callouts, image embeds, field line grammar
-- `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, CategoryService, TemplateService, RelationshipService, ContinuityService, ReviewService (accepting Assistant proposals), WikiService, AssetService (with a worker that encodes images), ModelSettingsService, TokenizerService (downloaded tokenizers); `index.ts` wires singletons to the app database
+- `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, CategoryService, TemplateService, RelationshipService, ContinuityService, ReviewService (accepting Assistant proposals), LinkSuggester, WikiService, AssetService (with a worker that encodes images), ModelSettingsService, TokenizerService (downloaded tokenizers); `index.ts` wires singletons to the app database
 - `src/llm/`: OpenAI-compatible client, provider presets, Test connection, reading tool calls written as text, token counting, the tokenizer catalog, the read-only agent tools, prompts, reply repair, and the run orchestrator
 - `src/editor/`: CodeMirror extensions shared by every editor
 - `src/templates/`: bundled page templates as markdown files
 - `src/router/`: routes and the home redirect
 - `src/stores/`: Pinia stores (current wiki, wiki creation, the run panel and live run activity)
-- `src/composables/`: `useLiveQuery` (Dexie live queries as refs), `useStoredRef`, `useDismiss` (close popups), `useLeaveGuard` (unsaved changes), `useTemplateNameCheck`
+- `src/composables/`: `useLiveQuery` (Dexie live queries as refs), `useStoredRef`, `useDismiss` (close popups), `useLeaveGuard` (unsaved changes), `useTemplateNameCheck`, `useLinkSuggestions` (Suggest links on a page)
 - `src/views/`: route components; `src/components/`: shared UI
 - `src/utils/`: small pure helpers
 - `src/styles/`: theme CSS variables

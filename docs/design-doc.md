@@ -524,8 +524,9 @@ A section that still fails is marked `failed` with its raw reply kept, and the r
 
 ### Suggest links
 - `MentionFinder` finds unlinked mentions of titles and aliases in the page body. It skips code, existing links, headings, and the page's own names, and underlines the first mention of each page.
-- Accepting wraps the text in `[[…]]` as a human edit.
-- "Ask the Assistant for more" sends the page and the wiki's title list and asks for `phrase -> Title` lines. Lines whose phrase isn't in the text, or whose title doesn't exist, are dropped. The rest join the underlines, and accepting them is an Assistant edit.
+- Suggestions underline in the page view: the renderer marks their source ranges, inside plain text whose offsets are exact, and click-to-edit pauses until Done. Versions don't offer it, since they show their main page's text too.
+- Accepting wraps the text in `[[…]]` as a minor human edit, keeping the words as written (`[[Mi]]`, or `[[Mira|her sister]]` when they aren't a name). Later suggestions shift by the added length, and one whose text changed is skipped.
+- "Ask the Assistant for more" sends the page and the wiki's title list and asks for `phrase -> Title` lines. Lines whose phrase isn't in the text, or whose title doesn't exist, are dropped. The rest join the underlines, and accepting them is an Assistant edit. The request is kept as a `suggest-links` run with its `linkSuggestions`, and the title list is cut to 40% of the prompt budget.
 
 ## PWA
 - App shell precached; offline by default.

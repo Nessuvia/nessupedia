@@ -5,7 +5,7 @@ import type { CanonTier } from "@/db/types";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { editSummary, spliceBlock } from "@/markdown/blocks";
 import { setCanonTier, shiftTier, TIER_LABELS } from "@/markdown/canon";
-import { headingId, parseMarkdown, renderMarkdown, type RenderedBlock, type RenderOptions } from "@/markdown/pipeline";
+import { headingId, parseMarkdown, renderMarkdown, type RenderedBlock, type RenderOptions, type SourceMark } from "@/markdown/pipeline";
 import { buildToc } from "@/markdown/toc";
 import {
   forkLead,
@@ -38,8 +38,10 @@ const props = defineProps<{
   save?: SaveBody;
   inheritFrom?: string;
   continuity?: string;
+  // Source ranges to underline, such as suggested links; clicking one reports its id. Pages merged with a main page have none.
+  marks?: readonly SourceMark[];
 }>();
-const emit = defineEmits<{ locate: [offset: number] }>();
+const emit = defineEmits<{ locate: [offset: number]; mark: [id: number] }>();
 
 const TOC_MIN_HEADINGS = 3;
 
@@ -67,6 +69,7 @@ const rendered = computed(() => {
           ? { name: "page", params: { wikiId: props.wikiId, title: titleParam(target(title)) }, hash: heading && `#${headingId(heading)}` }
           : { name: "new-page", params: { wikiId: props.wikiId }, query: { title } },
       ).href,
+    ...(props.marks && !merged.value && { marks: props.marks }),
   };
   const { blocks, headings } = renderMarkdown(tree, options);
   const toc = buildToc(headings);
@@ -215,6 +218,8 @@ function followLink(event: MouseEvent, link: HTMLAnchorElement) {
 // Links, tabs, and fold toggles keep their own behavior; selecting text doesn't open an editor.
 function onClick(event: MouseEvent, item: Placed) {
   const target = event.target as Element;
+  const mark = target.closest<HTMLElement>("mark.text-mark[data-mark]");
+  if (mark) return emit("mark", Number(mark.dataset.mark));
   const tab = target.closest<HTMLElement>("[role=tab][data-tab]");
   if (tab) return switchTab(tab);
   const shift = target.closest<HTMLElement>(".canon-shift");

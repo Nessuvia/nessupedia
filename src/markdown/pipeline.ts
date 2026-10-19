@@ -1,6 +1,6 @@
 import type { Element, ElementContent, Properties, Root as HastRoot } from "hast";
 import { toHtml } from "hast-util-to-html";
-import type { Paragraph, Root, RootContent } from "mdast";
+import type { Paragraph, Root, RootContent, Text } from "mdast";
 import type { State } from "mdast-util-to-hast";
 import { slug } from "github-slugger";
 import remarkDirective from "remark-directive";
@@ -28,6 +28,7 @@ import type {
   InfoboxNode,
   InfoboxTabNode,
   PressureNode,
+  TextMark,
 } from "./nodes";
 import remarkWikilinks, { type WikiLink } from "./wikilinks";
 
@@ -59,9 +60,17 @@ export interface RenderedMarkdown {
   blocks: RenderedBlock[];
 }
 
+export interface SourceMark {
+  id: number;
+  start: number;
+  end: number;
+}
+
 export interface RenderOptions {
   pageExists?: (title: string) => boolean;
   pageHref?: (title: string, heading?: string) => string;
+  // Source ranges to render as `<mark class="text-mark">`, when they fall inside one stretch of plain text.
+  marks?: readonly SourceMark[];
 }
 
 const parser = unified()
@@ -90,7 +99,7 @@ const anchorClassRule = anchorRules.find(isClassNameRule) ?? ["className"];
 // Raw HTML never reaches the tree, so these only admit what the custom handlers below produce.
 const sanitizeSchema: SanitizeSchema = {
   ...defaultSchema,
-  tagNames: [...(defaultSchema.tagNames ?? []), "aside", "button", "figure", "figcaption"],
+  tagNames: [...(defaultSchema.tagNames ?? []), "aside", "button", "figure", "figcaption", "mark"],
   attributes: {
     ...defaultSchema.attributes,
     "*": [
@@ -114,6 +123,7 @@ const sanitizeSchema: SanitizeSchema = {
       "dataWikilink",
     ],
     button: ["type", "dataShift"],
+    mark: ["dataMark"],
     img: [...(defaultSchema.attributes?.img ?? []), "dataAsset"],
   },
 };
@@ -199,6 +209,8 @@ const handlers = {
       ...state.wrap(state.all(node), true),
     ]),
 
+  textMark: (_state: State, node: TextMark): Element => el("mark", { className: ["text-mark"], dataMark: node.id }, [text(node.value)]),
+
   canonInline: (state: State, node: CanonInline): Element =>
     el("span", { className: ["canon-inline", `canon-${node.tier}`], dataTier: node.tier, title: TIER_LABELS[node.tier], ...sourceRange(node) }, [
       ...state.all(node),
@@ -272,6 +284,29 @@ const hintParagraph = (hint: string, { position }: RootContent): Paragraph => ({
   data: { hProperties: { className: ["template-hint"], dataKind: "hint" } },
 });
 
+// Splits text nodes around the marks they hold. Text with escapes or entities has no reliable offsets inside it, so a node
+// whose source length differs from its value is left alone.
+function markText(tree: Root, marks: readonly SourceMark[]): void {
+  visit(tree, "text", (node, index, parent) => {
+    const start = node.position?.start.offset;
+    const end = node.position?.end.offset;
+    if (!parent || index === undefined || start === undefined || end === undefined || end - start !== node.value.length) return;
+    const inside = marks.filter((mark) => mark.start >= start && mark.end <= end).sort((a, b) => a.start - b.start);
+    if (inside.length === 0) return;
+    const pieces: (Text | TextMark)[] = [];
+    let at = start;
+    for (const mark of inside) {
+      if (mark.start < at) continue;
+      if (mark.start > at) pieces.push({ type: "text", value: node.value.slice(at - start, mark.start - start) });
+      pieces.push({ type: "textMark", id: mark.id, value: node.value.slice(mark.start - start, mark.end - start) });
+      at = mark.end;
+    }
+    if (at < end) pieces.push({ type: "text", value: node.value.slice(at - start) });
+    (parent.children as RootContent[]).splice(index, 1, ...pieces);
+    return index + pieces.length;
+  });
+}
+
 export function renderMarkdown(tree: Root, options: RenderOptions = {}): RenderedMarkdown {
   const { pageExists = () => true, pageHref = defaultPageHref } = options;
   const headings: RenderedHeading[] = [];
@@ -293,6 +328,7 @@ export function renderMarkdown(tree: Root, options: RenderOptions = {}): Rendere
     const hint = node.type === "html" ? hintText(node.value) : undefined;
     return hint ? hintParagraph(hint, node) : node;
   });
+  if (options.marks?.length) markText(copy, options.marks);
   for (const node of copy.children) {
     const range = sourceRange(node);
     if (range.dataStart !== undefined) node.data = { ...node.data, hProperties: { ...node.data?.hProperties, ...range } };

@@ -139,6 +139,8 @@ export interface LinkSuggestion {
   end: number;
   text: string;
   title: string;
+  // Set on suggestions the Assistant found; accepting them is an Assistant edit.
+  byAssistant?: boolean;
 }
 
 export interface AgentRun {

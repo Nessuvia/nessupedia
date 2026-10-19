@@ -64,6 +64,13 @@ export interface ImageEmbed extends Node {
   height?: number;
 }
 
+// A stretch of text marked while rendering, such as a suggested link; never parsed from markdown.
+export interface TextMark extends Node {
+  type: "textMark";
+  id: number;
+  value: string;
+}
+
 declare module "mdast" {
   interface BlockContentMap {
     canonBlock: CanonBlock;
@@ -74,8 +81,10 @@ declare module "mdast" {
   interface PhrasingContentMap {
     canonInline: CanonInline;
     imageEmbed: ImageEmbed;
+    textMark: TextMark;
   }
   interface RootContentMap {
+    textMark: TextMark;
     canonBlock: CanonBlock;
     canonInline: CanonInline;
     infobox: InfoboxNode;

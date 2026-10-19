@@ -11,6 +11,7 @@ import { ChangeLog } from "./ChangeLog";
 import { ContinuityService } from "./ContinuityService";
 import { encodeImage } from "./imageEncoder";
 import { LinkIndexer } from "./LinkIndexer";
+import { LinkSuggester } from "./LinkSuggester";
 import { ModelSettingsService } from "./ModelSettingsService";
 import { PageService } from "./PageService";
 import { RelationshipService } from "./RelationshipService";
@@ -53,6 +54,7 @@ export const runOrchestrator = new RunOrchestrator({
 });
 
 export const reviewService = new ReviewService(db, pageService, runOrchestrator);
+export const linkSuggester = new LinkSuggester(db, pageService, llmClient, tokenCounter, () => modelSettingsService.get());
 
 runOrchestrator.recover().catch(() => {});
 

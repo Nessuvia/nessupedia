@@ -238,6 +238,19 @@
   background: color-mix(in srgb, var(--tier) 6%, transparent);
 }
 
+.page-body .text-mark {
+  padding: 0;
+  background: color-mix(in srgb, var(--color-link) 10%, transparent);
+  color: inherit;
+  text-decoration: underline 2px dotted var(--color-link);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.page-body .text-mark:hover {
+  background: color-mix(in srgb, var(--color-link) 20%, transparent);
+}
+
 .canon-inline {
   --tier: var(--canon-hard);
   position: relative;

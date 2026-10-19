@@ -23,7 +23,9 @@ import { titleSegments, topTitle } from "@/markdown/subpages";
 import { versionOf } from "@/markdown/versions";
 import { RELATIONSHIPS_TAB, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
-import { changeLog, pageService, templateService } from "@/services";
+import { changeLog, modelSettingsService, pageService, templateService } from "@/services";
+import { useLinkSuggestions } from "@/composables/useLinkSuggestions";
+import LinkSuggestionsBar from "@/components/LinkSuggestionsBar.vue";
 import { useWikiStore } from "@/stores/wiki";
 
 const props = defineProps<{ wikiId: string; title: string }>();
@@ -100,13 +102,23 @@ const dialogPage = shallowRef<Page>();
 const dialogs = { details: ref(false), rename: ref(false), template: ref(false), delete: ref(false), draft: ref(false), fill: ref(false) };
 const { details: detailsOpen, rename: renameOpen, template: templateOpen, delete: deleteOpen, draft: draftOpen, fill: fillOpen } = dialogs;
 
-const ASSISTANT_ACTIONS: { action: AssistantAction; label: string }[] = [
+const links = useLinkSuggestions(page);
+const modelConfigured = useLiveQuery(() => modelSettingsService.configured());
+watch(
+  () => page.value?.id,
+  () => links.stop(),
+);
+
+// Suggest links works on a page's own text, so a version, which shows its main page's too, doesn't offer it.
+const ASSISTANT_ACTIONS = computed((): { action: AssistantAction; label: string }[] => [
   { action: "draft", label: "Draft from notes" },
   { action: "fill", label: "Fill template" },
-];
+  ...(version.value ? [] : [{ action: "links" as const, label: "Suggest links" }]),
+]);
 
 function chooseAssistant(action: AssistantAction) {
-  if (action === "draft" || action === "fill") openDialog(action);
+  if (action === "links") void links.start();
+  else openDialog(action);
 }
 
 function openDialog(kind: keyof typeof dialogs) {
@@ -202,14 +214,29 @@ watchEffect(() => {
       :main-exists="!!topPage"
       :changes="changes"
     />
+    <LinkSuggestionsBar
+      v-if="links.active.value && page"
+      :suggestions="links.suggestions.value"
+      :asking="links.asking.value"
+      :asked-once="links.askedOnce.value"
+      :configured="modelConfigured"
+      :error="links.error.value"
+      :note="links.note.value"
+      @accept-all="links.acceptAll"
+      @ask="links.ask"
+      @cancel-ask="links.cancelAsk"
+      @done="links.stop"
+    />
     <PageContent
       v-if="page"
       :key="page.id"
       :wiki-id="wikiId"
       :markdown="page.body"
-      :save="saveBody"
+      :save="links.active.value ? undefined : saveBody"
       :inherit-from="inheritFrom"
       :continuity="version?.continuity.name"
+      :marks="links.active.value ? links.marks.value : undefined"
+      @mark="links.acceptOne"
     />
     <RelationshipsTab
       v-else-if="relationshipsTab"
