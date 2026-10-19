@@ -40,6 +40,7 @@ export interface RecordChangeInput {
   pageId: string;
   pageTitle: string;
   kind: ChangeEntry["kind"];
+  subject?: ChangeEntry["subject"];
   author: ChangeEntry["author"];
   minor: boolean;
   summary: string;
@@ -60,12 +61,13 @@ export class ChangeLog {
   // Returns undefined when an edit folded into the previous one and together they changed nothing.
   async record({ before, after, ...entry }: RecordChangeInput): Promise<ChangeEntry | undefined> {
     const at = Date.now();
-    const latest = entry.kind === "edit" ? await this.db.changes.where("pageId").equals(entry.pageId).last() : undefined;
+    const latest = entry.kind === "edit" ? (await this.listForPage(entry.pageId, entry.subject))[0] : undefined;
     if (latest?.kind === "edit" && latest.author === entry.author && at - latest.at <= MERGE_WINDOW) {
       const start = sourceBefore(latest, before);
       if (start !== undefined) return this.fold(latest, entry, start, after, at);
     }
-    const change: ChangeEntry = { ...entry, diff: createPatch(entry.pageId, before, after), at };
+    const { subject, ...fields } = entry;
+    const change: ChangeEntry = { ...fields, ...(subject && { subject }), diff: createPatch(entry.pageId, before, after), at };
     change.id = await this.db.changes.add(change);
     return change;
   }
@@ -107,8 +109,14 @@ export class ChangeLog {
       .toArray();
   }
 
-  listForPage(pageId: string): Promise<ChangeEntry[]> {
-    return this.db.changes.where("pageId").equals(pageId).reverse().toArray();
+  // Newest first: changes to the page's text, or to its card when `subject` is "card".
+  listForPage(pageId: string, subject?: ChangeEntry["subject"]): Promise<ChangeEntry[]> {
+    return this.db.changes
+      .where("pageId")
+      .equals(pageId)
+      .reverse()
+      .filter((entry) => entry.subject === subject)
+      .toArray();
   }
 
   // The latest deletion of a page that hasn't come back, found by the title it had.
@@ -117,7 +125,7 @@ export class ChangeLog {
     const deletions = await this.db.changes
       .where("wikiId")
       .equals(wikiId)
-      .filter((entry) => entry.kind === "delete" && titleKey(entry.pageTitle) === key)
+      .filter((entry) => entry.kind === "delete" && !entry.subject && titleKey(entry.pageTitle) === key)
       .reverse()
       .sortBy("id");
     for (const deletion of deletions) {

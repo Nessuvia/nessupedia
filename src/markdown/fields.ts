@@ -22,6 +22,8 @@ export interface InfoboxTab {
 // The shared tab holds everything before the first `=== Tab` line and shows under every tab.
 export interface InfoboxData {
   title: string;
+  // Text for the chat button, which shows when the page has a character card.
+  chat?: string;
   shared: InfoboxTab;
   tabs: InfoboxTab[];
 }
@@ -110,6 +112,10 @@ export function parseInfobox(source: string): InfoboxData {
         data.title = field[2]?.trim() ?? "";
         return true;
       }
+      if (field?.[1] === "chat") {
+        data.chat = field[2]?.trim() ?? "";
+        return true;
+      }
       if (field?.[1] === "image") {
         const [path = "", ...caption] = (field[2] ?? "").split("|");
         if (path.trim()) tab.images.push({ path: path.trim(), caption: caption.join("|").trim() });
@@ -143,6 +149,7 @@ function writeTab(tab: InfoboxTab): string[] {
 
 export function serializeInfobox(data: InfoboxData): string {
   const lines = data.title.trim() ? [`title: ${data.title.trim()}`] : [];
+  if (data.chat?.trim()) lines.push(`chat: ${data.chat.trim()}`);
   lines.push(...writeTab(data.shared));
   for (const tab of data.tabs) lines.push(`=== ${tab.label.trim() || "Tab"}`, ...writeTab(tab));
   return lines.join("\n");

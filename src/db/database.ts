@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 import { categoryKeys } from "@/markdown/categories";
 import { freeSlug, slugify } from "@/utils/slug";
-import type { AgentRun, Asset, ChangeEntry, Link, ModelSettings, Page, Template, Tokenizer, Wiki } from "./types";
+import type { AgentRun, Asset, Card, ChangeEntry, Link, ModelSettings, Page, Template, Tokenizer, Wiki } from "./types";
 
 export class WikiDatabase extends Dexie {
   wikis!: EntityTable<Wiki, "id">;
@@ -13,6 +13,7 @@ export class WikiDatabase extends Dexie {
   runs!: EntityTable<AgentRun, "id">;
   settings!: EntityTable<ModelSettings, "id">;
   tokenizers!: EntityTable<Tokenizer, "id">;
+  cards!: EntityTable<Card, "pageId">;
 
   constructor(name = "oc-wiki") {
     super(name);
@@ -58,6 +59,9 @@ export class WikiDatabase extends Dexie {
             wiki.slug = freeSlug(slugify(wiki.name), taken);
           });
       });
+    this.version(6).stores({
+      cards: "pageId, wikiId",
+    });
   }
 }
 

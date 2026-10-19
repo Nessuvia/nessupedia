@@ -55,6 +55,8 @@ Typing `/` in any editor offers:
 - Tabs ("Young / Adult") each hold their own images and groups; rows outside any tab show under every tab.
 - Several images in one tab switch with small tabs named by their captions.
 
+- A "Chat button" field sets the text of the button shown under the infobox when the page has a character card ("Chat with Damien!"). Without it the button reads "Chat with <name>". For now it opens "Coming soon…".
+
 ### Pressure profile
 - One per page.
 - Starts with six fields: Triggers, Coping, Contradictions, Breaking point, How others read it, Aftermath. Fields can be renamed, removed, or added.
@@ -131,6 +133,13 @@ Typing `/` in any editor offers:
 - A "History" page action lists the page's entries, each with its diff and "Restore this version", which saves the old text as a new change.
 - A deleted page's entry in the feed opens its history, where any version can be restored. Creating a new page with the same title removes that history, and the creation screen says so before creating.
 - Wiki settings choose how long history is kept: Forever (default), 1 year, 90 days, or 30 days. "Keep all history" in a page's Details exempts that page.
+
+## Character cards
+- A "Card" page action opens the page's card. A page without one offers "Add a card" (.png or .json, V2 or V3) and "Start a blank card".
+- The card screen has Back, a Saved / Unsaved status, Save, Download, Replace, and Remove, then the image and name, then collapsible sections in two columns: Identity, Openings, and Lorebook on the left; Image, Prompt, and Metadata on the right. One column on narrow screens.
+- The lorebook shows its name and entry count only. It keeps the chat-app name "Lorebook", apart from Auto-context.
+- Card changes show in the page's History marked "card", with "Restore this card".
+- Wiki Documents, in the left rail, lists every card and page image, with All / Cards / Images filters. Cards link to their card screen and page; images list the pages that use them. Both download.
 
 ## Export and import
 - **Export ZIP**: this wiki, or all wikis when more than one exists. "Include history" is checked by default, with a slider for how far back: 7 days, 30 days, 90 days, 1 year, All (default). Original images go in when "Keep original images" is on.

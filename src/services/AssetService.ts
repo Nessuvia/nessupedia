@@ -88,6 +88,10 @@ export class AssetService {
     return asset;
   }
 
+  listForWiki(wikiId: string): Promise<Asset[]> {
+    return this.db.assets.where("wikiId").equals(wikiId).sortBy("path");
+  }
+
   // Bare file names, as Obsidian writes them, also resolve inside assets/.
   async find(wikiId: string, path: string): Promise<Asset | undefined> {
     const exact = await this.db.assets.where("[wikiId+path]").equals([wikiId, path]).first();

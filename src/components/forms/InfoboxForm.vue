@@ -32,6 +32,10 @@ function removeTab(index: number) {
       <span>Infobox title</span>
       <input ref="title" v-model="data.title" class="text-input" type="text" placeholder="Usually the full name" />
     </label>
+    <label class="title">
+      <span>Chat button</span>
+      <input v-model="data.chat" class="text-input" type="text" placeholder="Shown when the page has a card, like Chat with Damien!" />
+    </label>
 
     <section class="section" aria-label="Shown under every tab">
       <p v-if="data.tabs.length > 0" class="section-note">Shown under every tab</p>

@@ -12,7 +12,7 @@ The docs define the project. Read the relevant one before starting a feature.
 - `docs/UX-spec.md`: layout, editing, canon tiers, agent run panel, terminology map
 - `docs/design-doc.md`: architecture, data model, Dexie schema, markdown format, agent tools
 - `docs/roadmap.md`: milestones M0 to M6, then post-MVP
-- `docs/adr/`: decision records (client-only PWA, Vue stack, hybrid storage, markdown pipeline, agent with auto-context, supported LLM providers, app-driven runs, wiki appearance in the MVP, Ollama and LM Studio, Dropbox sync without a backend)
+- `docs/adr/`: decision records (client-only PWA, Vue stack, hybrid storage, markdown pipeline, agent with auto-context, supported LLM providers, app-driven runs, wiki appearance in the MVP, Ollama and LM Studio, Dropbox sync without a backend, character cards attached to pages)
 
 ## Stack
 
@@ -30,7 +30,8 @@ Vue 3, Vite, TypeScript, Pinia, Dexie, unified/remark/rehype, CodeMirror 6, vite
 
 - `src/db/`: data model types and the Dexie schema
 - `src/markdown/`: parse and render pipeline, wikilinks, frontmatter, directives (canon, infobox, pressure), callouts, image embeds, field line grammar
-- `src/services/`: PageService, LinkIndexer, ChangeLog, SearchService, CategoryService, TemplateService, RelationshipService, ContinuityService, ReviewService (accepting Assistant proposals), LinkSuggester, WikiService, AssetService (with a worker that encodes images), ModelSettingsService, TokenizerService (downloaded tokenizers); `index.ts` wires singletons to the app database
+- `src/cards/`: reading and writing character card files (JSON and PNG chunks)
+- `src/services/`: PageService, CardService (a page's character card and its history), LinkIndexer, ChangeLog, SearchService, CategoryService, TemplateService, RelationshipService, ContinuityService, ReviewService (accepting Assistant proposals), LinkSuggester, WikiService, AssetService (with a worker that encodes images), ModelSettingsService, TokenizerService (downloaded tokenizers); `index.ts` wires singletons to the app database
 - `src/llm/`: OpenAI-compatible client, provider presets, Test connection, reading tool calls written as text, token counting, the tokenizer catalog, the read-only agent tools, prompts, reply repair, and the run orchestrator
 - `src/editor/`: CodeMirror extensions shared by every editor
 - `src/templates/`: bundled page templates as markdown files

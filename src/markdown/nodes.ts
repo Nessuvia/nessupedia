@@ -36,6 +36,7 @@ export interface InfoboxTabNode extends Parent {
 export interface InfoboxNode extends Parent {
   type: "infobox";
   title: string;
+  chat?: string;
   children: InfoboxTabNode[];
 }
 

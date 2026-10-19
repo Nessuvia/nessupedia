@@ -40,8 +40,10 @@ const props = defineProps<{
   continuity?: string;
   // Source ranges to underline, such as suggested links; clicking one reports its id. Pages merged with a main page have none.
   marks?: readonly SourceMark[];
+  // The name on the page's character card, which gives infoboxes a chat button.
+  chatWith?: string;
 }>();
-const emit = defineEmits<{ locate: [offset: number]; mark: [id: number] }>();
+const emit = defineEmits<{ locate: [offset: number]; mark: [id: number]; chat: [] }>();
 
 const TOC_MIN_HEADINGS = 3;
 
@@ -70,6 +72,7 @@ const rendered = computed(() => {
           : { name: "new-page", query: { title } },
       ).href,
     ...(props.marks && !merged.value && { marks: props.marks }),
+    ...(props.chatWith !== undefined && { chatWith: props.chatWith }),
   };
   const { blocks, headings } = renderMarkdown(tree, options);
   const toc = buildToc(headings);
@@ -218,6 +221,7 @@ function followLink(event: MouseEvent, link: HTMLAnchorElement) {
 // Links, tabs, and fold toggles keep their own behavior; selecting text doesn't open an editor.
 function onClick(event: MouseEvent, item: Placed) {
   const target = event.target as Element;
+  if (target.closest(".infobox-chat")) return emit("chat");
   const mark = target.closest<HTMLElement>("mark.text-mark[data-mark]");
   if (mark) return emit("mark", Number(mark.dataset.mark));
   const tab = target.closest<HTMLElement>("[role=tab][data-tab]");

@@ -24,7 +24,8 @@ import { titleSegments, topTitle } from "@/markdown/subpages";
 import { versionOf } from "@/markdown/versions";
 import { RELATIONSHIPS_TAB, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
-import { changeLog, modelSettingsService, pageService, templateService } from "@/services";
+import { cardService, changeLog, modelSettingsService, pageService, templateService } from "@/services";
+import AppDialog from "@/components/AppDialog.vue";
 import { useLinkSuggestions } from "@/composables/useLinkSuggestions";
 import LinkSuggestionsBar from "@/components/LinkSuggestionsBar.vue";
 import { useWikiStore } from "@/stores/wiki";
@@ -91,6 +92,14 @@ const relationshipsOf = computed(() => relationshipsTab.value?.character);
 const version = computed(() => versionOf(shownTitle.value, continuities.value));
 const inheritFrom = computed(() => (version.value && topPage.value ? topPage.value.body : undefined));
 const changes = computed(() => (page.value ? stringList(page.value.frontmatter.changes) : []));
+
+// A version without a card of its own uses its main page's.
+const card = useLiveQuery(
+  async ([pageId, mainId]) => (pageId ? ((await cardService.get(pageId)) ?? (mainId ? await cardService.get(mainId) : undefined)) : undefined),
+  () => [page.value?.id, version.value ? topPage.value?.id : undefined] as const,
+);
+const chatWith = computed(() => card.value && (card.value.card.data.nickname || card.value.card.data.name));
+const chatOpen = ref(false);
 
 const subtitle = computed(() => {
   if (relationshipsOf.value || version.value) return undefined;
@@ -184,6 +193,7 @@ watchEffect(() => {
           <AppIcon name="history" />
           History
         </RouterLink>
+        <RouterLink class="page-action" :to="{ name: 'page-card', params: { title: titleParam(page.title) } }">Card</RouterLink>
         <button class="page-action" type="button" @click="openDialog('rename')">Rename</button>
         <button class="page-action" type="button" @click="openDialog('template')">Save as template</button>
         <button class="page-action" type="button" @click="openDialog('delete')">Delete</button>
@@ -232,6 +242,12 @@ watchEffect(() => {
       @cancel-ask="links.cancelAsk"
       @done="links.stop"
     />
+    <AppDialog v-model:open="chatOpen" :title="`Chat with ${chatWith}`">
+      <p>Coming soon…</p>
+      <div class="dialog-actions">
+        <button class="button" type="button" @click="chatOpen = false">Close</button>
+      </div>
+    </AppDialog>
     <PageContent
       v-if="page"
       :key="page.id"
@@ -241,7 +257,9 @@ watchEffect(() => {
       :inherit-from="inheritFrom"
       :continuity="version?.continuity.name"
       :marks="links.active.value ? links.marks.value : undefined"
+      :chat-with="chatWith"
       @mark="links.acceptOne"
+      @chat="chatOpen = true"
     />
     <RelationshipsTab
       v-else-if="relationshipsTab"

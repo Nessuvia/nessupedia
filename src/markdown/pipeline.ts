@@ -71,6 +71,8 @@ export interface RenderOptions {
   pageHref?: (title: string, heading?: string) => string;
   // Source ranges to render as `<mark class="text-mark">`, when they fall inside one stretch of plain text.
   marks?: readonly SourceMark[];
+  // The name on the page's character card; infoboxes then show a chat button.
+  chatWith?: string;
 }
 
 const parser = unified()
@@ -316,8 +318,16 @@ export function renderMarkdown(tree: Root, options: RenderOptions = {}): Rendere
       text(node.label ?? node.title),
     ]);
 
+  const infobox = (state: State, node: InfoboxNode): Element => {
+    const aside = handlers.infobox(state, node);
+    if (options.chatWith !== undefined) {
+      aside.children.push(el("button", { type: "button", className: ["infobox-chat"] }, [text(node.chat || `Chat with ${options.chatWith}`)]));
+    }
+    return aside;
+  };
+
   const processor = unified()
-    .use(remarkRehype, { handlers: { ...handlers, wikiLink } as never })
+    .use(remarkRehype, { handlers: { ...handlers, wikiLink, infobox } as never })
     .use(rehypeSlug)
     .use(rehypeSanitize, sanitizeSchema)
     .use(rehypeCollectHeadings(headings));

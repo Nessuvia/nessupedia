@@ -1,3 +1,4 @@
+import { cardContextText } from "@/cards/cardFile";
 import type { WikiDatabase } from "@/db/database";
 import type { AgentRun, AssumptionMode, ModelSettings, Page, RunSection, TranscriptEntry } from "@/db/types";
 import { contextText } from "@/markdown/autoContext";
@@ -11,7 +12,7 @@ import { parseHeadings, PLAN_SYSTEM_PROMPT, planUserPrompt, sectionSystemPrompt,
 import { isRepeating, repairReply, wrapIdea } from "./ReplyRepair";
 import { parseLooseJson, parseTextToolCalls } from "./textToolCalls";
 import { promptBudget, type TokenCounter } from "./TokenCounter";
-import { WIKI_TOOLS, type WikiTools } from "./tools";
+import { pageCard, WIKI_TOOLS, type WikiTools } from "./tools";
 
 export interface StartRunInput {
   wikiId: string;
@@ -294,7 +295,13 @@ export class RunOrchestrator {
       { role: "system", content: PLAN_SYSTEM_PROMPT },
       {
         role: "user",
-        content: planUserPrompt(run.pageTitle, run.input.notes, context.entries.map((entry) => entry.text), page && (await this.pageText(page))),
+        content: planUserPrompt(
+          run.pageTitle,
+          run.input.notes,
+          context.entries.map((entry) => entry.text),
+          page && (await this.pageText(page)),
+          page && (await this.cardText(page)),
+        ),
       },
     ];
     messages.forEach((message) => this.log(run, { kind: "message", role: message.role as "system" | "user", content: message.content }));
@@ -497,6 +504,7 @@ export class RunOrchestrator {
     const wiki = await db.wikis.get(run.wikiId);
     const page = run.pageId ? await db.pages.get(run.pageId) : undefined;
     const pageText = page ? await this.pageText(page) : undefined;
+    const cardText = page ? await this.cardText(page) : undefined;
     const continuity = await this.continuityOf(run);
 
     const system = sectionSystemPrompt({ mode: run.mode, tools: settings.tools, wikiRules: wiki?.assistantRules, runRules: run.input.rules });
@@ -506,6 +514,7 @@ export class RunOrchestrator {
       notes: run.input.notes,
       ...(run.kind === "fill-template" && { instructions: true }),
       ...(pageText !== undefined && { pageText }),
+      ...(cardText && { cardText }),
       written: run.sections.filter((other, at) => at !== index && (other.status === "proposed" || other.status === "accepted")).map((other) => other.heading),
       hints: section.hints ?? [],
       ...(attempt.retry && { retry: attempt.retry }),
@@ -537,6 +546,14 @@ export class RunOrchestrator {
     const main = versionOf(page.title, continuities);
     const mainPage = main && (await this.deps.db.pages.where("[wikiId+titleKey]").equals([page.wikiId, titleKey(main.main)]).first());
     return contextText(page.body, "full", mainPage?.body);
+  }
+
+  private async cardText(page: Page): Promise<string | undefined> {
+    const continuities = (await this.deps.db.wikis.get(page.wikiId))?.continuities ?? [];
+    const main = versionOf(page.title, continuities);
+    const mainPage = main && (await this.deps.db.pages.where("[wikiId+titleKey]").equals([page.wikiId, titleKey(main.main)]).first());
+    const card = await pageCard(this.deps.db, page, mainPage);
+    return card && cardContextText(card.card);
   }
 
   private async continuityOf(run: AgentRun): Promise<string | undefined> {
@@ -647,6 +664,8 @@ export function activityLabel(name: string, args: unknown): string {
       return `Reading ${title}'s relationships`;
     case "get_canon":
       return `Checking canon on ${title}`;
+    case "read_card":
+      return `Reading ${title}'s card`;
     default:
       return `Reading ${title}`;
   }

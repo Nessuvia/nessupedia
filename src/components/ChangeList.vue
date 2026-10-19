@@ -35,7 +35,7 @@ const titlesById = computed(() => new Map(pages.value?.map((page) => [page.id, p
       </RouterLink>
       <span v-else class="title gone">{{ entry.pageTitle }}</span>
       <span class="meta">
-        {{ KIND_LABELS[entry.kind] }}
+        <template v-if="entry.subject === 'card'">card </template>{{ KIND_LABELS[entry.kind] }}
         <template v-if="entry.author === 'llm'">by Assistant</template>
         <template v-if="detailed && entry.minor">(minor)</template>
         · <time :datetime="new Date(entry.at).toISOString()">{{ relativeTime(entry.at) }}</time>

@@ -1,5 +1,6 @@
+import { cardContextText } from "@/cards/cardFile";
 import type { WikiDatabase } from "@/db/database";
-import type { CanonTier, Page } from "@/db/types";
+import type { CanonTier, Card, Page } from "@/db/types";
 import { canonMarks, contextSections, contextText, labelTiers } from "@/markdown/autoContext";
 import { TIER_LABELS } from "@/markdown/canon";
 import { parseMarkdown } from "@/markdown/pipeline";
@@ -54,6 +55,11 @@ export const WIKI_TOOLS: ToolDefinition[] = [
       properties: { title, tier: { type: "string", enum: ["canon", "likely", "idea"], description: "Only this tier; all tiers when left out." } },
       required: ["title"],
     },
+  },
+  {
+    name: "read_card",
+    description: "Read the character card on a page: the description, personality, scenario, and greetings written for chat apps. A reference, not canon.",
+    parameters: { type: "object", properties: { title }, required: ["title"] },
   },
 ];
 
@@ -124,6 +130,8 @@ export class WikiTools {
         return this.listBacklinks(wikiId, text(args, "title", name), options);
       case "get_relationships":
         return this.getRelationships(wikiId, text(args, "title", name), options);
+      case "read_card":
+        return this.readCard(wikiId, text(args, "title", name), options);
       default:
         return this.getCanon(wikiId, text(args, "title", name), args.tier, options);
     }
@@ -201,6 +209,13 @@ export class WikiTools {
     return { content: marks.map((mark) => `[${TIER_LABELS[mark.tier]}] ${mark.text}`).join("\n\n"), pages: [page.title] };
   }
 
+  private async readCard(wikiId: string, name: string, options: ToolOptions) {
+    const { page, main } = await this.resolve(wikiId, name, options);
+    const card = await pageCard(this.db, page, main);
+    if (!card) return { content: `${page.title} has no character card.`, pages: [page.title] };
+    return { content: `# Character card of ${page.title}\n\n${cardContextText(card.card)}`, pages: [page.title] };
+  }
+
   // Finds a page by title or alias, preferring its version in the run's continuity. A version reads merged with its main page.
   private async resolve(wikiId: string, name: string, { continuity }: ToolOptions): Promise<{ page: Page; main?: Page; mainBody?: string }> {
     const found = await this.links.findPage(wikiId, name.replace(/^\[\[|\]\]$/g, ""));
@@ -220,6 +235,11 @@ export class WikiTools {
       ? `No page called "${name}". Closest: ${closest.join(", ")}.`
       : `No page called "${name}". Use search_pages to look for it.`;
   }
+}
+
+// A page's card, or for a version without one, its main page's.
+export async function pageCard(db: WikiDatabase, page: Page, main?: Page): Promise<Card | undefined> {
+  return (await db.cards.get(page.id)) ?? (main ? await db.cards.get(main.id) : undefined);
 }
 
 // Text tool calls such as read_page("Mira") pass arguments by position; they fill the parameters in order.

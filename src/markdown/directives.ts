@@ -48,6 +48,7 @@ const remarkDirectives: Plugin<[DirectiveOptions], Root> = ({ parseFragment }) =
     return {
       type: "infobox",
       title: data.title,
+      ...(data.chat && { chat: data.chat }),
       children: [data.shared, ...data.tabs].map((tab) => ({
         type: "infoboxTab",
         label: tab.label,

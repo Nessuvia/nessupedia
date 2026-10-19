@@ -6,7 +6,8 @@ import DiffView from "@/components/DiffView.vue";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import type { ChangeEntry } from "@/db/types";
 import { titleParam } from "@/router/params";
-import { changeLog, pageService } from "@/services";
+import { cardSource } from "@/cards/cardFile";
+import { cardService, changeLog, pageService } from "@/services";
 import { rebuildVersions, sourceBefore } from "@/services/ChangeLog";
 import { useWikiStore } from "@/stores/wiki";
 import { diffRows, diffStats } from "@/utils/diffRows";
@@ -32,7 +33,16 @@ const history = useLiveQuery(
     const page = await pageService.getByTitle(wikiId, title);
     const deletion = page ? undefined : await changeLog.deletedPage(wikiId, title);
     const pageId = page?.id ?? deletion?.pageId;
-    return { page, deletion, pageId, entries: pageId ? await changeLog.listForPage(pageId) : [] };
+    if (!pageId) return { page, deletion, pageId, entries: [], cardEntries: [] };
+    const card = await cardService.get(pageId);
+    return {
+      page,
+      deletion,
+      pageId,
+      entries: await changeLog.listForPage(pageId),
+      cardEntries: await changeLog.listForPage(pageId, "card"),
+      card: card && cardSource(card.card, card.avatar),
+    };
   },
   () => [props.wikiId, props.title] as const,
 );
@@ -40,23 +50,29 @@ const page = computed(() => history.value?.page);
 const entries = computed(() => history.value?.entries);
 const shownTitle = computed(() => page.value?.title ?? history.value?.deletion?.pageTitle ?? props.title);
 
-const current = computed(() => page.value?.body ?? "");
-const versions = computed(() => rebuildVersions(entries.value ?? [], current.value));
-
-// A deletion holds the final source. It only needs its own button once pruning has removed the entry before it.
-function versionAfter(entry: ChangeEntry, index: number): string | undefined {
-  if (entry.kind !== "delete") return versions.value.get(entry.id!);
-  const previous = entries.value?.[index + 1];
-  return index === 0 && !(previous && versions.value.has(previous.id!)) ? sourceBefore(entry, "") : undefined;
+// The page's text and its card each have their own chain of diffs, shown together newest first.
+function chain(list: ChangeEntry[], current: string) {
+  const versions = rebuildVersions(list, current);
+  // A deletion holds the final source. It only needs its own button once pruning has removed the entry before it.
+  return list.map((entry, index) => {
+    const previous = list[index + 1];
+    const version =
+      entry.kind !== "delete"
+        ? versions.get(entry.id!)
+        : index === 0 && !(previous && versions.has(previous.id!))
+          ? sourceBefore(entry, "")
+          : undefined;
+    const rows = diffRows(entry.diff);
+    return { entry, rows, stats: diffStats(rows), version: version !== current ? version : undefined };
+  });
 }
 
-const shown = computed(() =>
-  entries.value?.map((entry, index) => {
-    const rows = diffRows(entry.diff);
-    const version = versionAfter(entry, index);
-    return { entry, rows, stats: diffStats(rows), version: version !== current.value ? version : undefined };
-  }),
-);
+const shown = computed(() => {
+  if (!history.value) return undefined;
+  return [...chain(history.value.entries, page.value?.body ?? ""), ...chain(history.value.cardEntries, history.value.card ?? "")].sort(
+    (a, b) => b.entry.id! - a.entry.id!,
+  );
+});
 
 const restoring = ref<number>();
 const restoreError = ref("");
@@ -66,6 +82,10 @@ async function restore(entry: ChangeEntry, version: string) {
   restoreError.value = "";
   try {
     const when = new Date(entry.at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+    if (entry.subject === "card") {
+      await cardService.restore(history.value!.pageId!, version, entry.kind === "delete" ? "Restored the card as it was when removed" : `Restored the card from ${when}`);
+      return;
+    }
     const summary = entry.kind === "delete" ? "Restored the page as it was when deleted" : `Restored the version from ${when}`;
     const restored = await pageService.restore(history.value!.pageId!, version, { summary });
     await router.push({ name: "page", params: { title: titleParam(restored.title) } });
@@ -79,7 +99,7 @@ async function restore(entry: ChangeEntry, version: string) {
 // A link from the feed opens its entry; otherwise the newest one starts open.
 const openId = computed(() => {
   const match = /^#change-(\d+)$/.exec(route.hash);
-  return match ? Number(match[1]) : entries.value?.[0]?.id;
+  return match ? Number(match[1]) : shown.value?.[0]?.entry.id;
 });
 
 watch([entries, () => route.hash], async () => {
@@ -117,6 +137,7 @@ watchEffect(() => {
             <span class="what">
               {{ KIND_LABELS[entry.kind] }}<template v-if="entry.author === 'llm'"> by Assistant</template>
             </span>
+            <span v-if="entry.subject === 'card'" class="minor">card</span>
             <time :datetime="new Date(entry.at).toISOString()" :title="new Date(entry.at).toLocaleString()">
               {{ relativeTime(entry.at) }}
             </time>
@@ -136,7 +157,13 @@ watchEffect(() => {
               :disabled="restoring !== undefined"
               @click="restore(entry, version)"
             >
-              {{ restoring === entry.id ? "Restoring…" : entry.kind === "delete" ? "Restore as it was when deleted" : "Restore this version" }}
+              {{
+                restoring === entry.id
+                  ? "Restoring…"
+                  : entry.subject === "card"
+                    ? entry.kind === "delete" ? "Restore the card as it was when removed" : "Restore this card"
+                    : entry.kind === "delete" ? "Restore as it was when deleted" : "Restore this version"
+              }}
             </button>
           </div>
         </details>

@@ -223,8 +223,11 @@ this.version(4).stores({
 this.version(5).stores({
   wikis: "id, name, &slug",
 });
+this.version(6).stores({
+  cards: "pageId, wikiId",
+});
 ```
-Version 3 fills `categoryKeys` from each page's frontmatter. Version 5 gives each wiki a slug from its name.
+Version 3 fills `categoryKeys` from each page's frontmatter. Version 5 gives each wiki a slug from its name. Version 6 adds character cards, one per page.
 
 ### Page titles
 Titles are trimmed, must not be blank, and must not contain `[`, `]`, `|`, or `#`, which wikilink syntax reserves. Creation and rename enforce this; a title can't match another page's title or alias.
@@ -297,10 +300,12 @@ The mdast is reused for link indexing, auto-context scanning, section slicing, a
 | `/w/:wiki/wiki/:title` | Page view |
 | `/w/:wiki/edit/:title` | Split view editor, loaded on demand; hides the right rail |
 | `/w/:wiki/history/:title` | A page's history, diffs, and restore; also serves deleted pages |
+| `/w/:wiki/card/:title` | A page's character card: add, edit, download, remove |
 | `/w/:wiki/new?title=` | Create a page, title prefilled from red links |
 | `/w/:wiki/special/search?q=` | Full-text results with snippets, plus "Create page" when no title or alias matches |
 | `/w/:wiki/special/settings` | Wiki settings: rename, change the URL, delete with typed confirmation |
 | `/w/:wiki/special/appearance` | The wiki's accent, fonts, images, and Wiki Assets Pack |
+| `/w/:wiki/special/documents` | Wiki Documents: cards and page images, filtered by type |
 | `/w/:wiki/special/all-pages` | All pages, grouped by first letter |
 | `/w/:wiki/special/recent-changes` | Recent changes feed |
 | `/w/:wiki/special/categories` | Every category with its page count |
@@ -374,6 +379,15 @@ Routes under `/w/:wiki` render inside the wiki layout. A route can add right rai
 - Deleting a page keeps its history and records a deletion entry whose diff holds the final source. Restoring a deleted page recreates it under its old ID from any version, re-indexing its links. Creating a page whose title matches a deleted page's drops that history first; the creation form checks and warns. A page recreated from a red link starts a fresh history under a new ID.
 - `historyDays` on the wiki sets automatic pruning; unset keeps everything. The first time a wiki opens in a session, and right after the setting is shortened (with a confirmation), entries older than the cutoff are deleted, except deletion entries and entries of pages whose frontmatter has `history: keep` (read from the final source for deleted pages). A deleted page whose earlier entries were pruned can still be restored as it was when deleted.
 
+## Character cards
+- `CardService` keeps one card per page in `cards`, keyed by page ID, so a rename keeps it. The card is V3 JSON; V1 and V2 cards are upgraded on upload, keeping the lorebook, extensions, and unknown fields. Copies of the fields beside `data`, which some apps write for V1 readers, are dropped.
+- A PNG card's image is stored as an asset and the card's `avatar` names its path. Uploading a JSON card keeps the existing image.
+- Card changes are change entries with `subject: "card"`, diffed as the card's JSON with its avatar path. They chain and merge apart from the page's text, and show in the page's history with their own restore.
+- Deleting a page removes its card first and records it, so restoring the page brings the card back.
+- Download writes a plain V3 card: a PNG with base64 `chara` (V2 fields) and `ccv3` text chunks, replacing any the image held, or JSON when there's no image. A WebP avatar is redrawn as PNG.
+- An infobox `chat:` line sets the chat button's text. The button shows only when the page, or a version's main page, has a card, and defaults to "Chat with <name>". It opens a placeholder for now.
+- Archives write each card to `cards/<page path>.json`, listed in `wiki.json` under `cards` with its page key and avatar.
+
 ## Categories
 - `categories` in frontmatter; `categoryKeys` holds their normalized keys for the multi-entry index.
 - Category names follow page title rules. A category exists while a page lists it.
@@ -421,6 +435,7 @@ wiki-name/
   templates/*.md
   pages/**/*.md
   assets/**/*
+  cards/**/*.json
   changes.json
 ```
 - `wiki.json` holds the wiki's settings and continuities, plus what files can't: each page's title and template; each template's name; each asset's type, hash, size, and original. Page and template file names come from titles, made safe for file systems and numbered when two collide case-insensitively.
@@ -495,8 +510,10 @@ type WikiTool =
   | { name: "read_section"; args: { title: string; heading: string } }
   | { name: "list_backlinks"; args: { title: string } }
   | { name: "get_relationships"; args: { title: string } }
-  | { name: "get_canon"; args: { title: string; tier?: "canon" | "likely" | "idea" } };
+  | { name: "get_canon"; args: { title: string; tier?: "canon" | "likely" | "idea" } }
+  | { name: "read_card"; args: { title: string } };
 ```
+- `read_card` returns a card's text fields without its lorebook or extensions. A version without a card reads its main page's. Runs on a page with a card get the same text in the prompt, under "The page's character card", as a reference the wiki overrides.
 - All tools only read; `get_canon` is how Idea-tier text is reached. Pages read like auto-context, tiers labelled and Idea text left out, and search only matches and quotes what the model may see.
 - Titles match aliases too, and a run in a continuity reads each page's version there when it has one.
 - Long results are cut to fit what's left of the prompt budget.

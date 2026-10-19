@@ -49,7 +49,7 @@
 
 ## Post-MVP
 1. Dropbox sync, with OAuth PKCE from the browser (ADR 0010)
-2. Character cards (V2 and V3): import cards as character pages for the Assistant to draw on, and download a page as a card. Needs a spec first: new page or attach to an existing one, where `character_book` entries go, and whether export builds from canon or returns the imported card.
+2. Character cards (V2 and V3): attach a card to a page, edit it with its own history, download it as stored, list cards and images in Wiki Documents, and an infobox chat button that's a placeholder for now (ADR 0011)
 3. Theme editor: full color sets, custom CSS, layout options
 4. Director's Desk
 5. In-universe voice

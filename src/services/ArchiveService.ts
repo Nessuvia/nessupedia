@@ -1,7 +1,8 @@
 import { strFromU8, strToU8 } from "fflate";
 import type { Root } from "mdast";
 import type { WikiDatabase } from "@/db/database";
-import type { Asset, ChangeEntry, Page, Template, Wiki } from "@/db/types";
+import { normalizeCard } from "@/cards/cardFile";
+import type { Asset, Card, ChangeEntry, Page, Template, Wiki } from "@/db/types";
 import { parseMarkdown } from "@/markdown/pipeline";
 import { titleKey } from "@/markdown/wikilinks";
 import { isBundled } from "@/templates";
@@ -23,6 +24,16 @@ export interface ArchiveManifest {
   pages: ArchivedPage[];
   templates: ArchivedTemplate[];
   assets: ArchivedAsset[];
+  // Unset in archives from before cards.
+  cards?: ArchivedCard[];
+}
+
+// The card's V3 JSON is a file of its own; `page` is the key of the page it's attached to.
+export interface ArchivedCard {
+  page: string;
+  path: string;
+  avatar?: string;
+  updatedAt: number;
 }
 
 // Keys are the IDs at export time. They only tie entries together inside the archive; import makes new IDs.
@@ -136,6 +147,15 @@ function readArchive(files: ArchiveFiles): ReadArchive {
     fileIn(files, asset.path);
     if (asset.original) fileIn(files, asset.original.path);
   }
+  const pageKeys = new Set(read.manifest.pages.map((page) => page.key));
+  for (const card of read.manifest.cards ?? []) {
+    if (!pageKeys.has(card.page)) throw new Error(`The card in ${card.path} belongs to a page the export doesn't have`);
+    try {
+      normalizeCard(parseJson(files, card.path));
+    } catch (cause) {
+      throw new Error(`Can't import the card in ${card.path}: ${(cause as Error).message}`);
+    }
+  }
   return read;
 }
 
@@ -173,10 +193,11 @@ export class ArchiveService {
   async serialize(wikiId: string, { includeHistory = true, historySince }: ExportOptions = {}): Promise<ArchiveFiles> {
     const wiki = await this.db.wikis.get(wikiId);
     if (!wiki) throw new Error(`Wiki ${wikiId} not found`);
-    const [pages, templates, assets] = await Promise.all([
+    const [pages, templates, assets, cards] = await Promise.all([
       this.db.pages.where("wikiId").equals(wikiId).sortBy("title"),
       this.db.templates.where("wikiId").equals(wikiId).sortBy("name"),
       this.db.assets.where("wikiId").equals(wikiId).sortBy("path"),
+      this.db.cards.where("wikiId").equals(wikiId).toArray(),
     ]);
 
     const files: ArchiveFiles = {};
@@ -218,6 +239,15 @@ export class ArchiveService {
         entry.original = { path: originalPath, mime: asset.original.type };
       }
       manifest.assets.push(entry);
+    }
+
+    const pagePaths = new Map(manifest.pages.map((page) => [page.key, page.path]));
+    for (const card of cards) {
+      const pagePath = pagePaths.get(card.pageId);
+      if (!pagePath) continue;
+      const path = paths.claim(`cards/${pagePath.replace(/^pages\//, "").replace(/\.md$/, "")}.json`);
+      files[path] = json(card.card);
+      (manifest.cards ??= []).push({ page: card.pageId, path, ...(card.avatar && { avatar: card.avatar }), updatedAt: card.updatedAt });
     }
 
     files["wiki.json"] = json(manifest);
@@ -262,7 +292,7 @@ export class ArchiveService {
     const archives = wikisIn(files).map(readArchive);
     if (!archives.length) throw new Error("This ZIP isn't an OC Wiki export: it has no wiki.json. For an Obsidian vault, use Import Obsidian vault.");
 
-    const tables = [this.db.wikis, this.db.pages, this.db.links, this.db.changes, this.db.assets, this.db.templates];
+    const tables = [this.db.wikis, this.db.pages, this.db.links, this.db.changes, this.db.assets, this.db.templates, this.db.cards];
     return this.db.transaction("rw", tables, async () => {
       const taken = new Set((await this.db.wikis.toArray()).map(({ name }) => name.toLowerCase()));
       const slugs = await takenSlugs(this.db);
@@ -333,6 +363,18 @@ export class ArchiveService {
       }),
     );
     await this.db.assets.bulkAdd(assets);
+
+    await this.db.cards.bulkAdd(
+      (manifest.cards ?? []).map(
+        (entry): Card => ({
+          pageId: pageIds.get(entry.page)!,
+          wikiId,
+          card: normalizeCard(parseJson(files, entry.path)),
+          ...(entry.avatar && { avatar: entry.avatar }),
+          updatedAt: entry.updatedAt ?? Date.now(),
+        }),
+      ),
+    );
 
     // Deleted pages have no page entry, so their keys get fresh IDs of their own.
     const idFor = (key: string) => pageIds.get(key) ?? pageIds.set(key, crypto.randomUUID()).get(key)!;

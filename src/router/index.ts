@@ -82,6 +82,12 @@ export function createAppRouter(pinia: Pinia): Router {
             props: pageProps,
           },
           {
+            path: "card/:title+",
+            name: "page-card",
+            component: () => import("@/views/CardView.vue"),
+            props: pageProps,
+          },
+          {
             path: "new",
             name: "new-page",
             component: () => import("@/views/NewPageView.vue"),
@@ -103,6 +109,7 @@ export function createAppRouter(pinia: Pinia): Router {
           },
           { path: "special/settings", name: "wiki-settings", component: () => import("@/views/WikiSettingsView.vue"), props: wikiProps },
           { path: "special/appearance", name: "appearance", component: () => import("@/views/AppearanceView.vue"), props: wikiProps },
+          { path: "special/documents", name: "documents", component: () => import("@/views/DocumentsView.vue"), props: wikiProps },
           { path: "special/all-pages", name: "all-pages", component: () => import("@/views/AllPagesView.vue"), props: wikiProps },
           { path: "special/recent-changes", name: "recent-changes", component: () => import("@/views/RecentChangesView.vue"), props: wikiProps },
           { path: "special/categories", name: "categories", component: () => import("@/views/CategoriesView.vue"), props: wikiProps },

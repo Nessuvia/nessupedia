@@ -1,3 +1,4 @@
+import { cardSource, parseCardSource } from "@/cards/cardFile";
 import type { WikiDatabase } from "@/db/database";
 import type { ChangeEntry, Page } from "@/db/types";
 import { categoryKeys } from "@/markdown/categories";
@@ -8,7 +9,7 @@ import { retargetWikilinks } from "@/markdown/retarget";
 import { isDirectSubpage, titleSegments } from "@/markdown/subpages";
 import { versionOf, versionTitleError } from "@/markdown/versions";
 import { normalizeTitle, titleError, titleKey } from "@/markdown/wikilinks";
-import type { ChangeLog } from "./ChangeLog";
+import { sourceBefore, type ChangeLog } from "./ChangeLog";
 import type { LinkIndexer } from "./LinkIndexer";
 
 export interface CreatePageInput {
@@ -124,7 +125,7 @@ export class PageService {
 
   // Brings back an earlier source, recreating the page under its old ID when it was deleted.
   async restore(pageId: string, body: string, { author = "human", summary = "Restored an earlier version" }: Omit<SavePageOptions, "minor"> = {}): Promise<Page> {
-    return this.db.transaction("rw", [this.db.wikis, this.db.pages, this.db.links, this.db.changes], async () => {
+    return this.db.transaction("rw", [this.db.wikis, this.db.pages, this.db.links, this.db.changes, this.db.cards], async () => {
       if (await this.db.pages.get(pageId)) return this.write(pageId, body, { kind: "restore", author, minor: false, summary });
 
       const [latest] = await this.changes.listForPage(pageId);
@@ -137,6 +138,25 @@ export class PageService {
       const page = newPage(pageId, wikiId, title, body);
       await this.insert(page);
       await this.changes.record({ wikiId, pageId, pageTitle: title, kind: "restore", author, minor: false, summary, before: "", after: body });
+
+      const [cardChange] = await this.changes.listForPage(pageId, "card");
+      const card = cardChange?.kind === "delete" ? sourceBefore(cardChange, "") : undefined;
+      if (card) {
+        const restored = parseCardSource(card);
+        await this.db.cards.put({ pageId, wikiId, card: restored.card, ...(restored.avatar && { avatar: restored.avatar }), updatedAt: Date.now() });
+        await this.changes.record({
+          wikiId,
+          pageId,
+          pageTitle: title,
+          kind: "restore",
+          subject: "card",
+          author,
+          minor: false,
+          summary: "Restored the card with the page",
+          before: "",
+          after: card,
+        });
+      }
       return page;
     });
   }
@@ -223,10 +243,27 @@ export class PageService {
   }
 
   async delete(pageId: string, { author = "human" }: Pick<SavePageOptions, "author"> = {}): Promise<void> {
-    await this.db.transaction("rw", [this.db.pages, this.db.links, this.db.changes, this.db.runs], async () => {
+    await this.db.transaction("rw", [this.db.pages, this.db.links, this.db.changes, this.db.runs, this.db.cards], async () => {
       const page = await this.db.pages.get(pageId);
       if (!page) throw new Error(`Page ${pageId} not found`);
 
+      // The card goes first, so the page's deletion stays the latest change and restoring the page brings the card back.
+      const card = await this.db.cards.get(pageId);
+      if (card) {
+        await this.db.cards.delete(pageId);
+        await this.changes.record({
+          wikiId: page.wikiId,
+          pageId,
+          pageTitle: page.title,
+          kind: "delete",
+          subject: "card",
+          author,
+          minor: false,
+          summary: "Removed the card with the page",
+          before: cardSource(card.card, card.avatar),
+          after: "",
+        });
+      }
       await this.db.pages.delete(pageId);
       await this.db.runs.where("pageId").equals(pageId).delete();
       await this.links.removePage(pageId);

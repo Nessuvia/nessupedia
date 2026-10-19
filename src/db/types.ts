@@ -1,3 +1,5 @@
+import type { CharacterCard } from "@/cards/cardFile";
+
 export type CanonTier = "hard" | "soft" | "maybe";
 
 export interface Wiki {
@@ -78,11 +80,23 @@ export interface ChangeEntry {
   pageId: string;
   pageTitle: string;
   kind: "create" | "edit" | "rename" | "delete" | "restore";
+  // Set on changes to the page's character card rather than its text; each has its own chain of diffs.
+  subject?: "card";
   author: "human" | "llm";
   minor: boolean;
   summary: string;
   diff: string;
   at: number;
+}
+
+// A page's character card, at most one per page. Versions are pages, so each AU can have its own.
+export interface Card {
+  pageId: string;
+  wikiId: string;
+  card: CharacterCard;
+  // Asset path of the card's image.
+  avatar?: string;
+  updatedAt: number;
 }
 
 export interface Asset {

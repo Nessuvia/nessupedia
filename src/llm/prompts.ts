@@ -48,6 +48,8 @@ export interface SectionPromptInput {
   instructions?: boolean;
   // The page as it stands, when it exists.
   pageText?: string;
+  // The text of the page's character card, when it has one.
+  cardText?: string;
   written: string[];
   hints: string[];
   retry?: { note?: string; previous?: string };
@@ -62,6 +64,7 @@ export function sectionUserPrompt(input: SectionPromptInput): string {
   parts.push(`## The page\n\nTitle: ${input.pageTitle}`);
   if (input.pageText?.trim()) parts.push(`## The page so far\n\n${input.pageText.trim()}`);
   else if (input.pageText === undefined) parts.push("This page is new: the wiki has nothing under its title yet, so don't look it up.");
+  if (input.cardText?.trim()) parts.push(cardPart(input.cardText));
   if (input.written.length > 0) parts.push(`Sections already written: ${input.written.join(", ")}.`);
   if (input.hints.length > 0) parts.push(`What this section should cover:\n${input.hints.map((hint) => `- ${hint}`).join("\n")}`);
   if (input.retry?.previous) parts.push(`Your last try at this section:\n\n${input.retry.previous}`);
@@ -74,10 +77,14 @@ export function sectionUserPrompt(input: SectionPromptInput): string {
 
 export const PLAN_SYSTEM_PROMPT = "You plan pages for a fandom-style wiki about an author's original characters and their world.";
 
-export function planUserPrompt(pageTitle: string, notes: string | undefined, autoContext: string[], pageText?: string): string {
+const cardPart = (cardText: string) =>
+  `## The page's character card\n\nWritten for chat apps. Draw on it, but where it disagrees with the wiki, the wiki wins.\n\n${cardText.trim()}`;
+
+export function planUserPrompt(pageTitle: string, notes: string | undefined, autoContext: string[], pageText?: string, cardText?: string): string {
   const parts: string[] = [];
   if (autoContext.length > 0) parts.push(`## Wiki pages\n\n${autoContext.join("\n\n")}`);
   if (pageText?.trim()) parts.push(`## The page so far\n\n${pageText.trim()}`);
+  if (cardText?.trim()) parts.push(cardPart(cardText));
   if (notes?.trim()) parts.push(`## The author's notes\n\n${notes.trim()}`);
   parts.push(
     `List the section headings a wiki page titled "${pageTitle}" needs to hold these notes, one heading per line, ` +
