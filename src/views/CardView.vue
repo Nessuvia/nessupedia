@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { computed, ref, watch, watchEffect } from "vue";
+import { computed, ref, watch, watchEffect, type Directive } from "vue";
 import AssetThumb from "@/components/forms/AssetThumb.vue";
 import ListInput from "@/components/ListInput.vue";
 import { emptyCard, type CardData } from "@/cards/cardFile";
@@ -144,6 +144,27 @@ function download() {
 
 const lorebook = computed(() => stored.value?.card.data.character_book);
 
+// Text boxes grow to fit their text. Firefox has no `field-sizing` yet, so it's measured here.
+// Boxes in a closed section have no size, so they're measured again when it opens.
+function fit(area: HTMLTextAreaElement) {
+  if (!area.offsetParent) return;
+  area.style.height = "auto";
+  area.style.height = `${area.scrollHeight + area.offsetHeight - area.clientHeight}px`;
+}
+const onToggle = new WeakMap<HTMLTextAreaElement, () => void>();
+const vGrow: Directive<HTMLTextAreaElement> = {
+  mounted(area) {
+    const refit = () => fit(area);
+    onToggle.set(area, refit);
+    area.closest("details")?.addEventListener("toggle", refit);
+    fit(area);
+  },
+  updated: fit,
+  unmounted(area) {
+    area.closest("details")?.removeEventListener("toggle", onToggle.get(area)!);
+  },
+};
+
 watchEffect(() => {
   document.title = [`Card of ${page.value?.title ?? props.title}`, currentWiki.value?.name].filter(Boolean).join(" | ");
 });
@@ -195,21 +216,21 @@ watchEffect(() => {
             <label class="label">Name <input v-model="draft.name" class="text-input" type="text" /></label>
             <label class="label">Nickname <input v-model="draft.nickname" class="text-input" type="text" /></label>
             <p class="note">Chat apps show the nickname in place of the name. <code v-text="'{{char}}'" /> always uses the name.</p>
-            <label class="label">Description <textarea v-model="draft.description" class="text-input" rows="8" /></label>
-            <label class="label">Personality <textarea v-model="draft.personality" class="text-input" rows="3" /></label>
-            <label class="label">Scenario <textarea v-model="draft.scenario" class="text-input" rows="3" /></label>
-            <label class="label">Example dialogue <textarea v-model="draft.mes_example" class="text-input" rows="5" /></label>
+            <label class="label">Description <textarea v-grow v-model="draft.description" class="text-input" rows="8" /></label>
+            <label class="label">Personality <textarea v-grow v-model="draft.personality" class="text-input" rows="3" /></label>
+            <label class="label">Scenario <textarea v-grow v-model="draft.scenario" class="text-input" rows="3" /></label>
+            <label class="label">Example dialogue <textarea v-grow v-model="draft.mes_example" class="text-input" rows="5" /></label>
           </details>
 
           <details class="card-section">
             <summary>Openings <span class="count">{{ 1 + draft.alternate_greetings.length }} greetings</span></summary>
-            <label class="label">First message <textarea v-model="draft.first_mes" class="text-input" rows="6" /></label>
+            <label class="label">First message <textarea v-grow v-model="draft.first_mes" class="text-input" rows="6" /></label>
             <div v-for="(_, index) in draft.alternate_greetings" :key="index" class="greeting">
               <div class="greeting-head">
                 <span class="label">Alternate greeting {{ index + 1 }}</span>
                 <button class="link-button" type="button" @click="draft.alternate_greetings.splice(index, 1)">Delete</button>
               </div>
-              <textarea v-model="draft.alternate_greetings[index]" class="text-input" rows="6" :aria-label="`Alternate greeting ${index + 1}`" />
+              <textarea v-grow v-model="draft.alternate_greetings[index]" class="text-input" rows="6" :aria-label="`Alternate greeting ${index + 1}`" />
             </div>
             <button class="button secondary" type="button" @click="draft.alternate_greetings.push('')">Add greeting</button>
           </details>
@@ -239,8 +260,8 @@ watchEffect(() => {
 
           <details class="card-section">
             <summary>Prompt</summary>
-            <label class="label">System prompt <textarea v-model="draft.system_prompt" class="text-input" rows="4" /></label>
-            <label class="label">Post-history instructions <textarea v-model="draft.post_history_instructions" class="text-input" rows="4" /></label>
+            <label class="label">System prompt <textarea v-grow v-model="draft.system_prompt" class="text-input" rows="4" /></label>
+            <label class="label">Post-history instructions <textarea v-grow v-model="draft.post_history_instructions" class="text-input" rows="4" /></label>
           </details>
 
           <details class="card-section">
@@ -248,7 +269,7 @@ watchEffect(() => {
             <label class="label">Creator <input v-model="draft.creator" class="text-input" type="text" /></label>
             <label class="label">Version <input v-model="draft.character_version" class="text-input" type="text" /></label>
             <ListInput v-model="draft.tags" label="Tags" />
-            <label class="label">Creator notes <textarea v-model="draft.creator_notes" class="text-input" rows="4" /></label>
+            <label class="label">Creator notes <textarea v-grow v-model="draft.creator_notes" class="text-input" rows="4" /></label>
           </details>
         </div>
       </div>
@@ -367,8 +388,7 @@ watchEffect(() => {
 }
 
 textarea.text-input {
-  resize: vertical;
-  field-sizing: content;
+  resize: none;
   min-height: 4.5rem;
   max-height: 30rem;
 }
