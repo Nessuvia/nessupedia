@@ -45,15 +45,42 @@ function go(title: string) {
 </template>
 
 <style scoped>
+.version-switcher {
+  position: relative;
+  display: inline-flex;
+}
+
+/* A caret drawn from two borders, since the native one is hidden. */
+.version-switcher::after {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  color: var(--color-header);
+  content: "";
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
+}
+
 select {
-  padding: 0.2rem 0.4rem;
+  padding: 0.3rem 2rem 0.3rem 0.85rem;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-surface);
+  border-radius: 999px;
+  appearance: none;
+  background: var(--color-page);
   color: var(--color-text);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
+}
+
+select:hover,
+select:focus-visible {
+  border-color: var(--color-header);
 }
 
 .visually-hidden {

@@ -78,11 +78,11 @@ const current = computed(() => titleKey(bar.value?.current ?? ""));
   flex-wrap: wrap;
   gap: 0.25rem;
   margin: 0.75rem 0 1rem;
-  border-bottom: 2px solid var(--color-header);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tab {
-  margin-bottom: -2px;
+  margin-bottom: -1px;
   padding: 0.4rem 0.9rem;
   border: 1px solid var(--color-border);
   border-bottom: 0;

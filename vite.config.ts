@@ -1,9 +1,15 @@
+import { execFileSync } from "node:child_process";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      execFileSync("git", ["log", "-1", "--format=%cd (%h)", "--date=format:%m/%d/%Y"]).toString().trim(),
+    ),
+  },
   plugins: [
     vue(),
     VitePWA({

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import { computed, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from "vue";
+import { computed, onMounted, onUnmounted, ref, shallowRef, useTemplateRef, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import AssistantMenu, { type AssistantAction } from "@/components/AssistantMenu.vue";
@@ -14,6 +14,7 @@ import RenamePageDialog from "@/components/RenamePageDialog.vue";
 import TabBar from "@/components/TabBar.vue";
 import VersionBanner from "@/components/VersionBanner.vue";
 import VersionSwitcher from "@/components/VersionSwitcher.vue";
+import { useDismiss } from "@/composables/useDismiss";
 import { useLiveQuery } from "@/composables/useLiveQuery";
 import { useTemplateNameCheck } from "@/composables/useTemplateNameCheck";
 import type { Page } from "@/db/types";
@@ -34,6 +35,8 @@ const props = defineProps<{ wikiId: string; title: string }>();
 
 const route = useRoute();
 const router = useRouter();
+const moreOpen = ref(false);
+useDismiss(moreOpen, useTemplateRef("more"));
 const { currentWiki } = storeToRefs(useWikiStore());
 
 const page = useLiveQuery(
@@ -188,16 +191,25 @@ watchEffect(() => {
           <AppIcon name="edit" />
           Edit
         </RouterLink>
-        <button class="page-action" type="button" @click="openDialog('details')">Details</button>
         <RouterLink class="page-action" :to="{ name: 'page-history', params: { title: titleParam(page.title) } }">
           <AppIcon name="history" />
           History
         </RouterLink>
-        <RouterLink class="page-action" :to="{ name: 'page-card', params: { title: titleParam(page.title) } }">Card</RouterLink>
-        <button class="page-action" type="button" @click="openDialog('rename')">Rename</button>
-        <button class="page-action" type="button" @click="openDialog('template')">Save as template</button>
-        <button class="page-action" type="button" @click="openDialog('delete')">Delete</button>
         <AssistantMenu :actions="ASSISTANT_ACTIONS" @choose="chooseAssistant" />
+        <div ref="more" class="more-menu">
+          <button class="page-action" type="button" :aria-expanded="moreOpen" @click="moreOpen = !moreOpen">
+            More <span aria-hidden="true">▾</span>
+          </button>
+          <ul v-if="moreOpen" class="menu" @click="moreOpen = false">
+            <li><button type="button" @click="openDialog('details')">Details</button></li>
+            <li>
+              <RouterLink :to="{ name: 'page-card', params: { title: titleParam(page.title) } }">Card</RouterLink>
+            </li>
+            <li><button type="button" @click="openDialog('rename')">Rename</button></li>
+            <li><button type="button" @click="openDialog('template')">Save as template</button></li>
+            <li><button type="button" @click="openDialog('delete')">Delete</button></li>
+          </ul>
+        </div>
       </div>
     </header>
     <TabBar :wiki-id="wikiId" :title="shownTitle" />
@@ -345,6 +357,44 @@ watchEffect(() => {
 .page-action .icon {
   width: 1rem;
   height: 1rem;
+}
+
+.more-menu {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 10;
+  min-width: 12rem;
+  margin: 0.25rem 0 0;
+  padding: 0.25rem 0;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
+  list-style: none;
+}
+
+.menu button,
+.menu a {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.9rem;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu button:hover,
+.menu a:hover {
+  background: var(--color-page);
+  text-decoration: none;
 }
 
 .page-subtitle {
