@@ -12,6 +12,8 @@ import { ChangeLog } from "@/services/ChangeLog";
 import { LinkIndexer } from "@/services/LinkIndexer";
 import { PageService } from "@/services/PageService";
 import { RelationshipService } from "@/services/RelationshipService";
+import { retagSection, ReviewService, sectionTag } from "@/services/ReviewService";
+import { applySections } from "@/markdown/sections";
 import { SearchService } from "@/services/SearchService";
 import { TemplateService } from "@/services/TemplateService";
 import { TokenizerService } from "@/services/TokenizerService";
@@ -33,6 +35,7 @@ let pages: PageService;
 let wikis: WikiService;
 let templates: TemplateService;
 let orchestrator: RunOrchestrator;
+let review: ReviewService;
 let wikiId: string;
 let settings: ModelSettings;
 let script: Scripted[];
@@ -66,6 +69,7 @@ beforeEach(async () => {
     templates,
     settings: async () => settings,
   });
+  review = new ReviewService(db, pages, orchestrator);
 });
 
 async function template(body: string) {
@@ -301,5 +305,112 @@ describe("control", () => {
     expect(kept).toHaveLength(KEEP_RUNS);
     expect(kept.map((entry) => entry.id)).toContain(newest.id);
     expect(kept.map((entry) => entry.id)).not.toContain("cut");
+  });
+
+  it("waits for each proposal's review in stepwise runs", async () => {
+    const sketch = await template("## Background\n\n## Skills\n");
+    script.push(say("Farm girl."), say("Knives."));
+    const started = await orchestrator.start({ wikiId, kind: "draft", pageTitle: "Mira", mode: "strict", templateId: sketch.id, stepwise: true });
+    await until(async () => (await db.runs.get(started.id))!.sections[0]?.status === "proposed");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(chats).toHaveLength(1);
+
+    await review.discard(started.id, 0);
+    await orchestrator.settled(started.id);
+    expect((await db.runs.get(started.id))!.sections.map((section) => section.status)).toEqual(["discarded", "proposed"]);
+  });
+
+  it("picks up a retry asked for while the run is still going", async () => {
+    const sketch = await template("## Background\n\n## Skills\n");
+    script.push(say("Farm girl."), say("Miner's daughter."), say("Knives."));
+    const started = await orchestrator.start({ wikiId, kind: "draft", pageTitle: "Mira", mode: "strict", templateId: sketch.id, stepwise: true });
+    await until(async () => (await db.runs.get(started.id))!.sections[0]?.status === "proposed");
+    await orchestrator.retrySection(started.id, 0, "Mines.");
+    await until(async () => (await db.runs.get(started.id))!.sections[0]?.markdown === "Miner's daughter.");
+    await review.accept(started.id, [0]);
+    await orchestrator.settled(started.id);
+    expect((await db.runs.get(started.id))!.sections.map((section) => section.markdown)).toEqual(["Miner's daughter.", "Knives."]);
+  });
+});
+
+async function until(check: () => Promise<boolean>): Promise<void> {
+  for (let tries = 0; tries < 200; tries++) {
+    if (await check()) return;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  throw new Error("Timed out waiting");
+}
+
+describe("applying sections", () => {
+  const body = "---\ntitle: Mira\n---\n\nLead.\n\n## Background\n\n<!-- Where? -->\n\n## Skills\n\nOld skills.\n";
+  const plan = ["Appearance", "Background", "Personality", "Skills", "Trivia"];
+
+  it("replaces a section's content by heading, hints included", () => {
+    expect(applySections(body, [{ heading: "background", markdown: "Farm girl." }], plan)).toBe(
+      "---\ntitle: Mira\n---\n\nLead.\n\n## Background\n\nFarm girl.\n\n## Skills\n\nOld skills.\n",
+    );
+    expect(applySections(body, [{ heading: "Skills", markdown: "Knives.\n" }], plan)).toBe(
+      "---\ntitle: Mira\n---\n\nLead.\n\n## Background\n\n<!-- Where? -->\n\n## Skills\n\nKnives.\n",
+    );
+  });
+
+  it("adds new sections in plan order", () => {
+    const result = applySections(
+      body,
+      [
+        { heading: "Personality", markdown: "Blunt." },
+        { heading: "Appearance", markdown: "Tall." },
+        { heading: "Trivia", markdown: "Hums." },
+      ],
+      plan,
+    );
+    expect(result).toBe(
+      "---\ntitle: Mira\n---\n\nLead.\n\n## Appearance\n\nTall.\n\n## Background\n\n<!-- Where? -->\n\n## Personality\n\nBlunt.\n\n## Skills\n\nOld skills.\n\n## Trivia\n\nHums.\n",
+    );
+    expect(applySections("", [{ heading: "Background", markdown: "Farm girl." }], plan)).toBe("## Background\n\nFarm girl.\n");
+  });
+});
+
+describe("review", () => {
+  it("creates a new page on the first accept, then saves later batches as Assistant edits", async () => {
+    const body = "---\ncategories: [Characters]\n---\n\nLead.\n\n## Background\n\n<!-- Where? -->\n\n## Skills\n";
+    script.push(say("Farm girl."), say("Knives."));
+    const finished = await run({ body });
+    expect(finished.sections.map((section) => section.heading)).toEqual(["Background", "Skills"]);
+    expect(await pages.getByTitle(wikiId, "Mira")).toBeUndefined();
+
+    const page = (await review.accept(finished.id, [0]))!;
+    expect(page.body).toBe("---\ncategories: [Characters]\n---\n\nLead.\n\n## Background\n\nFarm girl.\n\n## Skills\n");
+    expect(await db.runs.get(finished.id)).toMatchObject({ pageId: page.id, status: "reviewing" });
+
+    await review.edit(finished.id, 1, "Two knives.");
+    await review.acceptAll(finished.id);
+    expect((await pages.get(page.id))!.body).toContain("## Skills\n\nTwo knives.\n");
+    expect((await db.runs.get(finished.id))!.status).toBe("done");
+
+    const history = await db.changes.where("pageId").equals(page.id).toArray();
+    expect(history.map(({ kind, author, summary }) => [kind, author, summary])).toEqual([
+      ["create", "llm", "Created page"],
+      ["edit", "llm", "Drafted Skills"],
+    ]);
+  });
+
+  it("retags Liberal sections and finishes once everything is decided", async () => {
+    const wrapped = ":::canon{tier=maybe}\nA queen.\n:::";
+    expect(sectionTag(wrapped)).toBe("maybe");
+    expect(retagSection(wrapped, "soft")).toBe(":::canon{tier=soft}\nA queen.\n:::");
+    expect(retagSection(wrapped, "none")).toBe("A queen.");
+    expect(retagSection("A queen.", "hard")).toBe(":::canon{tier=hard}\nA queen.\n:::");
+    expect(sectionTag("A queen.")).toBe("none");
+
+    const sketch = await template("## Background\n\n## Skills\n");
+    script.push(say("A queen."), say("Knives."));
+    const finished = await run({ templateId: sketch.id, mode: "liberal" });
+    await review.retag(finished.id, 0, "none");
+    await review.accept(finished.id, [0]);
+    await review.discard(finished.id, 1);
+    const done = (await db.runs.get(finished.id))!;
+    expect(done.status).toBe("done");
+    expect((await pages.get(done.pageId!))!.body).toBe("## Background\n\nA queen.\n");
   });
 });

@@ -149,7 +149,15 @@ export interface AgentRun {
   pageTitle: string;
   kind: "draft" | "suggest-links" | "fill-template";
   mode: AssumptionMode;
-  input: { notes?: string; rules?: string; templateId?: string };
+  input: {
+    notes?: string;
+    rules?: string;
+    templateId?: string;
+    // A new page's starting text, from its template with the chosen parts; its sections are the plan.
+    body?: string;
+    // Waits for each proposal to be reviewed before writing the next.
+    stepwise?: boolean;
+  };
   status: "running" | "reviewing" | "done" | "interrupted" | "error";
   // What stopped the run, when it stopped with an error.
   error?: string;

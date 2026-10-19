@@ -5,6 +5,7 @@ import { useRoute } from "vue-router";
 import GlobalBar from "@/components/GlobalBar.vue";
 import LeftRail from "@/components/LeftRail.vue";
 import RightRail from "@/components/RightRail.vue";
+import RunPanel from "@/components/RunPanel.vue";
 import WikiHeader from "@/components/WikiHeader.vue";
 import { useWikiStore } from "@/stores/wiki";
 
@@ -36,6 +37,7 @@ watch(
         </RightRail>
       </div>
     </div>
+    <RunPanel :wiki-id="wikiId" />
   </div>
   <main v-else-if="wikis" class="wiki-missing content-card">
     <h1>Wiki not found</h1>

@@ -22,6 +22,8 @@ export interface StartRunInput {
   notes?: string;
   rules?: string;
   templateId?: string;
+  body?: string;
+  stepwise?: boolean;
 }
 
 export interface RunActivity {
@@ -72,6 +74,10 @@ interface LiveRun {
   controller: AbortController;
   messages: string[];
   stopping: boolean;
+  // Set when only these sections are being written, as for a retry.
+  only?: Set<number>;
+  // Wakes a stepwise run waiting on a review.
+  wake?: () => void;
 }
 
 interface Attempt {
@@ -121,6 +127,8 @@ export class RunOrchestrator {
         ...(input.notes?.trim() && { notes: input.notes.trim() }),
         ...(input.rules?.trim() && { rules: input.rules.trim() }),
         ...(input.templateId && { templateId: input.templateId }),
+        ...(input.body !== undefined && { body: input.body }),
+        ...(input.stepwise && { stepwise: true }),
       },
       status: "running",
       sections: [],
@@ -139,6 +147,7 @@ export class RunOrchestrator {
     if (!live) return;
     live.stopping = true;
     live.controller.abort();
+    live.wake?.();
   }
 
   // A message from the author, joined to the run's next request.
@@ -156,27 +165,35 @@ export class RunOrchestrator {
     this.drive(run, undefined, message);
   }
 
-  // Writes one section again, with the author's note.
+  // Writes one section again, with the author's note. A run still going picks it up after its current section.
   async retrySection(runId: string, index: number, note?: string): Promise<void> {
-    if (this.live.has(runId)) return;
-    const run = await this.deps.db.runs.get(runId);
+    const live = this.live.get(runId);
+    const run = live?.run ?? (await this.deps.db.runs.get(runId));
     const section = run?.sections[index];
-    if (!run || !section) return;
+    if (!run || !section || section.status === "writing") return;
     section.status = "pending";
     if (note?.trim()) section.note = note.trim();
     else delete section.note;
     delete section.problem;
+    if (live) {
+      live.only?.add(index);
+      await this.save(run);
+      live.wake?.();
+      return;
+    }
     run.status = "running";
     delete run.error;
-    this.drive(run, [index]);
+    this.drive(run, new Set([index]));
   }
 
   // Changes a run through the orchestrator, so a run being written never overwrites the change.
   async update(runId: string, change: (run: AgentRun) => void): Promise<AgentRun | undefined> {
-    const run = this.live.get(runId)?.run ?? (await this.deps.db.runs.get(runId));
+    const live = this.live.get(runId);
+    const run = live?.run ?? (await this.deps.db.runs.get(runId));
     if (!run) return undefined;
     change(run);
     await this.save(run);
+    live?.wake?.();
     return run;
   }
 
@@ -190,13 +207,19 @@ export class RunOrchestrator {
     }
   }
 
-  private drive(run: AgentRun, only?: number[], message?: string): void {
-    const live: LiveRun = { run, controller: new AbortController(), messages: message?.trim() ? [message.trim()] : [], stopping: false };
+  private drive(run: AgentRun, only?: Set<number>, message?: string): void {
+    const live: LiveRun = {
+      run,
+      controller: new AbortController(),
+      messages: message?.trim() ? [message.trim()] : [],
+      stopping: false,
+      ...(only && { only }),
+    };
     this.live.set(run.id, live);
-    this.finished.set(run.id, this.work(live, only));
+    this.finished.set(run.id, this.work(live));
   }
 
-  private async work(live: LiveRun, only?: number[]): Promise<void> {
+  private async work(live: LiveRun): Promise<void> {
     const { run } = live;
     try {
       await this.save(run);
@@ -206,13 +229,14 @@ export class RunOrchestrator {
         run.sections = await this.plan(live, settings);
         await this.save(run);
       }
-      for (const [index, section] of run.sections.entries()) {
-        if (section.status !== "pending" || (only && !only.includes(index))) continue;
+      for (let index = nextPending(live); index !== -1; index = nextPending(live)) {
         if (live.stopping) throw new Interrupted();
         await this.writeSection(live, index, settings);
+        if (run.input.stepwise) await this.awaitReview(live, index);
       }
-      run.status = "reviewing";
-      this.emit({ runId: run.id, text: "Ready for review" });
+      // A retry of one section leaves the rest of an interrupted run where it was.
+      run.status = run.sections.some((section) => section.status === "pending") ? "interrupted" : "reviewing";
+      this.emit({ runId: run.id, text: run.status === "reviewing" ? "Ready for review" : "Interrupted" });
     } catch (cause) {
       for (const section of run.sections) if (section.status === "writing") section.status = "pending";
       if (cause instanceof Interrupted || live.stopping) {
@@ -229,6 +253,18 @@ export class RunOrchestrator {
     }
   }
 
+  // In stepwise runs, the next section waits until this one is accepted, discarded, or sent back.
+  private async awaitReview(live: LiveRun, index: number): Promise<void> {
+    const section = live.run.sections[index]!;
+    if (section.status !== "proposed" || nextPending(live) === -1) return;
+    this.emit({ runId: live.run.id, section: index, text: `Waiting for your review of ${section.heading}` });
+    while (section.status === "proposed" && !live.stopping) {
+      await new Promise<void>((resolve) => (live.wake = resolve));
+    }
+    delete live.wake;
+    if (live.stopping) throw new Interrupted();
+  }
+
   private async plan(live: LiveRun, settings: ModelSettings): Promise<RunSection[]> {
     const { run } = live;
     const page = run.pageId ? await this.deps.db.pages.get(run.pageId) : undefined;
@@ -241,20 +277,25 @@ export class RunOrchestrator {
       return toSections(empty);
     }
 
-    const templateId = run.input.templateId ?? page?.templateId;
-    const template = templateId ? await this.deps.templates.get(templateId) : undefined;
+    const fromBody = run.input.body === undefined ? [] : bodySections(run.input.body);
+    if (fromBody.length > 0) return toSections(fromBody);
+    const template = run.input.templateId ? await this.deps.templates.get(run.input.templateId) : undefined;
     if (template) return toSections(bodySections(template.body));
 
     this.emit({ runId: run.id, text: "Planning sections" });
     const context = await this.deps.autoContext.build({
       wikiId: run.wikiId,
       input: [run.input.notes ?? "", run.pageTitle],
+      ...(page && { exclude: [page.id] }),
       budget: Math.floor(promptBudget(settings, "estimate") / 2),
       count: (text) => this.deps.counter.estimate(settings, text),
     });
     const messages: ChatMessage[] = [
       { role: "system", content: PLAN_SYSTEM_PROMPT },
-      { role: "user", content: planUserPrompt(run.pageTitle, run.input.notes, context.entries.map((entry) => entry.text)) },
+      {
+        role: "user",
+        content: planUserPrompt(run.pageTitle, run.input.notes, context.entries.map((entry) => entry.text), page && (await this.pageText(page))),
+      },
     ];
     messages.forEach((message) => this.log(run, { kind: "message", role: message.role as "system" | "user", content: message.content }));
     for (let attempt = 1; attempt <= PLAN_ATTEMPTS; attempt++) {
@@ -463,7 +504,7 @@ export class RunOrchestrator {
       heading: section.heading,
       pageTitle: run.pageTitle,
       notes: run.input.notes,
-      ...(pageText && { pageText }),
+      ...(pageText !== undefined && { pageText }),
       written: run.sections.filter((other, at) => at !== index && (other.status === "proposed" || other.status === "accepted")).map((other) => other.heading),
       hints: section.hints ?? [],
       ...(attempt.retry && { retry: attempt.retry }),
@@ -573,6 +614,10 @@ export class RunOrchestrator {
 }
 
 type DistributiveOmit<T, K extends keyof T> = T extends unknown ? Omit<T, K> : never;
+
+function nextPending(live: LiveRun): number {
+  return live.run.sections.findIndex((section, index) => section.status === "pending" && (!live.only || live.only.has(index)));
+}
 
 function callKey(name: string, args: unknown): string {
   const normalize = (value: unknown): unknown => {

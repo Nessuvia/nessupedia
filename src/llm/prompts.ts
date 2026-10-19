@@ -59,6 +59,7 @@ export function sectionUserPrompt(input: SectionPromptInput): string {
   if (input.notes?.trim()) parts.push(`## The author's notes\n\n${input.notes.trim()}`);
   parts.push(`## The page\n\nTitle: ${input.pageTitle}`);
   if (input.pageText?.trim()) parts.push(`## The page so far\n\n${input.pageText.trim()}`);
+  else if (input.pageText === undefined) parts.push("This page is new: the wiki has nothing under its title yet, so don't look it up.");
   if (input.written.length > 0) parts.push(`Sections already written: ${input.written.join(", ")}.`);
   if (input.hints.length > 0) parts.push(`What this section should cover:\n${input.hints.map((hint) => `- ${hint}`).join("\n")}`);
   if (input.retry?.previous) parts.push(`Your last try at this section:\n\n${input.retry.previous}`);
@@ -71,13 +72,16 @@ export function sectionUserPrompt(input: SectionPromptInput): string {
 
 export const PLAN_SYSTEM_PROMPT = "You plan pages for a fandom-style wiki about an author's original characters and their world.";
 
-export function planUserPrompt(pageTitle: string, notes: string | undefined, autoContext: string[]): string {
+export function planUserPrompt(pageTitle: string, notes: string | undefined, autoContext: string[], pageText?: string): string {
   const parts: string[] = [];
   if (autoContext.length > 0) parts.push(`## Wiki pages\n\n${autoContext.join("\n\n")}`);
+  if (pageText?.trim()) parts.push(`## The page so far\n\n${pageText.trim()}`);
   if (notes?.trim()) parts.push(`## The author's notes\n\n${notes.trim()}`);
   parts.push(
     `List the section headings a wiki page titled "${pageTitle}" needs to hold these notes, one heading per line, ` +
-      "in reading order, with nothing else in the reply. Leave out the opening summary; it has no heading.",
+      "in reading order, with nothing else in the reply. Each section is written as prose, so leave out the opening summary, " +
+      "names and aliases, and anything that belongs in an infobox." +
+      (pageText?.trim() ? " Reuse the page's own headings where the notes add to them." : ""),
   );
   return parts.join("\n\n");
 }

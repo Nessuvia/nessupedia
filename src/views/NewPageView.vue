@@ -8,8 +8,10 @@ import { suggestedPairTitle } from "@/markdown/relationships";
 import { instantiateTemplate, templateDescription, templateParts } from "@/markdown/templates";
 import { titleError, titleKey } from "@/markdown/wikilinks";
 import { titleParam } from "@/router/params";
+import DraftForm, { type DraftInput } from "@/components/DraftForm.vue";
 import ListInput from "@/components/ListInput.vue";
-import { changeLog, pageService, templateService } from "@/services";
+import { changeLog, modelSettingsService, pageService, templateService } from "@/services";
+import { useRunsStore } from "@/stores/runs";
 import { useWikiStore } from "@/stores/wiki";
 
 const VERSION_CARD = "version";
@@ -114,8 +116,37 @@ function startingBody(): string {
   return asksPair.value ? updateFrontmatter(body, { between: pairNames.value }) : body;
 }
 
+// A draft creates the page only when its first section is accepted, so discarding everything leaves nothing behind.
+const drafting = ref(false);
+const draft = ref<DraftInput>({ notes: "", mode: "strict", rules: "" });
+const configured = useLiveQuery(() => modelSettingsService.configured());
+const canDraft = computed(() => !makingVersion.value);
+const runs = useRunsStore();
+
+async function startDraft() {
+  saving.value = true;
+  saveError.value = "";
+  try {
+    await runs.start({
+      wikiId: props.wikiId,
+      kind: "draft",
+      pageTitle: title.value.trim(),
+      mode: draft.value.mode,
+      notes: draft.value.notes,
+      rules: draft.value.rules,
+      body: startingBody(),
+      ...(template.value && { templateId: template.value.id }),
+    });
+  } catch (cause) {
+    saveError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    saving.value = false;
+  }
+}
+
 async function create() {
   if (!canCreate.value) return;
+  if (drafting.value && canDraft.value) return startDraft();
   saving.value = true;
   saveError.value = "";
   try {
@@ -227,8 +258,29 @@ watchEffect(() => {
         </label>
       </fieldset>
 
+      <fieldset v-if="canDraft" class="draft">
+        <legend class="visually-hidden">Assistant</legend>
+        <label class="part">
+          <input v-model="drafting" type="checkbox" />
+          Draft from notes with the Assistant
+        </label>
+        <template v-if="drafting">
+          <p v-if="configured === false" class="problem" role="alert">
+            The Assistant needs a model first.
+            <RouterLink :to="{ name: 'wiki-settings', params: { wikiId }, hash: '#settings-model' }">Set one up in settings</RouterLink>.
+          </p>
+          <p class="note">
+            {{ template ? "Each included section" : "Each section the Assistant plans" }} is proposed for review. The page is created when you
+            accept the first one.
+          </p>
+          <DraftForm v-model="draft" class="draft-form" />
+        </template>
+      </fieldset>
+
       <p v-if="saveError" class="problem" role="alert">{{ saveError }}</p>
-      <button type="submit" :disabled="!canCreate">Create page</button>
+      <button type="submit" :disabled="!canCreate || (drafting && canDraft && configured === false)">
+        {{ drafting && canDraft ? "Start draft" : "Create page" }}
+      </button>
     </form>
   </article>
 </template>
@@ -367,6 +419,19 @@ input[type="text"] {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.draft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 0;
+}
+
+.draft-form :deep(textarea) {
+  font: inherit;
 }
 
 button {

@@ -14,6 +14,7 @@ import { LinkIndexer } from "./LinkIndexer";
 import { ModelSettingsService } from "./ModelSettingsService";
 import { PageService } from "./PageService";
 import { RelationshipService } from "./RelationshipService";
+import { ReviewService } from "./ReviewService";
 import { SearchService } from "./SearchService";
 import { StorageService } from "./StorageService";
 import { TemplateService } from "./TemplateService";
@@ -50,6 +51,8 @@ export const runOrchestrator = new RunOrchestrator({
   templates: templateService,
   settings: () => modelSettingsService.get(),
 });
+
+export const reviewService = new ReviewService(db, pageService, runOrchestrator);
 
 runOrchestrator.recover().catch(() => {});
 

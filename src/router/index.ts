@@ -104,6 +104,7 @@ export function createAppRouter(pinia: Pinia): Router {
           { path: "special/category/:name(.*)", name: "category", component: CategoryView, props: true },
           { path: "special/templates", name: "templates", component: TemplatesView, props: true },
           { path: "special/continuity/:name", name: "continuity", component: ContinuityView, props: true },
+          { path: "special/review/:runId", name: "review", component: () => import("@/views/ReviewView.vue"), props: true },
           {
             path: "special/templates/:templateId/edit",
             name: "edit-template",

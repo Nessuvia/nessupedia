@@ -4,6 +4,7 @@ import { computed, ref, shallowRef, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import AppIcon from "@/components/AppIcon.vue";
 import DeletePageDialog from "@/components/DeletePageDialog.vue";
+import DraftDialog from "@/components/DraftDialog.vue";
 import NameDialog from "@/components/NameDialog.vue";
 import PageContent from "@/components/PageContent.vue";
 import PageDetailsDialog from "@/components/PageDetailsDialog.vue";
@@ -95,8 +96,8 @@ const subtitle = computed(() => {
 
 // Dialogs work on a snapshot, so they stay mounted while the live page they changed reloads.
 const dialogPage = shallowRef<Page>();
-const dialogs = { details: ref(false), rename: ref(false), template: ref(false), delete: ref(false) };
-const { details: detailsOpen, rename: renameOpen, template: templateOpen, delete: deleteOpen } = dialogs;
+const dialogs = { details: ref(false), rename: ref(false), template: ref(false), delete: ref(false), draft: ref(false) };
+const { details: detailsOpen, rename: renameOpen, template: templateOpen, delete: deleteOpen, draft: draftOpen } = dialogs;
 
 function openDialog(kind: keyof typeof dialogs) {
   dialogPage.value = page.value ?? undefined;
@@ -159,6 +160,7 @@ watchEffect(() => {
         <button class="page-action" type="button" @click="openDialog('rename')">Rename</button>
         <button class="page-action" type="button" @click="openDialog('template')">Save as template</button>
         <button class="page-action" type="button" @click="openDialog('delete')">Delete</button>
+        <button class="page-action" type="button" @click="openDialog('draft')">Draft from notes</button>
       </div>
     </header>
     <TabBar :wiki-id="wikiId" :title="shownTitle" />
@@ -178,6 +180,7 @@ watchEffect(() => {
         <p class="dialog-note">The template copies this page as it is. You can trim it to a starting shape next.</p>
       </NameDialog>
       <DeletePageDialog v-model:open="deleteOpen" :page="dialogPage" />
+      <DraftDialog v-model:open="draftOpen" :page="dialogPage" />
     </template>
     <p v-if="redirectedFrom && page" class="redirect-note">(Redirected from {{ redirectedFrom }})</p>
     <VersionBanner
