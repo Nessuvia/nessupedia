@@ -82,7 +82,6 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 - As a writer, I watch the agent work and spot when it loops on the same page.
 
 ## Success criteria (MVP)
-- The author uses it as the main home for OC canon for one month.
 - A character page goes from rough notes to approved draft in under ten minutes.
 - ZIP export and re-import round-trips with zero content loss.
 

@@ -40,12 +40,11 @@
 - Suggest links: local matches, then "Ask the Assistant for more"
 - Run panel: simple and details views, growing alongside the steps above
 
-## M6: MVP polish (in progress)
+## M6: MVP polish (done)
 - Fandom wiki theme with light and dark modes
 - Wiki appearance: accent color, Fontsource fonts, banner / background / wordmark / icon images, and the Wiki Assets Pack (ADR 0008)
 - Install prompt
 - Export reminders
-- One month of personal use (started 2026-10-19)
 
 ## Post-MVP
 1. Dropbox sync, with OAuth PKCE from the browser (ADR 0010)

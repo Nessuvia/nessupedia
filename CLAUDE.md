@@ -12,7 +12,7 @@ The docs define the project. Read the relevant one before starting a feature.
 - `docs/UX-spec.md`: layout, editing, canon tiers, agent run panel, terminology map
 - `docs/design-doc.md`: architecture, data model, Dexie schema, markdown format, agent tools
 - `docs/roadmap.md`: milestones M0 to M6, then post-MVP
-- `docs/adr/`: decision records (client-only PWA, Vue stack, hybrid storage, markdown pipeline, agent with auto-context, supported LLM providers, app-driven runs, wiki appearance in the MVP, Ollama and LM Studio, Dropbox sync without a backend, character cards attached to pages)
+- `docs/adr/`: decision records (client-only PWA, Vue stack, hybrid storage, markdown pipeline, agent with auto-context, supported LLM providers, app-driven runs, wiki appearance in the MVP, Ollama and LM Studio, Dropbox sync without a backend, character cards attached to pages, dropping the month of personal use)
 
 ## Stack
 
