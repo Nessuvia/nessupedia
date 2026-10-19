@@ -3,6 +3,7 @@ import { storeToRefs } from "pinia";
 import { watch } from "vue";
 import { useRoute } from "vue-router";
 import GlobalBar from "@/components/GlobalBar.vue";
+import InstallBanner from "@/components/InstallBanner.vue";
 import LeftRail from "@/components/LeftRail.vue";
 import RightRail from "@/components/RightRail.vue";
 import RunPanel from "@/components/RunPanel.vue";
@@ -27,6 +28,7 @@ watch(
   <div v-if="currentWiki" class="wiki-layout">
     <LeftRail class="left" :wiki-id="wikiId" />
     <div class="wiki-content">
+      <InstallBanner />
       <WikiHeader :wiki="currentWiki" />
       <div class="columns" :class="{ wide: route.meta.wide }">
         <main class="main">
