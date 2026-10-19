@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
+import { useLeaveGuard } from "@/composables/useLeaveGuard";
 import { hintText } from "@/markdown/hints";
 import CanonForm from "./forms/CanonForm.vue";
 import InfoboxForm from "./forms/InfoboxForm.vue";
@@ -27,9 +28,14 @@ const draft = ref(hint.value ? "" : props.source);
 const minor = ref(false);
 const root = useTemplateRef("root");
 
+const unchanged = computed(() => draft.value === props.source || (!!hint.value && !draft.value.trim()));
+
+// A click outside starts the save before the click navigates, so a save in progress doesn't ask.
+useLeaveGuard(computed(() => !unchanged.value && !props.saving));
+
 function submit() {
   if (props.saving) return;
-  if (draft.value === props.source || (hint.value && !draft.value.trim())) return emit("cancel");
+  if (unchanged.value) return emit("cancel");
   emit("save", draft.value, minor.value);
 }
 
