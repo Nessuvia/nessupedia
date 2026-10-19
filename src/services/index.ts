@@ -1,6 +1,7 @@
 import { db } from "@/db/database";
 import { AutoContext } from "@/llm/AutoContext";
 import { LlmClient } from "@/llm/LlmClient";
+import { RunOrchestrator } from "@/llm/RunOrchestrator";
 import { TokenCounter } from "@/llm/TokenCounter";
 import { WikiTools } from "@/llm/tools";
 import { ArchiveService } from "./ArchiveService";
@@ -40,6 +41,17 @@ export const templateService = new TemplateService(db);
 export const wikiService = new WikiService(db);
 export const vaultImporter = new VaultImporter(db, linkIndexer, assetService, wikiService, workerZipper);
 export const wikiTools = new WikiTools(db, linkIndexer, searchService, relationshipService);
+export const runOrchestrator = new RunOrchestrator({
+  db,
+  client: llmClient,
+  counter: tokenCounter,
+  autoContext,
+  tools: wikiTools,
+  templates: templateService,
+  settings: () => modelSettingsService.get(),
+});
+
+runOrchestrator.recover().catch(() => {});
 
 // Every save records a change, so the first one asks the browser to keep the data. The timeout runs it outside the transaction.
 db.changes.hook("creating", () => {

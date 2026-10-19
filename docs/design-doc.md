@@ -127,6 +127,7 @@ interface AgentRun {
   mode: "strict" | "guided" | "liberal";
   input: { notes?: string; rules?: string; templateId?: string };
   status: "running" | "reviewing" | "done" | "interrupted" | "error";
+  error?: string;
   sections: RunSection[];
   linkSuggestions?: LinkSuggestion[];
   transcript: TranscriptEntry[];
@@ -139,7 +140,10 @@ interface RunSection {
   markdown?: string;
   raw?: string;
   sources: string[];
+  hints?: string[];
   note?: string;
+  problem?: string;
+  unknownLinks?: { title: string; closest: string[] }[];
 }
 
 interface LinkSuggestion {
@@ -151,7 +155,7 @@ interface LinkSuggestion {
 
 type TranscriptEntry =
   | { kind: "message"; section?: number; role: "system" | "user" | "assistant"; content: string; at: number }
-  | { kind: "tool-call"; section?: number; name: string; args: unknown; result?: unknown; repeat?: number; at: number }
+  | { kind: "tool-call"; section?: number; name: string; args: unknown; result?: string; error?: boolean; repeat?: number; at: number }
   | { kind: "repair"; section?: number; text: string; at: number };
 
 interface ModelSettings {
@@ -176,6 +180,7 @@ interface Tokenizer {
 }
 ```
 - `pageId` is unset on a draft of a new page until its first section is accepted.
+- A section's `note` is the author's note for a retry, `problem` says why it failed, and `hints` are its template hints.
 - `ModelSettings` is one app-wide record in `settings`. `contextLength` and `tools` are filled in by Test connection and can be overridden.
 
 ### Dexie schema
@@ -469,14 +474,15 @@ type WikiTool =
 
 ### Run flow
 `RunOrchestrator` drives every run; the model only answers narrow requests.
-1. **Plan**: the template's `##` headings, with no model call. Draft from notes without a template asks for headings one per line, falling back to the Character template's after two failures.
+1. **Plan**: the template's `##` headings with their hints, with no model call; a page's own template counts. Fill template plans the page's sections that hold nothing but hints. Draft from notes without a template asks for headings one per line, falling back to the Character template's after two failures.
 2. **Sections**: each section is a fresh conversation:
    - Instructions, mode, the wiki's Assistant rules, and the run's one-off rules.
-   - Auto-context, the notes, and the page title.
+   - Auto-context, the notes, the page title, and the page as it stands when it exists.
    - The headings of sections already written, and the current section's hints.
+   - On a retry, the last try and the author's note.
    - "Write the *Background* section."
 
-   A short tool loop follows, then the plain-text reply.
+   A short tool loop follows, then the plain-text reply. With tools on, auto-context takes at most 60% of what the fixed parts leave, so lookups have room; tool results are cut to the room left.
 3. **Review**: proposals fill the review view as they arrive.
 4. **Commit**: accepted sections replace sections with the same heading key, or are added in plan order. A draft of a new page creates the page on its first accept. Each accepted batch is one change entry with `author: "llm"`, merged by the usual 10-minute rule.
 
@@ -491,6 +497,7 @@ Rules apply in every mode.
 `ReplyRepair` cleans every reply before review:
 - It strips thinking tags, openers like "Here's the section:", an outer code fence, and a repeated heading.
 - It splits off extra `##` sections, closes open `:::` blocks, and converts `QUESTION:` lines.
+- It removes `[Canon]` and `[Likely]` labels the model copied from auto-context; the prompt also asks it not to.
 - Wikilinks are checked against titles and aliases with fuzzy matching. Unknown ones are flagged in review, not removed.
 
 | Failure | Response |
@@ -503,14 +510,16 @@ Rules apply in every mode.
 | Reply stuck repeating itself | Aborted, then retried once at a lower temperature |
 | No text for a while | Aborted after a timeout and retried |
 | Empty or unusable reply | Retried once with a note on what was wrong |
-| Context overflow from the server | Auto-context trimmed and retried |
+| Context overflow from the server | Auto-context halved and retried, up to twice |
+| Server error | Retried once |
+| Refused key, unreachable server, rejected request | The run stops with the error; written sections stay |
 
 A section that still fails is marked `failed` with its raw reply kept, and the run moves on. Every repair is logged as a `repair` transcript entry.
 
 ### Guardrails
 - A call repeating an earlier one (same tool, same arguments) counts as a repeat from its second occurrence and shows a ×N badge in the run panel.
-- Interrupt aborts the in-flight request and pauses the run between steps; a typed message joins the next request.
-- The run is saved after every step. After a reload, a running run becomes `interrupted`, and its unreviewed proposals stay reviewable.
+- Interrupt aborts the in-flight request and pauses the run between steps; a typed message joins the next request. Continue picks up the unwritten sections, with an optional message.
+- The run is saved after every step. After a reload, a running run becomes `interrupted`, and its unreviewed proposals stay reviewable. Review changes go through the orchestrator, so a run being written never overwrites them.
 - The last 20 runs per wiki are kept.
 
 ### Suggest links

@@ -50,6 +50,10 @@ export class WikiService {
     await this.db.wikis.update(id, { autoContextDepth: depth });
   }
 
+  async setAssistantRules(id: string, rules: string): Promise<void> {
+    await this.db.wikis.update(id, { assistantRules: rules.trim() || undefined });
+  }
+
   async delete(id: string): Promise<void> {
     // Tables indexed by wikiId hold this wiki's data; app-wide tables such as settings aren't, and bundled templates have no wikiId.
     const wikiTables = this.db.tables.filter((table) => table.name !== "wikis" && table.schema.idxByName.wikiId);

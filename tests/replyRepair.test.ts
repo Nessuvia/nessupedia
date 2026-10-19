@@ -60,6 +60,12 @@ describe("repairReply", () => {
     expect(repair(":::canon\nText.\n:::").fixes).toEqual([]);
   });
 
+  it("removes tier labels copied from the wiki text", () => {
+    const result = repair("Left at sixteen. [Canon]\nFights with two knives. [Likely] Born [Likely: in winter].\n\n[Canon]\nScarred.\n[/Canon]\n\n(From main canon) Quiet.");
+    expect(result.markdown).toBe("Left at sixteen.\nFights with two knives. Born in winter.\n\nScarred.\n\nQuiet.");
+    expect(result.fixes).toEqual(["Removed Canon and Likely labels copied from the wiki text."]);
+  });
+
   it("flags links to pages that don't exist, with the closest names", () => {
     expect(repair("Met [[Thea]] and [[mi|Mira]], then [[thea]] again and [[Nowhere]].").unknownLinks).toEqual([
       { title: "Thea", closest: ["Theo"] },

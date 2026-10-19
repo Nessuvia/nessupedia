@@ -263,7 +263,19 @@ describe("PageService.delete", () => {
 
   it("deletes the page's assistant runs", async () => {
     const theo = await pages.create({ wikiId, title: "Theo" });
-    await db.runs.add({ id: "run", wikiId, pageId: theo.id, kind: "draft", status: "done", transcript: [], startedAt: 0 });
+    await db.runs.add({
+      id: "run",
+      wikiId,
+      pageId: theo.id,
+      pageTitle: "Theo",
+      kind: "draft",
+      mode: "strict",
+      input: {},
+      status: "done",
+      sections: [],
+      transcript: [],
+      startedAt: 0,
+    });
 
     await pages.delete(theo.id);
 

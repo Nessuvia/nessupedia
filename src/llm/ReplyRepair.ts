@@ -32,7 +32,10 @@ const CLOSER = /^(?:let me know|i hope|feel free|would you like|if you(?:'d| wou
 const HEADING_LINE = /^(#{1,6})\s+(.+?)\s*#*\s*$/;
 const BOLD_LINE = /^\*\*(.+?)\*\*:?\s*$/;
 const QUESTION_LINE = /^\s*(?:[-*]\s+)?(?:\*\*)?question\s*:(?:\*\*)?\s*(.+)$/i;
-const FENCE_LINE = /^\s*(```|~~~)/;
+// The labels auto-context and tools put around tiered text, which models sometimes copy into their writing.
+const TIER_PHRASE = /\[(?:Canon|Likely|Idea):\s*([^\]\n]*)\]/g;
+const TIER_LABEL = /[ \t]*\[\/?(?:Canon|Likely|Idea)\][ \t]*|\(From main canon\)[ \t]*/g;
+const FENCE_LINE =/^\s*(```|~~~)/;
 const DIRECTIVE_OPEN = /^\s*(:{3,})\s*[A-Za-z]/;
 const DIRECTIVE_CLOSE = /^\s*(:{3,})\s*$/;
 
@@ -123,7 +126,18 @@ export function repairReply(raw: string, { heading, names }: RepairOptions): Rep
     fixes.push(open.length === 1 ? "Closed a block the reply left open." : `Closed ${open.length} blocks the reply left open.`);
   }
 
-  const markdown = kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  let markdown = kept.join("\n");
+  if (markdown.search(TIER_LABEL) !== -1 || markdown.search(TIER_PHRASE) !== -1) {
+    markdown = markdown
+      .replace(TIER_PHRASE, "$1")
+      .replace(TIER_LABEL, " ")
+      .replace(/(\S) {2,}/g, "$1 ")
+      .replace(/^ (?=\S)/gm, "")
+      .replace(/(\S) +([.,;:!?])/g, "$1$2")
+      .replace(/[ \t]+$/gm, "");
+    fixes.push("Removed Canon and Likely labels copied from the wiki text.");
+  }
+  markdown = markdown.replace(/\n{3,}/g, "\n\n").trim();
   const known = new Set(names.map(titleKey));
   const unknownLinks: UnknownLink[] = [];
   for (const match of markdown.matchAll(WIKILINK)) {

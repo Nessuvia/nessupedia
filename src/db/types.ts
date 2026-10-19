@@ -11,6 +11,8 @@ export interface Wiki {
   continuities?: Continuity[];
   // How many links auto-context follows from mentioned pages; unset means 1, and 0 turns following off.
   autoContextDepth?: number;
+  // Rules the Assistant follows in every run, in every mode.
+  assistantRules?: string;
   createdAt: number;
 }
 
@@ -106,16 +108,53 @@ export interface Tokenizer {
   downloadedAt: number;
 }
 
+// `section` is the index of the section an entry belongs to; planning entries have none.
 export type TranscriptEntry =
-  | { kind: "message"; role: "system" | "user" | "assistant"; content: string; at: number }
-  | { kind: "tool-call"; name: string; args: unknown; result?: unknown; at: number };
+  | { kind: "message"; section?: number; role: "system" | "user" | "assistant"; content: string; at: number }
+  | { kind: "tool-call"; section?: number; name: string; args: unknown; result?: string; error?: boolean; repeat?: number; at: number }
+  | { kind: "repair"; section?: number; text: string; at: number };
+
+export type AssumptionMode = "strict" | "guided" | "liberal";
+
+export interface RunSection {
+  heading: string;
+  status: "pending" | "writing" | "proposed" | "accepted" | "discarded" | "failed";
+  // The proposal as it will be written into the page, without its heading.
+  markdown?: string;
+  // The model's last reply as it came, kept when it couldn't be used.
+  raw?: string;
+  // Titles of the pages auto-context and tools served while writing it.
+  sources: string[];
+  // The template's hints for this section.
+  hints?: string[];
+  // The author's note for a retry.
+  note?: string;
+  // Why the section failed.
+  problem?: string;
+  unknownLinks?: { title: string; closest: string[] }[];
+}
+
+export interface LinkSuggestion {
+  start: number;
+  end: number;
+  text: string;
+  title: string;
+}
 
 export interface AgentRun {
   id: string;
   wikiId: string;
-  pageId: string;
+  // Unset on a draft of a new page until its first section is accepted.
+  pageId?: string;
+  pageTitle: string;
   kind: "draft" | "suggest-links" | "fill-template";
-  status: "running" | "done" | "interrupted" | "error";
+  mode: AssumptionMode;
+  input: { notes?: string; rules?: string; templateId?: string };
+  status: "running" | "reviewing" | "done" | "interrupted" | "error";
+  // What stopped the run, when it stopped with an error.
+  error?: string;
+  sections: RunSection[];
+  linkSuggestions?: LinkSuggestion[];
   transcript: TranscriptEntry[];
   startedAt: number;
 }

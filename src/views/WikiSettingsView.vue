@@ -125,6 +125,21 @@ function changeFollowDepth(event: Event) {
   return wikiService.setAutoContextDepth(props.wikiId, depth === DEFAULT_AUTO_CONTEXT_DEPTH ? undefined : depth);
 }
 
+const assistantRules = ref("");
+const rulesSaved = ref(false);
+watch(
+  () => currentWiki.value?.assistantRules,
+  (current) => (assistantRules.value = current ?? ""),
+  { immediate: true },
+);
+const rulesChanged = computed(() => assistantRules.value.trim() !== (currentWiki.value?.assistantRules ?? ""));
+watch(assistantRules, () => (rulesSaved.value = false));
+
+async function saveAssistantRules() {
+  await wikiService.setAssistantRules(props.wikiId, assistantRules.value);
+  rulesSaved.value = true;
+}
+
 const DAY = 24 * 60 * 60 * 1000;
 const HISTORY_SPANS = [
   { label: "Last 7 days", days: 7 },
@@ -272,6 +287,17 @@ watchEffect(() => {
         Auto-context gives the Assistant the pages your notes mention. Following connections adds the pages those link to,
         this many links away.
       </p>
+      <label class="label subsection" for="assistant-rules">Assistant rules</label>
+      <textarea
+        id="assistant-rules"
+        v-model="assistantRules"
+        class="text-input assistant-rules"
+        rows="5"
+        placeholder="Always spell it &quot;grey&quot;. Assume characters are adults unless the notes say otherwise."
+      />
+      <p class="hint">The Assistant follows these in every run, whatever the assumption mode. Each run can add its own.</p>
+      <button class="button secondary" type="button" :disabled="!rulesChanged" @click="saveAssistantRules">Save rules</button>
+      <p v-if="rulesSaved" class="saved" role="status">Saved.</p>
     </section>
 
     <section aria-labelledby="settings-model">
@@ -414,6 +440,16 @@ h2 {
 
 .subsection {
   margin-top: 1.5rem;
+}
+
+.assistant-rules {
+  display: block;
+  max-width: 40rem;
+  resize: vertical;
+}
+
+.assistant-rules + .hint {
+  margin-bottom: 0.5rem;
 }
 
 .import {
