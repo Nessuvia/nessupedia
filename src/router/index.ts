@@ -3,20 +3,9 @@ import { createRouter, createWebHistory, type RouteLocationNormalized, type Rout
 import { wikiService } from "@/services";
 import { titleFromRoute, titleParam } from "./params";
 import { MAIN_PAGE_TITLE, useWikiStore } from "@/stores/wiki";
-import AllPagesView from "@/views/AllPagesView.vue";
-import AppearanceView from "@/views/AppearanceView.vue";
-import CategoriesView from "@/views/CategoriesView.vue";
-import CategoryView from "@/views/CategoryView.vue";
-import ContinuityView from "@/views/ContinuityView.vue";
-import NewPageView from "@/views/NewPageView.vue";
-import NewWikiView from "@/views/NewWikiView.vue";
 import PageRail from "@/views/PageRail.vue";
 import PageView from "@/views/PageView.vue";
-import RecentChangesView from "@/views/RecentChangesView.vue";
-import SearchView from "@/views/SearchView.vue";
-import TemplatesView from "@/views/TemplatesView.vue";
 import WikiLayout from "@/views/WikiLayout.vue";
-import WikiSettingsView from "@/views/WikiSettingsView.vue";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -62,7 +51,7 @@ export function createAppRouter(pinia: Pinia): Router {
         component: { render: () => null },
         beforeEnter: () => homeLocation(useWikiStore(pinia).lastWikiId),
       },
-      { path: "/new-wiki", name: "new-wiki", component: NewWikiView },
+      { path: "/new-wiki", name: "new-wiki", component: () => import("@/views/NewWikiView.vue") },
       {
         path: "/w/:wiki",
         component: WikiLayout,
@@ -95,7 +84,7 @@ export function createAppRouter(pinia: Pinia): Router {
           {
             path: "new",
             name: "new-page",
-            component: NewPageView,
+            component: () => import("@/views/NewPageView.vue"),
             props: (route) => ({
               wikiId: wikiIdFrom(route),
               initialTitle: typeof route.query.title === "string" ? route.query.title : undefined,
@@ -106,20 +95,20 @@ export function createAppRouter(pinia: Pinia): Router {
           {
             path: "special/search",
             name: "search",
-            component: SearchView,
+            component: () => import("@/views/SearchView.vue"),
             props: (route) => ({
               wikiId: wikiIdFrom(route),
               query: typeof route.query.q === "string" ? route.query.q : "",
             }),
           },
-          { path: "special/settings", name: "wiki-settings", component: WikiSettingsView, props: wikiProps },
-          { path: "special/appearance", name: "appearance", component: AppearanceView, props: wikiProps },
-          { path: "special/all-pages", name: "all-pages", component: AllPagesView, props: wikiProps },
-          { path: "special/recent-changes", name: "recent-changes", component: RecentChangesView, props: wikiProps },
-          { path: "special/categories", name: "categories", component: CategoriesView, props: wikiProps },
-          { path: "special/category/:name(.*)", name: "category", component: CategoryView, props: wikiProps },
-          { path: "special/templates", name: "templates", component: TemplatesView, props: wikiProps },
-          { path: "special/continuity/:name", name: "continuity", component: ContinuityView, props: wikiProps },
+          { path: "special/settings", name: "wiki-settings", component: () => import("@/views/WikiSettingsView.vue"), props: wikiProps },
+          { path: "special/appearance", name: "appearance", component: () => import("@/views/AppearanceView.vue"), props: wikiProps },
+          { path: "special/all-pages", name: "all-pages", component: () => import("@/views/AllPagesView.vue"), props: wikiProps },
+          { path: "special/recent-changes", name: "recent-changes", component: () => import("@/views/RecentChangesView.vue"), props: wikiProps },
+          { path: "special/categories", name: "categories", component: () => import("@/views/CategoriesView.vue"), props: wikiProps },
+          { path: "special/category/:name(.*)", name: "category", component: () => import("@/views/CategoryView.vue"), props: wikiProps },
+          { path: "special/templates", name: "templates", component: () => import("@/views/TemplatesView.vue"), props: wikiProps },
+          { path: "special/continuity/:name", name: "continuity", component: () => import("@/views/ContinuityView.vue"), props: wikiProps },
           { path: "special/review/:runId", name: "review", component: () => import("@/views/ReviewView.vue"), props: wikiProps },
           {
             path: "special/templates/:templateId/edit",
