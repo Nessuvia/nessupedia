@@ -50,7 +50,7 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 - Persistent storage requested from the browser, with its status in settings.
 
 ### LLM features
-- Bring-your-own endpoint and key: llama.cpp, koboldcpp, OpenRouter, NanoGPT, or any OpenAI-compatible server.
+- Bring-your-own endpoint and key: llama.cpp, koboldcpp, Ollama, LM Studio, OpenRouter, NanoGPT, or any OpenAI-compatible server.
 - Auto-context: lorebook-style triggers from page titles and aliases.
 - Agent with read tools; its only output is section proposals for review.
 - Built for small local models: the app drives each run and repairs broken replies.
@@ -71,7 +71,6 @@ Writers with original characters (OCs) keep canon scattered across notes, headca
 - Director's Desk roleplay module.
 - Character messaging app, OC social media.
 - Open questions board.
-- Ollama and LM Studio as supported providers.
 
 ## User stories
 - As a writer, I jot a few lines about a character and get a full draft page to review section by section.

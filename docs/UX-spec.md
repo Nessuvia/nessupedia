@@ -171,7 +171,7 @@ Assistant rules saved in wiki settings apply to every run in every mode; the one
 - Setting: approve each proposal, or auto-accept into the diff view (default).
 
 ## Settings
-- **Model** (shared by all wikis): provider (llama.cpp, koboldcpp, OpenRouter, NanoGPT, OpenAI-compatible), endpoint URL, API key, model, context size, reply length, and "Uses tools".
+- **Model** (shared by all wikis): provider (llama.cpp, koboldcpp, Ollama, LM Studio, OpenRouter, NanoGPT, OpenAI-compatible), endpoint URL, API key, model, context size, reply length, and "Uses tools".
   - The screen notes that the key is stored unencrypted on this device.
   - Test connection checks the server, fills in the context size and tool support, and explains failures, including blocked browser access.
   - When the server can't count tokens, a Tokenizer row suggests one for the model with a Download button. Without one, counts are estimated with a 10% margin.

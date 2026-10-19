@@ -56,4 +56,3 @@
 6. Character messaging app, with in-character interviews
 7. OC social media spinoff
 8. Open questions board
-9. Ollama and LM Studio support

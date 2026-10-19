@@ -106,7 +106,7 @@ export interface Template {
   frontmatter: Record<string, unknown>;
 }
 
-export type ProviderId = "llama.cpp" | "koboldcpp" | "openrouter" | "nanogpt" | "openai";
+export type ProviderId = "llama.cpp" | "koboldcpp" | "ollama" | "lmstudio" | "openrouter" | "nanogpt" | "openai";
 
 // The one app-wide record in `settings`; Test connection fills in contextLength and tools, which stay overridable.
 export interface ModelSettings {

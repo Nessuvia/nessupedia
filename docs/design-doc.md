@@ -176,7 +176,7 @@ type TranscriptEntry =
 
 interface ModelSettings {
   id: "model";
-  provider: "llama.cpp" | "koboldcpp" | "openrouter" | "nanogpt" | "openai";
+  provider: "llama.cpp" | "koboldcpp" | "ollama" | "lmstudio" | "openrouter" | "nanogpt" | "openai";
   baseUrl: string;
   apiKey?: string;
   model: string;
@@ -447,17 +447,19 @@ wiki-name/
 ### Client
 - OpenAI-compatible `/chat/completions` with tool calling and streamed replies; requests go directly from the browser.
 - One app-wide `ModelSettings` record, key included, stored unencrypted in IndexedDB.
-- Providers (ADR 0006), each with a preset base URL and its own detection:
+- Providers (ADRs 0006 and 0009), each with a preset base URL and its own detection:
 
 | Provider | Default base URL | Token counts | Context length | Tokenizer family |
 |---|---|---|---|---|
 | llama.cpp | `http://localhost:8080/v1` | `POST /tokenize` | `/props` | n/a |
 | koboldcpp | `http://localhost:5001/v1` | `POST /api/extra/tokencount` | `/api/extra/true_max_context_length` | n/a |
+| Ollama | `http://localhost:11434/v1` | tokenizer or estimate | `/api/ps`, after the probe | from model name |
+| LM Studio | `http://localhost:1234/v1` | tokenizer or estimate | `/api/v0/models` `loaded_context_length`, after the probe | from model name |
 | OpenRouter | `https://openrouter.ai/api/v1` | tokenizer or estimate | `/models` | `/models` architecture |
 | NanoGPT | `https://nano-gpt.com/api/v1` | tokenizer or estimate | model list when offered | from model name |
 | OpenAI-compatible | typed | tokenizer or estimate | typed | from model name |
 
-- llama.cpp and koboldcpp extras live at the server root, found by dropping `/v1` from the base URL.
+- Local servers' extras live at the server root, found by dropping `/v1` from the base URL.
 - Test connection lists models, reads the context length, and sends one tiny request offering a single tool. A tool call, native or written as text, marks `tools` true. Failures explain the likely cause: an unreachable server, a rejected key, or browser access (CORS) being blocked.
 
 ### Token counting

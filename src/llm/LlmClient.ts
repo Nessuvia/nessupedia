@@ -100,6 +100,20 @@ export class LlmClient {
         };
         return positive(body.default_generation_settings?.n_ctx) ?? positive(body.n_ctx);
       }
+      // Both report the size the running model was loaded with, often far below what it supports.
+      if (settings.provider === "ollama") {
+        const body = (await this.getJson(settings, serverUrl(settings.baseUrl, "/api/ps"), signal)) as {
+          models?: { name?: unknown; model?: unknown; context_length?: unknown }[];
+        };
+        const running = body.models?.find(({ name, model }) => name === settings.model || model === settings.model);
+        return positive(running?.context_length);
+      }
+      if (settings.provider === "lmstudio") {
+        const body = (await this.getJson(settings, serverUrl(settings.baseUrl, "/api/v0/models"), signal)) as {
+          data?: { id?: unknown; loaded_context_length?: unknown }[];
+        };
+        return positive(body.data?.find(({ id }) => id === settings.model)?.loaded_context_length);
+      }
     } catch (cause) {
       if (cause instanceof LlmError && cause.kind === "aborted") throw cause;
       return undefined;

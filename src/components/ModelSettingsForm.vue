@@ -44,7 +44,7 @@ async function test() {
     if (result.model && !form.value.model.trim()) form.value.model = result.model;
     if (result.contextLength) form.value.contextLength = result.contextLength;
     if (result.tools !== undefined) form.value.tools = result.tools;
-    if (!provider.value.local && !form.value.tokenizerId && suggested.value) form.value.tokenizerId = suggested.value.id;
+    if (!provider.value.exactTokens && !form.value.tokenizerId && suggested.value) form.value.tokenizerId = suggested.value.id;
   } finally {
     testing.value = false;
   }
@@ -172,7 +172,7 @@ watch(dirty, (changed) => changed && (savedNote.value = false));
     </div>
     <p class="hint">In tokens. The reply length is held back from the context size, so a long prompt can't crowd out the answer.</p>
 
-    <div v-if="!provider.local" class="field">
+    <div v-if="!provider.exactTokens" class="field">
       <label class="label" for="model-tokenizer">Tokenizer</label>
       <select id="model-tokenizer" v-model="tokenizerChoice" class="text-input narrow">
         <option value="">None: estimate</option>

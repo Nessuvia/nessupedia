@@ -28,8 +28,7 @@ export async function testConnection(client: LlmClient, settings: ModelSettings,
 
   const model = settings.model.trim() || models[0]?.id;
   const checked = { ...settings, model: model ?? "" };
-  const contextLength = await client.contextLength(checked, models, signal);
-  const report: ConnectionReport = { models, ...(model && { model }), ...(contextLength && { contextLength }) };
+  const report: ConnectionReport = { models, ...(model && { model }) };
 
   try {
     const result = await client.chat(checked, {
@@ -46,6 +45,9 @@ export async function testConnection(client: LlmClient, settings: ModelSettings,
     if (cause instanceof LlmError && cause.kind === "bad-request") report.tools = false;
     else report.error = describe(cause, checked);
   }
+  // Asked after the probe, since Ollama and LM Studio load the model on its first request.
+  const contextLength = await client.contextLength(checked, models, signal);
+  if (contextLength) report.contextLength = contextLength;
   return report;
 }
 
@@ -64,7 +66,7 @@ export function connectionHelp(error: LlmError, settings: ModelSettings, pagePro
         return "This page is served over HTTPS, and browsers block it from calling a plain HTTP server other than localhost. Use HTTPS for the server, or open the app from localhost.";
       }
       return provider.local
-        ? `Check that ${provider.label} is running and the URL is right, including the port and /v1. If it is, the server may be blocking requests from the browser (CORS); ${provider.label} allows them by default, so a proxy in between is the usual cause.`
+        ? `Check that ${provider.label} is running and the URL is right, including the port and /v1. If it is, the server may be blocking requests from the browser (CORS). ${provider.cors ?? `${provider.label} allows them by default, so a proxy in between is the usual cause.`}`
         : "Check the URL and your internet connection. If both are fine, the server may not accept requests from a browser (CORS).";
     }
     case "auth":

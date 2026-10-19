@@ -177,6 +177,18 @@ describe("LlmClient models and context size", () => {
     expect(await client.contextLength(settings({ provider: "openrouter", model: "other" }), models)).toBeUndefined();
   });
 
+  it("reads the loaded context size of Ollama's and LM Studio's running model", async () => {
+    const { client } = clientFor({
+      "GET /api/ps": () => json({ models: [{ name: "qwen3:8b", model: "qwen3:8b", context_length: 4096 }] }),
+      "GET /api/v0/models": () =>
+        json({ data: [{ id: "gemma", state: "loaded", max_context_length: 131072, loaded_context_length: 32768 }, { id: "idle", max_context_length: 8192 }] }),
+    });
+    expect(await client.contextLength(settings({ provider: "ollama", model: "qwen3:8b" }))).toBe(4096);
+    expect(await client.contextLength(settings({ provider: "ollama", model: "llama3" }))).toBeUndefined();
+    expect(await client.contextLength(settings({ provider: "lmstudio" }))).toBe(32768);
+    expect(await client.contextLength(settings({ provider: "lmstudio", model: "idle" }))).toBeUndefined();
+  });
+
   it("treats a missing context endpoint as unknown", async () => {
     const { client } = clientFor({});
     expect(await client.contextLength(settings())).toBeUndefined();
@@ -235,7 +247,8 @@ describe("testConnection", () => {
       contextLength: 16384,
       tools: true,
     });
-    expect(requests.at(-1)!.body).toMatchObject({ model: "koboldcpp/Artemis-31B", max_tokens: 200 });
+    expect(requests.at(-2)!.body).toMatchObject({ model: "koboldcpp/Artemis-31B", max_tokens: 200 });
+    expect(requests.at(-1)!.path).toBe("/api/extra/true_max_context_length");
   });
 
   it("keeps a model already chosen", async () => {
@@ -277,6 +290,11 @@ describe("connectionHelp", () => {
     expect(connectionHelp(network, settings({ baseUrl: "http://10.0.0.5:5001/v1" }), "https:")).toContain("HTTPS");
     expect(connectionHelp(network, settings({ baseUrl: "http://localhost:5001/v1" }), "https:")).toContain("koboldcpp is running");
     expect(connectionHelp(network, settings({ baseUrl: "http://10.0.0.5:5001/v1" }), "http:")).toContain("koboldcpp is running");
+  });
+
+  it("says how to let the browser into Ollama and LM Studio", () => {
+    expect(connectionHelp(network, settings({ provider: "ollama", baseUrl: "http://localhost:11434/v1" }))).toContain("OLLAMA_ORIGINS");
+    expect(connectionHelp(network, settings({ provider: "lmstudio", baseUrl: "http://localhost:1234/v1" }))).toContain("Enable CORS");
   });
 
   it("covers cloud providers and a missing URL", () => {

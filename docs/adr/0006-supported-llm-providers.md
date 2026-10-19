@@ -1,7 +1,7 @@
 # ADR 0006: Supported LLM providers
 
 ## Status
-Accepted
+Accepted. Ollama and LM Studio added by ADR 0009.
 
 ## Context
 The Assistant talks to a user-supplied OpenAI-compatible endpoint straight from the browser. Servers differ in what they offer beyond `/chat/completions`: exact token counts, the loaded model's context length, its tokenizer family, and whether browsers may call them at all (CORS). Each provider we support needs testing against a real setup, and the author runs koboldcpp and llama.cpp locally.
