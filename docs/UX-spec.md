@@ -150,6 +150,42 @@ Typing `/` in any editor offers:
   - Block references, note embeds, and plugin syntax stay as plain text.
 - The browser is asked to keep the wiki's storage on first save. Settings show whether it agreed, with a button to ask again.
 
+## Dropbox sync
+For the same wikis on several devices, used one at a time. The page is the unit: a page changed on one device since the last sync just moves; a page changed on both is a clash, and you choose.
+
+### Connecting
+- **Settings > Dropbox** (app-wide): Connect opens Dropbox's sign-in in a popup. Once connected it shows "Connected as <email>", Disconnect, and the device name ("Firefox on Windows" by default, editable).
+- A note says files are kept in `Apps/OC Wiki/` in your Dropbox and the app can't see the rest of it.
+- **In Dropbox, not on this device**: wikis found in the folder, each with Download. Download brings the whole wiki, under the same ID, with sync on in Auto.
+- Disconnect stops sync for every wiki and leaves the Dropbox copies.
+
+### Per wiki
+- **Wiki settings > Sync**: "Sync this wiki to Dropbox" (off by default), then the mode:
+  - **Auto** (default): sends on every save; receives when the app opens, when the tab regains focus, and when back online.
+  - **Manual**: "Only recommended for advanced users. Nothing is sent or received until you press Sync now."
+- Sync now, "Last synced <time>", and Sync details.
+- Turning sync off leaves the Dropbox copy. "Delete from Dropbox" is its own button and asks first.
+- Deleting a wiki offers "Also delete it from Dropbox", unchecked.
+- A wiki on Auto doesn't get the export reminder: Dropbox is its backup.
+
+### Sync badge
+- Shown beside the wiki name in the global bar and on every wiki in the wiki switcher, so a wiki that isn't synced never looks like one that is.
+- States: Synced, Syncing, Not synced to Dropbox (sync off), N changes not sent (Manual), Offline, last synced 3 h ago, Not synced, retrying, Reconnect Dropbox, Needs a choice.
+- Clicking it opens a small popover with the line, Sync now, and Sync details.
+
+### Clashes
+- One dialog per wiki lists every clash. Nothing is received or sent for that wiki until each one is decided.
+- Each row: the page (or template, card, image, wiki settings), and for each side the device and save time. Expanding a row shows a word diff for text, the two images side by side, or the changed fields for settings.
+- Per row: **Keep our version** / **Use the synced version**. "Keep ours for all" and "Use synced for all" sit above the list. Apply is enabled once every row is decided.
+- Deleted on one side: "Deleted on <device>, <date>" in place of the diff.
+- A file changed outside the app is labelled "Changed outside the app". One that can't be read only offers Keep our version.
+- **Decide later** closes the dialog. The wiki keeps working on this device, its badge reads Needs a choice, and the dialog comes back on the next sync.
+- A page open in the editor isn't replaced by an incoming version. The editor shows "Changed on <device>. Reload / Keep editing"; saving after Keep editing opens the same choice for that one page.
+
+### Sync details
+- The recent syncs on this device, newest first: time, items sent, items received, and each clash with what was chosen. A row expands to list the items.
+- Failures show the step that failed and Dropbox's reason.
+
 ## LLM actions
 A run is one use of an Assistant action, from Start until its review is finished. Actions are available from the page toolbar and the slash menu:
 - **Draft from notes**: notes box, template picker, assumption mode, one-off rules. Also offered on the New page screen.
@@ -190,6 +226,7 @@ Assistant rules saved in wiki settings apply to every run in every mode; the one
   - **Fonts**: a heading font and a body font, searched from Fontsource, or System fonts (default). A note says fonts are small and download once, then work offline. A small credit links to Fontsource.
   - **Images**: banner (1920 × 300), background (1920 × 1080), wordmark (500 × 130, shown at half size), and icon (256 × 256). Each slot takes a dropped file or an upload, shows a preview, and has Remove.
   - **Wiki Assets Pack**: Download gives `Wiki_Assets_Pack.zip`, with `BANNER.png`, `BACKGROUND.png`, `WORDMARK.png`, and `ICON.png` as placeholder grids at the exact sizes and a short README. Import pack fills each slot whose file is in the ZIP, matching names without regard to case or image type.
+- **Dropbox** (shared by all wikis) and **Sync** in wiki settings: see Dropbox sync.
 - **Data**: storage status, export ZIP, import ZIP, import Obsidian vault. Under Export, "Last exported N days ago" (or "Never exported"), in red when a backup is due.
 
 ## Export reminder
@@ -204,3 +241,5 @@ Assistant rules saved in wiki settings apply to every run in every mode; the one
 | Follow connections | Recursion |
 | Canon / Likely / Idea | hard / soft / maybe |
 | Assistant | Agent |
+| Our version / synced version | local / remote |
+| Clash | conflict |

@@ -1,7 +1,7 @@
 # ADR 0010: Dropbox sync without a backend
 
 ## Status
-Accepted. Replaces the plan in ADR 0001 for a backend that handles Dropbox OAuth.
+Accepted. Replaces the plan in ADR 0001 for a backend that handles Dropbox OAuth. The sync layout is replaced by ADR 0013.
 
 ## Context
 Dropbox sync is the first post-MVP item. The plan assumed a Rails backend to keep the OAuth client secret. Dropbox also supports OAuth with PKCE for public clients, meaning apps that can't keep a secret, and issues refresh tokens to them. Its API accepts calls from the browser.

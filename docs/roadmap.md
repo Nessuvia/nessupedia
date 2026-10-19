@@ -47,7 +47,7 @@
 - Export reminders
 
 ## Post-MVP
-1. Dropbox sync, with OAuth PKCE from the browser (ADR 0010)
+1. Dropbox sync, with OAuth PKCE from the browser and one file per item (ADR 0010, ADR 0013)
 2. Character cards (V2 and V3): attach a card to a page, edit it with its own history, download it as stored, list cards and images in Wiki Documents, and an infobox chat button that's a placeholder for now (ADR 0011) (done)
 3. Theme editor: full color sets, custom CSS, layout options
 4. Director's Desk
